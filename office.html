@@ -687,7 +687,8 @@ function wrap(c,text,maxW){ const out=[]; let cur=""; for(const w of wordsOf(tex
 class Renderer{
   constructor(canvas){ this.cv=canvas; this.c=canvas.getContext("2d"); this.bufA=document.createElement("canvas"); this.bufB=document.createElement("canvas"); this.project=null; }
   load(project){ this.project=project; const [w,h]=project.aspect==="16:9"?[1280,720]:[720,1280]; for(const cv of [this.cv,this.bufA,this.bufB]){ cv.width=w; cv.height=h; } this.W=w; this.H=h; this.layout(); }
-  layout(){ const P=this.project; let t=0; this.starts=P.scenes.map(s=>{ const st=t; t+=s.duration; return st; }); this.endStart=t; this.total=t+2.6; this.subs=P.scenes.map((s,i)=>this.buildSubs(s,i)); }
+  rc(s){ let o=this._rc.get(s); if(!o){ o={}; this._rc.set(s,o); } return o; }
+  layout(){ this._rc=new WeakMap(); const P=this.project; let t=0; this.starts=P.scenes.map(s=>{ const st=t; t+=s.duration; return st; }); this.endStart=t; this.total=t+2.6; this.subs=P.scenes.map((s,i)=>this.buildSubs(s,i)); }
   buildSubs(s,i){
     const toks=[]; let emph=false;
     (s.narration||"").split(/(\*)/).forEach(part=>{ if(part==="*"){ emph=!emph; return; } if(part) for(const w of wordsOf(part)) toks.push({w,emph}); });
@@ -698,15 +699,48 @@ class Renderer{
     words.forEach((w,k)=>{ const L=lens[k], prev=cur[cur.length-1]; if(cur.length&&(len+L>15||(w.emph!==prev.emph&&len>5))){ chunks.push(cur); cur=[]; len=0; } cur.push(w); len+=L; if((w.sp||/[,.!?…]$/.test(w.text))&&len>7){ chunks.push(cur); cur=[]; len=0; } });
     if(cur.length) chunks.push(cur);
     const ch=chunks.map(c=>({words:c,from:c[0].from}));
-    return {words,chunks:ch,band:this.pickBand(s,i),emphStarts:words.filter((w,k)=>w.emph&&!(words[k-1]?.emph)).map(w=>w.from)};
+    return {scene:s,i,bands:{},words,chunks:ch,emphStarts:words.filter((w,k)=>w.emph&&!(words[k-1]?.emph)).map(w=>w.from)};
   }
-  pickBand(s,i){
-    const W=this.W,H=this.H,m=Math.min(W,H), portrait=H>W; const B=portrait?{top:0.3,middle:0.52,bottom:0.76}:{top:0.3,middle:0.55,bottom:0.82};
-    if(s.subPos!=="auto") return B[s.subPos];
-    const charH=0.58*m/H, propH=0.12*m/H;
-    const hit=y=>s.elements.reduce((a,e)=>{ const top=e.type==="character"?e.y-charH*e.scale:e.y-propH*e.scale, bot=e.type==="character"?e.y:e.y+propH*e.scale; const toY=e.motion==="move"||e.motion==="walk"?e.toY:e.y; return a+((y>Math.min(top,toY-0.1)-0.05&&y<Math.max(bot,toY)+0.05)?(e.type==="character"?1.2:0.8):0); },0);
-    let best="bottom",bs=1e9; [["bottom",0],["top",s.caption?1.6:0.35],["middle",0.7]].forEach(([k,pen])=>{ const sc=hit(B[k])+pen+(i%2&&k==="bottom"?0.25:0); if(sc<bs){ bs=sc; best=k; } });
-    return B[best];
+  /* Everything a subtitle must not cover, as pixel rectangles with a weight (100 = never cover) */
+  obstacles(s){
+    const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,R=[];
+    if(s.caption){ const fs=Math.round(m*0.085); c.font=`800 ${fs}px Kanit, sans-serif`; const lines=wrap(c,s.caption,W*0.88).slice(0,2); const y0=H*(W>H?0.13:0.12), w=Math.max(...lines.map(l=>c.measureText(l).width));
+      R.push({x0:W/2-w/2-fs*0.3,x1:W/2+w/2+fs*0.3,y0:y0-fs*0.8,y1:y0+(lines.length-1)*fs*1.15+fs*0.85,w:100}); }
+    for(const e of s.elements){ const pts=[[e.x,e.y]]; if(e.motion==="move"||e.motion==="walk"){ pts.push([e.toX,e.toY]); pts.push([(e.x+e.toX)/2,(e.y+e.toY)/2]); }
+      for(const [x,y] of pts){ const X=x*W, Y=y*H;
+        if(e.type==="character"){ const h=m*0.58*e.scale, w=m*0.32*e.scale; R.push({x0:X-w/2,x1:X+w/2,y0:Y-h,y1:Y,w:4});
+          if(e.say){ const fs=34*m/720, by=Y-m*0.0024*e.scale*240; c.font=`600 ${fs}px Kanit, sans-serif`; const bw=Math.min(c.measureText(e.say).width+fs,W*0.8); R.push({x0:X-bw/2,x1:X+bw/2,y0:by-fs*1.8,y1:by+fs*0.6,w:100}); R.push({x0:X-bw-m*0.11*e.scale,x1:X+bw+m*0.11*e.scale,y0:by,y1:by+m*0.11*e.scale+fs*1.7,w:6}); } }
+        else if(e.type==="text"){ const r=this.textRect(s,e,this.textShift(s,e)+(y-e.y)); R.push({x0:r.x0,x1:r.x1,y0:r.y0,y1:r.y1,w:100}); }
+        else if(e.type==="emoji"){ const r=m*0.1*e.scale; R.push({x0:X-r,x1:X+r,y0:Y-r,y1:Y+r,w:10}); }
+        else { const r=m*0.11*e.scale; R.push({x0:X-r,x1:X+r,y0:Y-r,y1:Y+r,w:2.5}); } } }
+    return R;
+  }
+  /* Pop style: fit a chunk on one line (shrinking up to 28%), wrap only if it still does not fit */
+  popLayout(ch){
+    const W=this.W, m=Math.min(W,this.H), c=this.c, key=W+"x"+this.H; if(ch._k===key) return ch._L;
+    const maxW=W*0.88; let fs=Math.round(m*0.088);
+    const measure=f=>ch.words.map(w=>{ const ff=w.emph?f*1.22:f; c.font=`800 ${ff}px Kanit, sans-serif`; return {w,f:ff,width:c.measureText(w.text).width+(w.sp?ff*0.28:0)}; });
+    let items=measure(fs), total=items.reduce((a,x)=>a+x.width,0);
+    if(total>maxW){ fs=Math.round(fs*Math.max(0.72,maxW/total)); items=measure(fs); total=items.reduce((a,x)=>a+x.width,0); }
+    const lines=[]; let line=[],lw=0; items.forEach(it=>{ if(line.length&&lw+it.width>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push(it); lw+=it.width; }); if(line.length) lines.push({items:line,w:lw});
+    const lh=Math.max(...items.map(x=>x.f))*1.38, L={fs,lines,lh,w:Math.max(...lines.map(l=>l.w)),h:lines.length*lh};
+    ch._k=key; ch._L=L; return L;
+  }
+  blockSize(S,style){ const W=this.W,m=Math.min(W,this.H),c=this.c;
+    if(style==="pop"){ let w=0,h=0; S.chunks.forEach(ch=>{ const L=this.popLayout(ch); w=Math.max(w,L.w); h=Math.max(h,L.h); }); return {w:w+m*0.04,h:h+m*0.03}; }
+    const cfg=this.pageCfg(style), pages=this.pages(c,S,cfg.fs,W*cfg.maxW,cfg.weight); let w=0,lines=1; pages.forEach(p=>{ lines=Math.max(lines,p.lines.length); p.lines.forEach(l=>w=Math.max(w,l.w)); });
+    return {w:w+cfg.fs*1.4,h:lines*cfg.fs*cfg.lh+cfg.fs*(cfg.box?0.9:0.3)}; }
+  pageCfg(style){ const m=Math.min(this.W,this.H); return style==="karaoke"?{fs:Math.round(m*0.06),maxW:0.8,weight:700,lh:1.6,box:true}:style==="bounce"?{fs:Math.round(m*0.072),maxW:0.86,weight:800,lh:1.5,box:false}:{fs:Math.round(m*0.052),maxW:0.84,weight:600,lh:1.55,box:true}; }
+  /* Choose the subtitle's vertical centre for this scene and style */
+  bandY(S){
+    const style=this.project.subStyle, key=style+this.W; if(S.bands[key]!=null) return S.bands[key];
+    const W=this.W,H=this.H,s=S.scene, obs=this.obstacles(s), {w,h}=this.blockSize(S,style), x0=W/2-Math.min(w,W*0.96)/2, x1=W-x0;
+    const portrait=H>W, pref=s.subPos==="top"?0.3:s.subPos==="middle"?0.52:s.subPos==="bottom"?(portrait?0.76:0.82):(portrait?0.74:0.8), prefW=s.subPos==="auto"?2:12;
+    const lo=Math.max(H*0.07+h/2,0), hi=H*0.93-h/2; let best=pref*H, bc=1e18;
+    for(let y=lo;y<=hi;y+=H*0.01){ const y0=y-h/2,y1=y+h/2; let cost=0;
+      for(const o of obs){ const ix=Math.max(0,Math.min(x1,o.x1)-Math.max(x0,o.x0)), iy=Math.max(0,Math.min(y1,o.y1)-Math.max(y0,o.y0)); if(ix>0&&iy>0) cost+=o.w*(ix*iy)/(w*h)*10+(o.w>=100?50:0); }
+      cost+=prefW*Math.abs(y/H-pref); if(cost<bc){ bc=cost; best=y; } }
+    return S.bands[key]=best;
   }
   punch(idx,lt){ const S=this.subs[idx]; if(!S) return 0; let v=0; for(const f of S.emphStarts){ const x=lt-f; if(x>=0&&x<0.42) v=Math.max(v,Math.sin(Math.PI*x/0.42)*0.065); } return v; }
   beatPulse(t){ const m=this.project.music; if(m==="none"||m==="calm"||reduceMotion) return 0; const bps=(MOODS[m]||MOODS.upbeat).bpm/60; return 0.012*Math.exp(-((t*bps)%1)*7); }
@@ -764,6 +798,7 @@ class Renderer{
     const mt=clamp((lt-el.at)/Math.max(0.5,s.duration-el.at),0,1);
     let x=el.x, y=el.y, sc=el.scale, rot=0, alpha=1;
     switch(el.enter){ case "pop": sc*=easeBack(ep); break; case "fade": alpha=e; break; case "left": x=lerp(-0.3,el.x,e); break; case "right": x=lerp(1.3,el.x,e); break; case "top": y=lerp(-0.3,el.y,e); break; case "bottom": y=lerp(1.3,el.y,e); break; }
+    if(el.type==="text") y+=this.textShift(s,el);
     const T=lt;
     switch(el.motion){
       case "float": y+=Math.sin(T*2)*0.012; break; case "spin": rot=T*1.6; break; case "pulse": sc*=1+Math.sin(T*6)*0.06; break;
@@ -774,7 +809,7 @@ class Renderer{
     const base=Math.min(W,H);
     c.save(); c.globalAlpha=alpha; c.translate(x*W,y*H); c.rotate(rot);
     if(el.type==="character"){ const k=base*0.0024*sc; c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,el.motion==="talk"||(el.motion==="none"&&!!el.say)); c.restore();
-      if(el.say && lt>=el.at+0.3) this.drawBubble(c,el.say,x*W,y*H-base*0.0024*sc*240,u);
+      if(el.say && lt>=el.at+0.3) this.drawBubble(c,el.say,x*W,y*H-base*0.0024*sc*240,u,s,sc);
       return; }
     if(el.type==="emoji"){ const fs=Math.round(base*0.17*sc); c.font=`${fs}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.fillText(el.char,0,0); c.restore(); return; }
     if(el.type==="text"){ const fs=Math.round(base*0.09*sc); c.font=`800 ${fs}px Kanit, sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.lineWidth=fs*0.16; c.strokeStyle=OL; c.lineJoin="round"; c.strokeText(el.text,0,0); c.fillStyle=el.color; c.fillText(el.text,0,0); c.restore(); return; }
@@ -783,8 +818,23 @@ class Renderer{
     outline(c,4); (PROPS[el.name]||PROPS.star)(c,T);
     c.restore();
   }
-  drawBubble(c,text,x,y,u){ const fs=Math.round(34*u); c.save(); c.font=`600 ${fs}px Kanit, sans-serif`; const w=Math.min(c.measureText(text).width+fs, this.W*0.8), h=fs*1.7; let bx=clamp(x-w/2,10,this.W-w-10), by=Math.max(10,y-h);
-    outline(c,4*u); rr(c,bx,by,w,h,h/2,"#fff"); poly(c,[[clamp(x,bx+20,bx+w-20)-10,by+h-2],[clamp(x,bx+20,bx+w-20)+10,by+h-2],[clamp(x,bx+20,bx+w-20),by+h+16*u]],"#fff",false);
+  capRect(s){ const key="cap"+this.W, C=this.rc(s); if(C[key]!==undefined) return C[key]; let r=null;
+    if(s.caption){ const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,fs=Math.round(m*0.085); c.font=`800 ${fs}px Kanit, sans-serif`; const lines=wrap(c,s.caption,W*0.88).slice(0,2), y0=H*(W>H?0.13:0.12), w=Math.max(...lines.map(l=>c.measureText(l).width));
+      r={x0:W/2-w/2-fs*0.3,x1:W/2+w/2+fs*0.3,y0:y0-fs*0.8,y1:y0+(lines.length-1)*fs*1.15+fs*0.85}; }
+    return C[key]=r; }
+  textRect(s,el,dy=0){ const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,fs=m*0.09*el.scale; c.font=`800 ${fs}px Kanit, sans-serif`; const w=c.measureText(el.text).width, X=el.x*W, Y=(el.y+dy)*H; return {x0:X-w/2-fs*0.2,x1:X+w/2+fs*0.2,y0:Y-fs*0.75,y1:Y+fs*0.75,fs}; }
+  textShift(s,el){ const key="t"+this.W+s.elements.indexOf(el), C=this.rc(s); if(C[key]!==undefined) return C[key]; const cap=this.capRect(s); let dy=0;
+    if(cap){ const r=this.textRect(s,el); if(r.x1>cap.x0&&r.x0<cap.x1&&r.y1>cap.y0&&r.y0<cap.y1) dy=(cap.y1+r.fs*0.85)/this.H-el.y; }
+    return C[key]=dy; }
+  hardRects(s){ const key="h"+this.W, C=this.rc(s); if(C[key]) return C[key]; const R=[]; const cap=this.capRect(s); if(cap) R.push(cap); s.elements.forEach(el=>{ if(el.type==="text") R.push(this.textRect(s,el,this.textShift(s,el))); }); return C[key]=R; }
+  drawBubble(c,text,x,y,u,s,sc=1){ const fs=Math.round(34*u); c.save(); c.font=`600 ${fs}px Kanit, sans-serif`; const W=this.W,H=this.H, w=Math.min(c.measureText(text).width+fs, W*0.8), h=fs*1.7;
+    const hit=(bx,by)=>(s?this.hardRects(s):[]).some(r=>bx+w>r.x0&&bx<r.x1&&by+h>r.y0&&by<r.y1)||by<H*0.02||bx<4||bx+w>W-4;
+    const head=Math.min(W,H)*0.11*sc; let bx=clamp(x-w/2,10,W-w-10), by=Math.max(10,y-h), side=0;
+    if(hit(bx,by)){ const cands=[]; for(let ky=-0.5;ky<=3;ky+=0.5) for(let kx=0;kx<=4;kx++){ cands.push([x+head*(0.8+kx*0.6),y+head*ky,1]); cands.push([x-head*(0.8+kx*0.6)-w,y+head*ky,-1]); }
+      cands.sort((p,q)=>Math.hypot(p[0]+w/2-x,p[1]-y)-Math.hypot(q[0]+w/2-x,q[1]-y)); for(const [cx,cy,sd] of cands){ if(!hit(cx,cy)){ bx=cx; by=cy; side=sd; break; } } }
+    outline(c,4*u); rr(c,bx,by,w,h,h/2,"#fff");
+    if(side===0){ const tx=clamp(x,bx+20,bx+w-20); poly(c,[[tx-10,by+h-2],[tx+10,by+h-2],[tx,by+h+16*u]],"#fff",false); }
+    else { const ty=by+h/2, ex=side>0?bx+2:bx+w-2; poly(c,[[ex,ty-9*u],[ex,ty+9*u],[ex-side*18*u,ty+6*u]],"#fff",false); }
     c.fillStyle=OL; c.textAlign="center"; c.textBaseline="middle"; c.fillText(text,bx+w/2,by+h/2+2,w-fs*0.6); c.restore(); }
   drawCaption(c,text,lt,u){ const W=this.W,H=this.H; const fs=Math.round(Math.min(W,H)*0.085); c.save(); c.font=`800 ${fs}px Kanit, sans-serif`; c.textAlign="center"; c.textBaseline="middle";
     const lines=wrap(c,text,W*0.88).slice(0,2); const p=clamp(lt/0.4,0,1), s=easeBack(p); const y0=H*(this.W>this.H?0.13:0.12);
@@ -795,25 +845,23 @@ class Renderer{
     if(st==="classic") this.subClassic(c,S,lt); else if(st==="karaoke") this.subKaraoke(c,S,lt); else if(st==="bounce") this.subBounce(c,S,lt); else this.subPop(c,S,lt,i); }
   outlined(c,text,x,y,f,fill,shadow=true){ c.lineJoin="round"; if(shadow){ c.fillStyle="rgba(10,6,20,.45)"; c.fillText(text,x+f*0.05,y+f*0.09); } c.lineWidth=f*0.2; c.strokeStyle="#1b1230"; c.strokeText(text,x,y); c.fillStyle=fill; c.fillText(text,x,y); }
   subPop(c,S,lt,i){
-    const W=this.W,H=this.H,m=Math.min(W,H), fs=Math.round(m*0.088), chs=S.chunks; let k=0; chs.forEach((ch,j)=>{ if(lt>=ch.from) k=j; }); const ch=chs[k];
-    const age=Math.max(0,lt-ch.from), sc=reduceMotion?1:0.35+0.65*easeBack(clamp(age/0.2,0,1)), rot=reduceMotion?0:(rnd(k*7+i*3)-.5)*0.09;
-    c.save(); c.textBaseline="middle"; c.textAlign="center";
-    const items=ch.words.map(w=>{ const f=w.emph?fs*1.28:fs; c.font=`800 ${f}px Kanit, sans-serif`; return {w,f,width:c.measureText(w.text).width+(w.sp?f*0.28:0)}; });
-    const lines=[]; let line=[],lw=0; items.forEach(it=>{ if(line.length&&lw+it.width>W*0.86){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push(it); lw+=it.width; }); if(line.length) lines.push({items:line,w:lw});
-    const lh=fs*1.22, y0=S.band*H-(lines.length-1)*lh/2+(rnd(k+i)-.5)*m*0.025;
-    c.translate(W/2,y0); c.rotate(rot); c.scale(sc,sc);
-    lines.forEach((ln,li)=>{ let x=-ln.w/2; const y=li*lh; ln.items.forEach(it=>{ const active=lt>=it.w.from&&lt<it.w.to+0.06, f=it.f*(active&&!reduceMotion?1.1:1); c.font=`800 ${f}px Kanit, sans-serif`;
-      const cx=x+(it.width-(it.w.sp?it.f*0.28:0))/2, dy=it.w.emph&&!reduceMotion?Math.sin(lt*20)*m*0.004:0;
-      if(it.w.emph){ c.save(); c.translate(cx,y+dy); c.rotate(Math.sin(lt*14)*0.04); this.outlined(c,it.w.text,0,0,f,active?"#ff5d8f":"#7dffb0"); c.restore(); }
+    const W=this.W,m=Math.min(W,this.H), chs=S.chunks; let k=0; chs.forEach((ch,j)=>{ if(lt>=ch.from) k=j; }); const ch=chs[k], L=this.popLayout(ch);
+    const age=Math.max(0,lt-ch.from), sc=reduceMotion?1:0.35+0.65*easeBack(clamp(age/0.2,0,1)), rot=reduceMotion?0:(rnd(k*7+i*3)-.5)*0.06;
+    const yc=this.bandY(S);
+    c.save(); c.textBaseline="middle"; c.textAlign="center"; c.translate(W/2,yc); c.rotate(rot); c.scale(sc,sc);
+    const top=-L.h/2+L.lh/2;
+    L.lines.forEach((ln,li)=>{ let x=-ln.w/2; const y=top+li*L.lh; ln.items.forEach(it=>{ const active=lt>=it.w.from&&lt<it.w.to+0.06, f=it.f*(active&&!reduceMotion?1.08:1); c.font=`800 ${f}px Kanit, sans-serif`;
+      const cx=x+(it.width-(it.w.sp?it.f*0.28:0))/2;
+      if(it.w.emph){ c.save(); c.translate(cx,y+(reduceMotion?0:Math.sin(lt*20)*m*0.003)); c.rotate(reduceMotion?0:Math.sin(lt*14)*0.035); this.outlined(c,it.w.text,0,0,f,active?"#ff5d8f":"#7dffb0"); c.restore(); }
       else this.outlined(c,it.w.text,cx,y,f,active?"#ffd23f":"#ffffff");
       x+=it.width; }); });
     c.restore(); }
   subKaraoke(c,S,lt){
-    const W=this.W,H=this.H,m=Math.min(W,H), fs=Math.round(m*0.06), {p,k}=this.curPage(this.pages(c,S,fs,W*0.8,700),lt), lh=fs*1.4, h=p.lines.length*lh+fs*0.8;
-    const age=lt-p.from, a=reduceMotion?1:clamp(age/0.25,0,1), y0=S.band*H-h/2+(1-easeOut(a))*fs*0.6, w=Math.max(...p.lines.map(l=>l.w))+fs*1.2;
+    const W=this.W,H=this.H,m=Math.min(W,H), cfg=this.pageCfg("karaoke"), fs=cfg.fs, {p,k}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, h=p.lines.length*lh+fs*0.9;
+    const age=lt-p.from, a=reduceMotion?1:clamp(age/0.25,0,1), y0=this.bandY(S)-h/2+(1-easeOut(a))*fs*0.6, w=Math.max(...p.lines.map(l=>l.w))+fs*1.2;
     c.save(); c.globalAlpha=a; c.fillStyle="rgba(22,14,36,.78)"; c.beginPath(); c.roundRect(W/2-w/2,y0,w,h,fs*0.5); c.fill(); c.strokeStyle="#ff5d8f"; c.lineWidth=fs*0.08; c.stroke();
     c.textBaseline="middle"; c.textAlign="left";
-    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+fs*0.4+li*lh+lh/2; ln.items.forEach(it=>{ const w2=it.w, f=w2.emph?fs*1.15:fs; c.font=`700 ${f}px Kanit, sans-serif`;
+    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+fs*0.45+li*lh+lh/2; ln.items.forEach(it=>{ const w2=it.w, f=w2.emph?fs*1.15:fs; c.font=`700 ${f}px Kanit, sans-serif`;
       const done=lt>=w2.to, active=lt>=w2.from&&!done, prog=active?clamp((lt-w2.from)/(w2.to-w2.from),0,1):done?1:0, tw=c.measureText(w2.text).width;
       c.fillStyle="rgba(255,255,255,.5)"; c.fillText(w2.text,x,y);
       if(prog>0){ c.save(); c.beginPath(); c.rect(x-2,y-f,tw*prog+2,f*2); c.clip(); c.fillStyle=w2.emph?"#ff8ab0":"#ffd23f"; c.fillText(w2.text,x,y); c.restore(); }
@@ -821,17 +869,17 @@ class Renderer{
       x+=it.width; }); });
     c.restore(); }
   subBounce(c,S,lt){
-    const W=this.W,H=this.H,m=Math.min(W,H), fs=Math.round(m*0.072), {p}=this.curPage(this.pages(c,S,fs,W*0.86,800),lt), lh=fs*1.3, y0=S.band*H-(p.lines.length-1)*lh/2;
+    const W=this.W,H=this.H,m=Math.min(W,H), cfg=this.pageCfg("bounce"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, y0=this.bandY(S)-(p.lines.length-1)*lh/2;
     c.save(); c.textBaseline="middle"; c.textAlign="center";
     p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+li*lh; ln.items.forEach(it=>{ const w2=it.w, f=w2.emph?fs*1.15:fs, pr=reduceMotion?1:clamp((lt-w2.from+0.05)/0.3,0,1); if(pr<=0&&!reduceMotion){ x+=it.width; return; }
       c.font=`800 ${f}px Kanit, sans-serif`; const cx=x+(it.width-(w2.sp?fs*0.3:0))/2, dy=-(1-easeBack(pr))*fs*1.1; c.globalAlpha=Math.min(1,pr*2);
       this.outlined(c,w2.text,cx,y+dy,f,w2.emph?"#ff5d8f":(lt>=w2.from&&lt<w2.to?"#ffd23f":"#ffffff")); x+=it.width; }); });
     c.restore(); }
   subClassic(c,S,lt){
-    const W=this.W,H=this.H,m=Math.min(W,H), fs=Math.round(m*0.052), {p}=this.curPage(this.pages(c,S,fs,W*0.84,600),lt), lh=fs*1.35, h=p.lines.length*lh+fs*0.7;
-    const a=reduceMotion?1:clamp((lt-p.from)/0.2,0,1), y0=S.band*H-h/2+(1-easeOut(a))*fs*0.5, w=Math.max(...p.lines.map(l=>l.w))+fs*1.2;
+    const W=this.W,H=this.H,m=Math.min(W,H), cfg=this.pageCfg("classic"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, h=p.lines.length*lh+fs*0.9;
+    const a=reduceMotion?1:clamp((lt-p.from)/0.2,0,1), y0=this.bandY(S)-h/2+(1-easeOut(a))*fs*0.5, w=Math.max(...p.lines.map(l=>l.w))+fs*1.2;
     c.save(); c.globalAlpha=a; c.fillStyle="rgba(20,14,28,.72)"; c.beginPath(); c.roundRect(W/2-w/2,y0,w,h,fs*0.4); c.fill(); c.textBaseline="middle"; c.textAlign="left";
-    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+fs*0.35+li*lh+lh/2; ln.items.forEach(it=>{ c.font=`600 ${it.w.emph?fs*1.15:fs}px Kanit, sans-serif`; c.fillStyle=it.w.emph?"#ffd23f":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
+    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+fs*0.45+li*lh+lh/2; ln.items.forEach(it=>{ c.font=`600 ${it.w.emph?fs*1.15:fs}px Kanit, sans-serif`; c.fillStyle=it.w.emph?"#ffd23f":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
     c.restore(); }
   drawProgress(c,t){ c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(0,0,this.W,6); c.fillStyle="#ff5d8f"; c.fillRect(0,0,this.W*clamp(t/this.total,0,1),6); }
   drawEnd(c,lt){ const W=this.W,H=this.H,u=Math.min(W,H)/720; BG.abstract(c,W,H,lt); const P=this.project; const p=easeBack(clamp(lt/0.5,0,1));
