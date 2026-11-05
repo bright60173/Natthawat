@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ออฟฟิศ AI ส่วนตัว</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Itim&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fdf3e1; --wall:#ffd9a8; --floor1:#e8b98a; --floor2:#dfa977;
+  --ink:#3b2a20; --muted:#7a6252; --panel:#fffaf2; --line:#3b2a20;
+  --accent:#ff6fa8; --accent2:#7c5cff; --ok:#3fb26b; --warn:#f0a020; --err:#e04848;
+  --bubble:#ffffff; --me:#ffe1ef;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1d1726; --wall:#3a2e52; --floor1:#4a3a5e; --floor2:#41334f;
+    --ink:#f6eee6; --muted:#c3b3c9; --panel:#2a2236; --line:#0e0a14;
+    --bubble:#352b45; --me:#5a2f4a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1d1726; --wall:#3a2e52; --floor1:#4a3a5e; --floor2:#41334f;
+  --ink:#f6eee6; --muted:#c3b3c9; --panel:#2a2236; --line:#0e0a14;
+  --bubble:#352b45; --me:#5a2f4a;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Itim",system-ui,sans-serif;font-size:17px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+.pixel{font-family:"Press Start 2P",monospace;letter-spacing:.5px}
+
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:4px solid var(--line);background:var(--panel)}
+header h1{margin:0;font-size:22px;flex:1;min-width:200px}
+header h1 small{display:block;font-size:13px;color:var(--muted)}
+.btn{border:3px solid var(--line);background:var(--panel);padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--line);border-radius:0}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line)}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.small{padding:3px 8px;font-size:14px;box-shadow:2px 2px 0 var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+main{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;padding:16px;max-width:1400px;margin:0 auto}
+@media (max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- Office floor ---------- */
+.office{border:4px solid var(--line);background:var(--wall);position:relative;overflow:hidden;box-shadow:6px 6px 0 var(--line)}
+.office .wall{height:70px;position:relative;background:
+  repeating-linear-gradient(90deg,transparent 0 46px,rgba(0,0,0,.06) 46px 48px),var(--wall);border-bottom:4px solid var(--line)}
+.window{position:absolute;top:12px;width:70px;height:44px;background:linear-gradient(#9fe3ff,#d9f6ff);border:4px solid var(--line)}
+.window::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:4px;background:var(--line)}
+.sign{position:absolute;right:12px;top:16px;background:var(--panel);border:3px solid var(--line);padding:4px 8px;font-size:10px}
+.plant{position:absolute;bottom:4px;width:22px;height:36px}
+.floor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px;
+  background:repeating-conic-gradient(var(--floor1) 0 25%,var(--floor2) 0 50%) 0 0/40px 40px}
+.desk{position:relative;border:3px solid var(--line);background:rgba(255,255,255,.35);padding:10px 8px 8px;cursor:pointer;text-align:center;transition:transform .1s}
+.desk:hover{transform:translateY(-3px)}
+.desk.active{outline:4px dashed var(--accent);outline-offset:3px}
+.desk .name{font-weight:bold}
+.desk .role{font-size:13px;color:var(--muted)}
+.status{display:inline-block;margin-top:4px;font-size:12px;padding:1px 6px;border:2px solid var(--line);background:var(--panel)}
+.status.working{background:var(--warn);color:#000}
+.status.done{background:var(--ok);color:#fff}
+.status.error{background:var(--err);color:#fff}
+.scene{display:flex;justify-content:center;align-items:flex-end;height:96px}
+.scene svg{image-rendering:pixelated;width:120px;height:96px}
+.desk.working .char{animation:bob .35s steps(2) infinite}
+.desk.working .screen{animation:blink .5s steps(2) infinite}
+.desk .bubble{position:absolute;top:-6px;right:-6px;background:var(--bubble);border:3px solid var(--line);font-size:12px;padding:2px 6px;display:none}
+.desk.working .bubble{display:block}
+@keyframes bob{50%{transform:translateY(-2px)}}
+@keyframes blink{50%{opacity:.55}}
+
+.board{margin-top:16px;border:4px solid var(--line);background:var(--panel);box-shadow:6px 6px 0 var(--line);padding:12px}
+.board h2{margin:0 0 8px;font-size:18px}
+.tasks{list-style:none;margin:0;padding:0;max-height:220px;overflow:auto}
+.tasks li{display:flex;gap:8px;align-items:center;border-bottom:2px dashed var(--muted);padding:4px 0;font-size:15px}
+.tasks li .who{font-weight:bold;white-space:nowrap}
+.tasks li .what{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pipeline{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pipeline input{flex:1;min-width:180px;border:3px solid var(--line);background:var(--bg);padding:6px}
+
+/* ---------- Chat ---------- */
+.chat{border:4px solid var(--line);background:var(--panel);box-shadow:6px 6px 0 var(--line);display:flex;flex-direction:column;min-height:560px;max-height:calc(100vh - 120px)}
+@media (max-width:900px){.chat{max-height:none;min-height:480px}}
+.chat-head{display:flex;gap:10px;align-items:center;padding:10px;border-bottom:4px solid var(--line)}
+.chat-head .avatar svg{width:48px;height:48px;image-rendering:pixelated}
+.chat-head .t{flex:1;min-width:0}
+.chat-head .t b{display:block}
+.chat-head .t span{font-size:13px;color:var(--muted)}
+.msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;border:3px solid var(--line);padding:8px 10px;background:var(--bubble);overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--me)}
+.msg.sys{align-self:center;font-size:14px;color:var(--muted);border-style:dashed;background:transparent}
+.msg pre{background:rgba(0,0,0,.08);padding:8px;overflow:auto;white-space:pre-wrap;font-size:14px;margin:6px 0}
+.msg code{font-family:ui-monospace,monospace;font-size:14px}
+.msg h3,.msg h4{margin:6px 0 2px}
+.msg ul,.msg ol{margin:4px 0;padding-left:22px}
+.msg .tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.preview{width:100%;aspect-ratio:16/9;border:3px solid var(--line);background:#fff;margin-top:8px}
+.thinking{color:var(--muted);font-size:14px}
+.thinking::after{content:"▮";animation:blink .6s steps(2) infinite}
+.quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 8px}
+.quick button{font-size:13px}
+.composer{display:flex;gap:8px;padding:10px;border-top:4px solid var(--line)}
+.composer textarea{flex:1;min-height:56px;max-height:180px;resize:vertical;border:3px solid var(--line);background:var(--bg);padding:6px}
+
+/* ---------- Settings dialog ---------- */
+dialog{border:4px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:8px 8px 0 var(--line);max-width:520px;width:calc(100% - 32px);padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog label{display:block;margin:10px 0 4px;font-weight:bold}
+dialog input,dialog select{width:100%;border:3px solid var(--line);background:var(--bg);padding:6px}
+dialog p{font-size:14px;color:var(--muted);margin:6px 0}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏢 ออฟฟิศ AI ส่วนตัว <small>พนักงาน AI 4 คน พร้อมทำคลิปให้คุณ — คลิกที่โต๊ะเพื่อคุย/สั่งงาน</small></h1>
+  <button class="btn small" id="themeBtn" title="สลับโหมดมืด/สว่าง">🌓</button>
+  <button class="btn" id="settingsBtn">⚙️ ตั้งค่า</button>
+</header>
+
+<main>
+  <section>
+    <div class="office">
+      <div class="wall">
+        <div class="window" style="left:20px"></div>
+        <div class="window" style="left:110px"></div>
+        <div class="sign pixel">AI OFFICE</div>
+      </div>
+      <div class="floor" id="floor"></div>
+    </div>
+
+    <div class="board">
+      <h2>📋 บอร์ดงาน</h2>
+      <ul class="tasks" id="tasks"><li><span class="what" style="color:var(--muted)">ยังไม่มีงาน — ลองสั่งงานพนักงานดูสิ</span></li></ul>
+      <div class="pipeline">
+        <input id="pipeTopic" placeholder="หัวข้อคลิป เช่น What if โลกหยุดหมุน 1 วินาที">
+        <button class="btn primary" id="pipeBtn">🚀 สั่งทั้งทีม</button>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin:6px 0 0">สั่งทั้งทีม = ครีเอทีฟเขียนบท → อนิเมเตอร์ทำอนิเมชัน → ตัดต่อทำซับ → นักพากย์อัดเสียง ต่อกันอัตโนมัติ</p>
+    </div>
+  </section>
+
+  <section class="chat" id="chat">
+    <div class="chat-head">
+      <div class="avatar" id="chatAvatar"></div>
+      <div class="t"><b id="chatName"></b><span id="chatRole"></span></div>
+      <button class="btn small" id="clearBtn" title="ล้างแชตกับพนักงานคนนี้">🧹 ล้างแชต</button>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="quick" id="quick"></div>
+    <div class="composer">
+      <textarea id="input" placeholder="พิมพ์สั่งงาน... (Enter ส่ง, Shift+Enter ขึ้นบรรทัดใหม่)"></textarea>
+      <button class="btn primary" id="sendBtn">ส่ง</button>
+    </div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <h2 style="margin-top:0">⚙️ ตั้งค่าออฟฟิศ</h2>
+  <label for="apiKey">Anthropic API key</label>
+  <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+  <p>รับคีย์ได้ที่ console.anthropic.com · คีย์จะถูกเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น และส่งตรงไปที่ Anthropic — อย่าใช้หน้านี้บนคอมพิวเตอร์สาธารณะ</p>
+  <label for="model">โมเดล</label>
+  <select id="model">
+    <option value="claude-opus-5-5">Claude Opus 5.5 (ฉลาดสุด, แนะนำ)</option>
+    <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (เร็ว, ถูกกว่า)</option>
+    <option value="claude-haiku-5-5">Claude Haiku 5.5 (เร็วสุด, ถูกสุด)</option>
+  </select>
+  <label for="effort">ความตั้งใจคิด (effort)</label>
+  <select id="effort">
+    <option value="low">low — เร็ว ประหยัด</option>
+    <option value="medium" selected>medium — สมดุล</option>
+    <option value="high">high — คิดละเอียด</option>
+  </select>
+  <label for="boss">ชื่อเรียกคุณ (เจ้านาย)</label>
+  <input id="boss" placeholder="เช่น บอส ณัฐวัฒน์">
+  <div class="row">
+    <button class="btn" id="forgetBtn">ลบคีย์ออก</button>
+    <button class="btn" id="closeSettings">ปิด</button>
+    <button class="btn primary" id="saveSettings">บันทึก</button>
+  </div>
+</dialog>
+
+<script type="module">
+import Anthropic from "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.0.0/+esm";
+
+/* ================= Storage helpers ================= */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("aioffice:"+k); return v===null ? d : JSON.parse(v); }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem("aioffice:"+k, JSON.stringify(v)); }catch{} },
+  del(k){ try{ localStorage.removeItem("aioffice:"+k); }catch{} },
+};
+
+/* ================= Employees ================= */
+const STYLE = `ตอบเป็นภาษาไทยแบบภาษาพูด เป็นกันเอง สดใส แต่กระชับ ใช้ markdown ได้ (หัวข้อ, bullet, ตัวหนา) ถ้าเจ้านายสั่งไม่ชัด ให้ถามกลับสั้นๆ ก่อน 1-2 ข้อ`;
+
+const EMPLOYEES = [
+  {
+    id:"creative", name:"น้องครีม", role:"นักเขียน / ครีเอทีฟ", hair:"#ff6fa8", shirt:"#ffd34d", skin:"#ffd7b5",
+    bubble:"💡 คิดไอเดีย...",
+    quick:["คิดหัวข้อคลิป What if ให้ 5 หัวข้อ","เขียนบทคลิปสั้น 60 วินาที","เขียนแคปชันโพสต์ IG + แฮชแท็ก"],
+    system:`คุณคือ "น้องครีม" นักเขียนและครีเอทีฟประจำออฟฟิศ AI ส่วนตัว หน้าที่: คิดไอเดียคอนเทนต์ (โดยเฉพาะคลิปแนว What if), เขียนบทคลิปสั้น, แคปชัน, บทความ
+เวลาเขียนบทคลิป ให้แบ่งเป็นฉากที่มีเลขกำกับ (ฉาก 1, ฉาก 2, ...) แต่ละฉากมี: ภาพที่เห็น / บทพูด (narration) / ความยาวโดยประมาณ (วินาที) และใส่ hook แรงๆ ใน 3 วินาทีแรก
+เวลาคิดหัวข้อ ให้เสนอทีละ 5 หัวข้อ แต่ละหัวข้อมีประโยค hook 1 บรรทัด
+${STYLE}`
+  },
+  {
+    id:"animator", name:"น้องพิกเซล", role:"นักทำอนิเมชัน 2D", hair:"#7c5cff", shirt:"#5fd3c4", skin:"#f2c9a0",
+    bubble:"🎨 วาดอยู่...",
+    quick:["ทำอนิเมชันฉากเปิดคลิป","ทำโลโก้ช่องแบบเคลื่อนไหว","ทำ storyboard จากบทนี้"],
+    system:`คุณคือ "น้องพิกเซล" นักทำอนิเมชัน 2D ประจำออฟฟิศ AI ส่วนตัว
+เมื่อได้รับบทหรือบรีฟ ให้ทำอนิเมชันจริงออกมาเป็น SVG เคลื่อนไหวไฟล์เดียว ใส่ไว้ในบล็อกโค้ด \`\`\`svg ... \`\`\` เท่านั้น (หน้าเว็บจะเล่นให้เจ้านายดูทันที และดาวน์โหลดได้)
+กติกา SVG:
+- viewBox="0 0 1280 720" (16:9), มี width="1280" height="720" และ xmlns="http://www.w3.org/2000/svg"
+- ใช้ CSS @keyframes ใน <style> หรือ SMIL (<animate>, <animateTransform>, <animateMotion>) เท่านั้น ห้ามใช้ <script> ห้ามลิงก์รูปหรือฟอนต์ภายนอก
+- อนิเมชันควรยาว 6-15 วินาที วนลูปได้ (infinite) เล่าเรื่องเป็นลำดับฉากด้วย animation-delay
+- ตัวอักษรไทยใช้ font-family="sans-serif" ให้ตัวใหญ่ อ่านง่าย
+- สไตล์น่ารัก สีสดใส รูปทรงเรียบง่าย (วงกลม สี่เหลี่ยม path)
+ก่อนบล็อกโค้ด ให้อธิบายสั้นๆ ว่าในอนิเมชันมีอะไรเกิดขึ้นบ้างตามลำดับเวลา ถ้าบทยาวมาก ให้เลือกทำฉากที่สำคัญที่สุด 1 ฉาก แล้วบอกว่าฉากอื่นทำต่อได้
+${STYLE}`
+  },
+  {
+    id:"editor", name:"น้องคัท", role:"ตัดต่อ / ทำซับไตเติล", hair:"#3b2a20", shirt:"#ff8a4d", skin:"#e0ac80",
+    bubble:"✂️ ตัดต่อ...",
+    quick:["ทำไฟล์ซับ .srt จากบทนี้","วางไทม์ไลน์ตัดต่อ + เพลง/เอฟเฟกต์","ตั้งชื่อคลิป + ปก (thumbnail) ให้คนกดดู"],
+    system:`คุณคือ "น้องคัท" นักตัดต่อและทำซับไตเติลประจำออฟฟิศ AI ส่วนตัว หน้าที่:
+1) วางไทม์ไลน์ตัดต่อ: ตารางเวลา (mm:ss) ภาพ/ฟุตเทจ เสียงพากย์ เพลงประกอบ (แนวเพลง ไม่ต้องระบุเพลงลิขสิทธิ์) เอฟเฟกต์เสียง ทรานซิชัน ข้อความบนจอ
+2) ทำซับไตเติลภาษาไทย: เมื่อทำซับ ให้ใส่ไฟล์ SRT ที่ถูกฟอร์แมตเต็มรูปแบบในบล็อกโค้ด \`\`\`srt ... \`\`\` (หน้าเว็บจะให้ดาวน์โหลดเป็นไฟล์ .srt ได้) ซับแต่ละบรรทัดไม่เกิน ~35 ตัวอักษร ประมาณเวลาจากความเร็วพูดภาษาไทย ~6-7 พยางค์ต่อวินาที
+3) แนะนำชื่อคลิป ปก และวิธีตัดต่อในแอปฟรี เช่น CapCut
+${STYLE}`
+  },
+  {
+    id:"voice", name:"น้องเสียง", role:"นักพากย์เสียง", hair:"#3fb26b", shirt:"#9fd0ff", skin:"#ffd7b5",
+    bubble:"🎙️ ซ้อมพากย์...",
+    quick:["เขียนบทพากย์ให้อ่านลื่นๆ","พากย์บทนี้ให้ฟังหน่อย","แนะนำโทนเสียง + การเว้นจังหวะ"],
+    system:`คุณคือ "น้องเสียง" นักพากย์เสียงประจำออฟฟิศ AI ส่วนตัว หน้าที่: ปรับบทให้พากย์ได้ลื่นปาก เป็นธรรมชาติ ใส่จังหวะหายใจ และกำกับอารมณ์
+เมื่อส่งบทพากย์ที่พร้อมอัด ให้ใส่เฉพาะข้อความที่จะพูดจริงไว้ในบล็อกโค้ด \`\`\`voice ... \`\`\` (ไม่ต้องใส่คำกำกับในบล็อกนี้ เพราะหน้าเว็บจะอ่านออกเสียงด้วยเสียงสังเคราะห์ภาษาไทยให้ฟังทันที) ใช้ "..." แทนการเว้นจังหวะ
+นอกบล็อก ให้กำกับสั้นๆ: โทนเสียง ความเร็ว คำที่ต้องเน้น
+${STYLE}`
+  },
+];
+const byId = Object.fromEntries(EMPLOYEES.map(e=>[e.id,e]));
+
+/* ================= Pixel sprites ================= */
+function sprite(e, small=false){
+  // 30x24 grid of 4px "pixels"
+  const desk = small ? "" : `
+    <rect x="8" y="62" width="104" height="10" fill="#8b5a2b" stroke="#3b2a20" stroke-width="2"/>
+    <rect x="14" y="72" width="8" height="22" fill="#6d4421"/><rect x="98" y="72" width="8" height="22" fill="#6d4421"/>
+    <rect x="62" y="34" width="40" height="28" fill="#2d2d3a" stroke="#3b2a20" stroke-width="2"/>
+    <rect class="screen" x="66" y="38" width="32" height="20" fill="#8ff0ff"/>
+    <rect x="78" y="62" width="8" height="0" fill="#555"/>
+    <rect x="20" y="56" width="10" height="6" fill="${e.shirt}" stroke="#3b2a20" stroke-width="1"/>`;
+  const ox = small ? 4 : 22, oy = small ? 2 : 22;
+  const char = `
+    <g class="char">
+      <rect x="${ox+6}" y="${oy}" width="20" height="8" fill="${e.hair}"/>
+      <rect x="${ox+4}" y="${oy+4}" width="24" height="18" fill="${e.skin}"/>
+      <rect x="${ox+4}" y="${oy+4}" width="24" height="5" fill="${e.hair}"/>
+      <rect x="${ox+4}" y="${oy+4}" width="4" height="14" fill="${e.hair}"/>
+      <rect x="${ox+24}" y="${oy+4}" width="4" height="14" fill="${e.hair}"/>
+      <rect x="${ox+11}" y="${oy+12}" width="3" height="4" fill="#3b2a20"/>
+      <rect x="${ox+19}" y="${oy+12}" width="3" height="4" fill="#3b2a20"/>
+      <rect x="${ox+8}" y="${oy+16}" width="3" height="2" fill="#ff9fb8"/>
+      <rect x="${ox+22}" y="${oy+16}" width="3" height="2" fill="#ff9fb8"/>
+      <rect x="${ox+14}" y="${oy+18}" width="5" height="2" fill="#c0504d"/>
+      <rect x="${ox+2}" y="${oy+22}" width="28" height="18" fill="${e.shirt}" stroke="#3b2a20" stroke-width="1"/>
+      <rect x="${ox+13}" y="${oy+22}" width="6" height="4" fill="${e.skin}"/>
+    </g>`;
+  const vb = small ? "0 0 40 44" : "0 0 120 96";
+  return `<svg viewBox="${vb}" shape-rendering="crispEdges" aria-hidden="true">${small ? char : char + desk}</svg>`;
+}
+
+/* ================= State ================= */
+let current = store.get("current","creative");
+const chats = store.get("chats",{});           // id -> [{role, content}]
+const status = {};                             // id -> idle|working|done|error
+let tasks = store.get("tasks",[]);             // [{who, what, state, t}]
+EMPLOYEES.forEach(e=>{ chats[e.id] ||= []; status[e.id] = "idle"; });
+
+/* ================= Office floor ================= */
+const floor = document.getElementById("floor");
+function renderFloor(){
+  floor.innerHTML = "";
+  for(const e of EMPLOYEES){
+    const d = document.createElement("div");
+    d.className = "desk" + (e.id===current?" active":"") + (status[e.id]==="working"?" working":"");
+    d.tabIndex = 0; d.setAttribute("role","button"); d.setAttribute("aria-label","คุยกับ "+e.name);
+    const st = status[e.id];
+    const label = {idle:"ว่าง", working:"กำลังทำงาน", done:"งานเสร็จ ✓", error:"มีปัญหา"}[st];
+    d.innerHTML = `<div class="bubble">${e.bubble}</div><div class="scene">${sprite(e)}</div>
+      <div class="name">${e.name}</div><div class="role">${e.role}</div>
+      <span class="status ${st}">${label}</span>`;
+    d.onclick = ()=>select(e.id);
+    d.onkeydown = ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); select(e.id);} };
+    floor.appendChild(d);
+  }
+}
+function setStatus(id, s){ status[id]=s; renderFloor(); }
+
+/* ================= Task board ================= */
+const tasksEl = document.getElementById("tasks");
+function renderTasks(){
+  if(!tasks.length){ tasksEl.innerHTML = `<li><span class="what" style="color:var(--muted)">ยังไม่มีงาน — ลองสั่งงานพนักงานดูสิ</span></li>`; return; }
+  tasksEl.innerHTML = "";
+  for(const t of tasks.slice().reverse()){
+    const li = document.createElement("li");
+    const icon = {working:"⏳",done:"✅",error:"⚠️"}[t.state] || "•";
+    li.innerHTML = `<span>${icon}</span><span class="who"></span><span class="what"></span>`;
+    li.querySelector(".who").textContent = byId[t.who]?.name || t.who;
+    li.querySelector(".what").textContent = t.what;
+    li.querySelector(".what").title = t.what;
+    tasksEl.appendChild(li);
+  }
+}
+function addTask(who, what){ const t={who, what:what.replace(/\s+/g," ").slice(0,120), state:"working", t:Date.now()}; tasks.push(t); tasks=tasks.slice(-40); store.set("tasks",tasks); renderTasks(); return t; }
+function finishTask(t, state){ t.state=state; store.set("tasks",tasks); renderTasks(); }
+
+/* ================= Markdown-ish rendering (safe) ================= */
+const esc = s => s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function inline(s){
+  return esc(s)
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g,"$1<i>$2</i>");
+}
+function renderMarkdown(text){
+  const out=[]; const lines=text.split("\n"); let i=0; let list=null;
+  const closeList=()=>{ if(list){ out.push(`</${list}>`); list=null; } };
+  while(i<lines.length){
+    const l=lines[i];
+    const fence=l.match(/^```\s*([\w-]*)/);
+    if(fence){
+      closeList();
+      const lang=fence[1].toLowerCase(); const buf=[]; i++;
+      while(i<lines.length && !/^```/.test(lines[i])){ buf.push(lines[i]); i++; }
+      i++;
+      const pre=`<pre data-lang="${esc(lang)}"><code>${esc(buf.join("\n"))}</code></pre>`;
+      out.push(lang==="svg" ? `<details><summary>ดูโค้ด SVG</summary>${pre}</details>` : pre);
+      continue;
+    }
+    let m;
+    if((m=l.match(/^(#{1,4})\s+(.*)/))){ closeList(); out.push(`<h${m[1].length<3?3:4}>${inline(m[2])}</h${m[1].length<3?3:4}>`); }
+    else if((m=l.match(/^\s*[-*•]\s+(.*)/))){ if(list!=="ul"){ closeList(); out.push("<ul>"); list="ul"; } out.push(`<li>${inline(m[1])}</li>`); }
+    else if((m=l.match(/^\s*\d+[.)]\s+(.*)/))){ if(list!=="ol"){ closeList(); out.push("<ol>"); list="ol"; } out.push(`<li>${inline(m[1])}</li>`); }
+    else if(l.trim()===""){ closeList(); out.push("<div style='height:6px'></div>"); }
+    else { closeList(); out.push(`<div>${inline(l)}</div>`); }
+    i++;
+  }
+  closeList();
+  return out.join("");
+}
+function extractBlocks(text, lang){
+  const re=new RegExp("```"+lang+"\\s*\\n([\\s\\S]*?)```","gi"); const r=[]; let m;
+  while((m=re.exec(text))) r.push(m[1].trim());
+  return r;
+}
+
+/* ================= Extras: SVG preview, SRT download, TTS ================= */
+function download(name, content, type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function speak(text){
+  if(!("speechSynthesis" in window)){ alert("เบราว์เซอร์นี้ไม่รองรับการอ่านออกเสียง"); return; }
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text.replace(/\.\.\./g,", "));
+  u.lang="th-TH"; u.rate=1;
+  const th=speechSynthesis.getVoices().find(v=>v.lang && v.lang.toLowerCase().startsWith("th"));
+  if(th) u.voice=th;
+  speechSynthesis.speak(u);
+}
+function addExtras(div, text){
+  const tools=document.createElement("div"); tools.className="tools";
+  const btn=(label, fn)=>{ const b=document.createElement("button"); b.className="btn small"; b.textContent=label; b.onclick=fn; tools.appendChild(b); };
+
+  extractBlocks(text,"svg").forEach((svg,n)=>{
+    if(!/<svg[\s>]/i.test(svg)) return;
+    const f=document.createElement("iframe");
+    f.className="preview"; f.title="ตัวอย่างอนิเมชัน";
+    f.setAttribute("sandbox","");  // no scripts, isolated origin
+    f.srcdoc=`<!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#fff}svg{width:100%;height:100%;display:block}</style>${svg}`;
+    div.appendChild(f);
+    btn(`⬇️ ดาวน์โหลดอนิเมชัน${n?` ${n+1}`:""} (.svg)`, ()=>download(`animation-${Date.now()}.svg`, svg, "image/svg+xml"));
+    btn("🔁 เล่นใหม่", ()=>{ f.srcdoc=f.srcdoc; });
+  });
+  extractBlocks(text,"srt").forEach((srt,n)=>{
+    btn(`⬇️ ดาวน์โหลดซับ${n?` ${n+1}`:""} (.srt)`, ()=>download(`subtitle-${Date.now()}.srt`, srt+"\n", "application/x-subrip"));
+  });
+  extractBlocks(text,"voice").forEach((v,n)=>{
+    btn(`🔊 ฟังเสียงพากย์${n?` ${n+1}`:""}`, ()=>speak(v));
+    btn("⏹ หยุด", ()=>speechSynthesis.cancel());
+  });
+  btn("📋 คัดลอก", ()=>navigator.clipboard?.writeText(text));
+  const others=EMPLOYEES.filter(x=>x.id!==div.dataset.who);
+  for(const o of others){
+    btn(`➡️ ส่งต่อให้${o.name}`, ()=>{ select(o.id); input.value=`งานจาก${byId[div.dataset.who]?.name||"เพื่อน"}:\n\n${text}\n\nช่วยต่องานนี้ตามหน้าที่ของเธอหน่อย`; input.focus(); });
+  }
+  div.appendChild(tools);
+}
+
+/* ================= Chat UI ================= */
+const msgsEl=document.getElementById("msgs"), input=document.getElementById("input"), sendBtn=document.getElementById("sendBtn");
+function bubble(role, text, who){
+  const d=document.createElement("div");
+  d.className="msg "+(role==="user"?"me":role==="sys"?"sys":"ai");
+  d.dataset.who=who||"";
+  if(role==="user"||role==="sys") d.textContent=text;
+  else { d.innerHTML=renderMarkdown(text); addExtras(d,text); }
+  msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
+  return d;
+}
+function renderChat(){
+  const e=byId[current];
+  document.getElementById("chatAvatar").innerHTML=sprite(e,true);
+  document.getElementById("chatName").textContent=e.name;
+  document.getElementById("chatRole").textContent=e.role;
+  msgsEl.innerHTML="";
+  if(!chats[e.id].length) bubble("sys", `สวัสดีค่ะเจ้านาย! ${e.name} (${e.role}) พร้อมทำงานแล้ว 🙌`);
+  for(const m of chats[e.id]) bubble(m.role==="user"?"user":"ai", m.content, e.id);
+  if(status[e.id]==="working") bubble("sys","⏳ กำลังทำงานอยู่ — คำตอบจะขึ้นเมื่อเสร็จ");
+  const q=document.getElementById("quick"); q.innerHTML="";
+  for(const s of e.quick){ const b=document.createElement("button"); b.className="btn small"; b.textContent=s; b.onclick=()=>{ input.value=s; input.focus(); }; q.appendChild(b); }
+  sendBtn.disabled = status[e.id]==="working";
+}
+function select(id){ current=id; store.set("current",id); renderFloor(); renderChat(); }
+
+/* ================= Claude API ================= */
+function settings(){ return { key:store.get("key",""), model:store.get("model","claude-opus-5-5"), effort:store.get("effort","medium"), boss:store.get("boss","") }; }
+function client(){
+  const {key}=settings();
+  if(!key){ openSettings(); throw new Error("ยังไม่ได้ใส่ API key — กรุณาใส่ในหน้าตั้งค่าก่อน"); }
+  return new Anthropic({ apiKey:key, dangerouslyAllowBrowser:true });
+}
+function friendlyError(err){
+  const s=err?.status;
+  if(s===401) return "API key ไม่ถูกต้อง ลองเช็กในหน้าตั้งค่า";
+  if(s===429) return "เรียกใช้ถี่เกินไป หรือเครดิตหมด รอสักครู่แล้วลองใหม่";
+  if(s===400) return "คำขอไม่ถูกต้อง: "+(err?.error?.error?.message||err.message);
+  if(s>=500) return "เซิร์ฟเวอร์ Anthropic มีปัญหาชั่วคราว ลองใหม่อีกครั้ง";
+  return err?.message || String(err);
+}
+
+// Ask one employee; streams into a bubble if that employee is on screen. Returns final text.
+async function ask(id, userText){
+  const e=byId[id];
+  const {model, effort, boss}=settings();
+  const c=client();
+  chats[id].push({role:"user", content:userText}); store.set("chats",chats);
+  const task=addTask(id,userText);
+  setStatus(id,"working");
+  if(current===id){ renderChat(); }
+
+  let live=null, liveText="";
+  const ensureLive=()=>{
+    if(current!==id) return null;
+    if(!live || !live.isConnected){ live=document.createElement("div"); live.className="msg ai"; msgsEl.appendChild(live); }
+    return live;
+  };
+  if(current===id){ const l=ensureLive(); l.innerHTML=`<span class="thinking">${esc(e.name)} กำลังคิด</span>`; }
+
+  try{
+    const params={
+      model, max_tokens:32000,
+      system: e.system + (boss?`\nเรียกผู้ใช้ว่า "${boss}"`:"\nเรียกผู้ใช้ว่า \"เจ้านาย\""),
+      messages: chats[id].slice(-20).map(m=>({role:m.role, content:m.content})),
+      thinking:{type:"adaptive"},
+      output_config:{effort},
+    };
+    if(model!=="claude-haiku-5-5"){ params.fallbacks="default"; params.betas=["server-side-fallback-2026-07-01"]; }
+    const stream=c.beta.messages.stream(params);
+    stream.on("text", delta=>{
+      liveText+=delta;
+      const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(liveText)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; }
+    });
+    const msg=await stream.finalMessage();
+    if(msg.stop_reason==="refusal") throw new Error("ขอโทษค่ะ งานนี้ทำให้ไม่ได้ (ถูกระบบความปลอดภัยปฏิเสธ) ลองเปลี่ยนวิธีสั่งดูนะคะ");
+    let text=msg.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+    if(msg.stop_reason==="max_tokens") text+="\n\n_(งานยาวเกินไปจนถูกตัดตอน ลองสั่งให้ทำเป็นส่วนๆ)_";
+    if(!text.trim()) text="(ไม่มีข้อความตอบกลับ)";
+    chats[id].push({role:"assistant", content:text}); store.set("chats",chats);
+    finishTask(task,"done"); setStatus(id,"done");
+    if(current===id) renderChat();
+    return text;
+  }catch(err){
+    chats[id].pop(); store.set("chats",chats);          // keep history valid (user/assistant alternate)
+    finishTask(task,"error"); setStatus(id,"error");
+    if(current===id){ renderChat(); bubble("sys","⚠️ "+friendlyError(err)); input.value=userText; }
+    throw err;
+  }
+}
+
+async function send(){
+  const text=input.value.trim(); if(!text) return;
+  if(status[current]==="working") return;
+  if(!settings().key){ openSettings(); return; }
+  input.value="";
+  try{ await ask(current,text); }catch{}
+}
+sendBtn.onclick=send;
+input.addEventListener("keydown",ev=>{ if(ev.key==="Enter" && !ev.shiftKey && !ev.isComposing){ ev.preventDefault(); send(); } });
+document.getElementById("clearBtn").onclick=()=>{
+  if(status[current]==="working") return;
+  if(!confirm(`ล้างแชตทั้งหมดกับ ${byId[current].name}?`)) return;
+  chats[current]=[]; store.set("chats",chats); status[current]="idle"; renderFloor(); renderChat();
+};
+
+/* ================= Whole-team pipeline ================= */
+const pipeBtn=document.getElementById("pipeBtn"), pipeTopic=document.getElementById("pipeTopic");
+pipeBtn.onclick=async()=>{
+  const topic=pipeTopic.value.trim();
+  if(!topic){ pipeTopic.focus(); return; }
+  if(!settings().key){ openSettings(); return; }
+  if(EMPLOYEES.some(e=>status[e.id]==="working")){ alert("มีพนักงานกำลังทำงานอยู่ รอให้เสร็จก่อนนะ"); return; }
+  pipeBtn.disabled=true;
+  try{
+    select("creative");
+    const script=await ask("creative",`เขียนบทคลิปสั้นแนว What if ความยาวประมาณ 45-60 วินาที หัวข้อ: "${topic}" แบ่งฉากชัดเจน`);
+    const anim=await ask("animator",`นี่คือบทจากน้องครีม ทำอนิเมชัน SVG ของฉากเปิด (hook) ให้หน่อย:\n\n${script}`);
+    await ask("editor",`นี่คือบทจากน้องครีม ช่วยวางไทม์ไลน์ตัดต่อ และทำไฟล์ซับ .srt ภาษาไทยจากบทพูด:\n\n${script}\n\n(อนิเมชันฉากเปิดจากน้องพิกเซลทำเสร็จแล้ว: ${anim.split("```")[0].slice(0,400)})`);
+    await ask("voice",`นี่คือบทจากน้องครีม ปรับเป็นบทพากย์พร้อมอัด แล้วใส่ในบล็อก voice:\n\n${script}`);
+    bubble("sys","🎉 ทีมทำงานเสร็จครบแล้ว! คลิกที่โต๊ะแต่ละคนเพื่อดูผลงาน");
+  }catch(err){
+    alert("งานสะดุด: "+friendlyError(err));
+  }finally{ pipeBtn.disabled=false; }
+};
+
+/* ================= Settings ================= */
+const dlg=document.getElementById("settings");
+function openSettings(){
+  const s=settings();
+  document.getElementById("apiKey").value=s.key;
+  document.getElementById("model").value=s.model;
+  document.getElementById("effort").value=s.effort;
+  document.getElementById("boss").value=s.boss;
+  dlg.showModal();
+}
+document.getElementById("settingsBtn").onclick=openSettings;
+document.getElementById("closeSettings").onclick=()=>dlg.close();
+document.getElementById("saveSettings").onclick=()=>{
+  store.set("key",document.getElementById("apiKey").value.trim());
+  store.set("model",document.getElementById("model").value);
+  store.set("effort",document.getElementById("effort").value);
+  store.set("boss",document.getElementById("boss").value.trim());
+  dlg.close();
+};
+document.getElementById("forgetBtn").onclick=()=>{ store.del("key"); document.getElementById("apiKey").value=""; };
+
+/* ================= Theme ================= */
+const themeBtn=document.getElementById("themeBtn");
+const savedTheme=store.get("theme",null); if(savedTheme) document.documentElement.dataset.theme=savedTheme;
+themeBtn.onclick=()=>{
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = dark ? "light" : "dark";
+  document.documentElement.dataset.theme=next; store.set("theme",next);
+};
+
+/* ================= Boot ================= */
+if("speechSynthesis" in window) speechSynthesis.getVoices();
+renderFloor(); renderTasks(); renderChat();
+if(!settings().key) setTimeout(openSettings, 300);
+</script>
+</body>
+</html>
