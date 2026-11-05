@@ -14,6 +14,7 @@
   --bg:#f7efe2; --panel:#fffaf3; --panel2:#f1e6d4; --ink:#2f2433; --muted:#7a6a72; --line:#2f2433;
   --accent:#ff5d8f; --accent-ink:#ffffff; --accent2:#6c5ce7; --ok:#2fa866; --warn:#f2a516; --err:#d9434a;
   --bubble:#ffffff; --me:#ffe0ea; --code:rgba(47,36,51,.07);
+  --okbg:#e2f6e9; --errbg:#fde3e4; --infobg:#fffaf3; --partybg:#fff1c9;
   --ui:"Itim",system-ui,sans-serif; --display:"Kanit","Itim",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){
@@ -21,12 +22,14 @@
     color-scheme:dark;
     --bg:#1b1622; --panel:#261f30; --panel2:#30283c; --ink:#f4ecf2; --muted:#b9a9bc; --line:#0d0a12;
     --bubble:#30283c; --me:#4f2a40; --code:rgba(255,255,255,.07);
+    --okbg:#1f3a2b; --errbg:#4a2228; --infobg:#30283c; --partybg:#4a3a1c;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#1b1622; --panel:#261f30; --panel2:#30283c; --ink:#f4ecf2; --muted:#b9a9bc; --line:#0d0a12;
   --bubble:#30283c; --me:#4f2a40; --code:rgba(255,255,255,.07);
+  --okbg:#1f3a2b; --errbg:#4a2228; --infobg:#30283c; --partybg:#4a3a1c;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -35,17 +38,41 @@ body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:17px;
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--accent2);outline-offset:2px}
 
-.btn{border:3px solid var(--line);background:var(--panel);padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--line);border-radius:6px}
+.btn{border:3px solid var(--line);background:var(--panel);padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--line);border-radius:6px;position:relative;overflow:hidden;transition:transform .14s cubic-bezier(.3,1.6,.5,1),box-shadow .14s,background-color .2s}
 .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line)}
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line)}
-.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary{background:linear-gradient(135deg,#ff5d8f,#ff8a5c);color:var(--accent-ink);text-shadow:0 1px 0 rgba(0,0,0,.18)}
+.btn.primary::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-130%);transition:transform .7s;pointer-events:none}
+.btn.primary:hover::after{transform:translateX(130%)}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.55);transform:scale(0);animation:rip .55s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(4);opacity:0}}
 .btn.small{padding:3px 9px;font-size:14px;box-shadow:2px 2px 0 var(--line)}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
 header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:4px solid var(--line);background:var(--panel)}
 header h1{margin:0;font-family:var(--display);font-weight:800;font-size:24px;flex:1;min-width:200px;text-wrap:balance}
 header h1 small{display:block;font-family:var(--ui);font-weight:400;font-size:14px;color:var(--muted)}
-.notice{margin:10px auto 0;max-width:1400px;border:3px solid var(--line);background:var(--warn);color:#1b1622;padding:6px 12px;border-radius:6px}
+header h1 .logo{display:inline-block;transition:transform .3s cubic-bezier(.3,1.8,.5,1)}
+header h1:hover .logo{transform:rotate(-12deg) scale(1.2)}
+.toasts{position:fixed;z-index:50;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100vw - 24px));pointer-events:none}
+@media (max-width:560px){.toasts{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px));width:auto}}
+.toast{pointer-events:auto;display:flex;gap:8px;align-items:flex-start;border:3px solid var(--line);border-radius:10px;background:var(--infobg);box-shadow:4px 4px 0 var(--line);padding:8px 10px 12px;position:relative;overflow:hidden;animation:tin .4s cubic-bezier(.2,1.5,.4,1)}
+.toast.ok{background:var(--okbg)} .toast.err{background:var(--errbg)} .toast.party{background:var(--partybg)}
+.toast.out{animation:tout .25s forwards}
+.toast .ti{font-size:20px;line-height:1.2}
+.toast .tm{flex:1;min-width:0;font-size:15px}
+.toast .tx{border:0;background:transparent;cursor:pointer;font-size:20px;line-height:1;padding:0 2px;color:var(--muted)}
+.toast .tl{position:absolute;left:0;bottom:0;height:4px;background:var(--accent);animation:tl linear forwards}
+@keyframes tl{from{width:100%}to{width:0}}
+@keyframes tin{from{opacity:0;transform:translateX(50px) scale(.9)}}
+@keyframes tout{to{opacity:0;transform:translateX(50px)}}
+#party{position:fixed;inset:0;width:100%;height:100%;z-index:70;pointer-events:none}
+#partyCard{position:fixed;z-index:71;left:50%;top:40%;transform:translate(-50%,-50%);text-align:center;border:4px solid var(--line);border-radius:16px;background:var(--partybg);box-shadow:8px 8px 0 var(--line);padding:18px 26px;animation:pop .6s cubic-bezier(.2,1.6,.4,1);pointer-events:none;max-width:calc(100vw - 32px)}
+#partyCard b{display:block;font-family:var(--display);font-weight:800;font-size:40px;line-height:1.1;background:linear-gradient(90deg,#ff5d8f,#6c5ce7,#2fa866);-webkit-background-clip:text;background-clip:text;color:transparent}
+#partyCard span{font-size:17px}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-8deg)}}
+.xpf{position:fixed;z-index:60;transform:translateX(-50%);font-family:var(--display);font-weight:800;font-size:18px;color:var(--ok);text-shadow:2px 2px 0 var(--panel);animation:xpf 1.3s ease-out forwards;pointer-events:none}
+@keyframes xpf{from{opacity:0;transform:translate(-50%,6px) scale(.6)}20%{opacity:1;transform:translate(-50%,0) scale(1.15)}to{opacity:0;transform:translate(-50%,-40px)}}
 .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;padding-block:16px;max-width:1400px;margin:0 auto}
@@ -54,12 +81,20 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;pad
 
 /* Office */
 .office{overflow:hidden;padding:0;line-height:0}
-#officeCanvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;aspect-ratio:320/180}
+#officeCanvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;aspect-ratio:320/200}
 .team{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.member.mgr{grid-column:1/-1;background:linear-gradient(90deg,var(--panel),var(--panel2))}
+.member.mgr .mi{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:10px}
 @media (max-width:560px){.team{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.member{border:3px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;cursor:pointer;text-align:left;box-shadow:3px 3px 0 var(--line);display:flex;flex-direction:column;gap:2px}
+.member{border:3px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;cursor:pointer;text-align:left;box-shadow:3px 3px 0 var(--line);display:flex;gap:6px;align-items:flex-start;transition:transform .15s cubic-bezier(.3,1.6,.5,1),box-shadow .15s;min-width:0}
+.member:hover{transform:translateY(-3px);box-shadow:3px 6px 0 var(--line)}
+.member canvas{width:30px;height:34px;image-rendering:pixelated;flex:none;transition:transform .2s}
+.member:hover canvas{transform:rotate(-6deg) scale(1.1)}
+.member .mi{display:flex;flex-direction:column;gap:2px;min-width:0}
+.member.busy{animation:busy 1.3s ease-in-out infinite}
+@keyframes busy{50%{box-shadow:3px 3px 0 var(--line),0 0 0 4px rgba(242,165,22,.45)}}
 .member[aria-pressed="true"]{background:var(--me)}
-.member b{font-size:16px}
+.member b{font-size:15px;line-height:1.25}
 .member span{font-size:13px;color:var(--muted)}
 .pill{align-self:flex-start;font-size:12px;padding:0 7px;border-radius:999px;border:2px solid var(--line);background:var(--panel2)}
 .pill.working{background:var(--warn);color:#1b1622}
@@ -73,7 +108,27 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;pad
 .make input{flex:1 1 220px}
 .steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:14px}
 .step{border:2px dashed var(--muted);border-radius:999px;padding:1px 10px;color:var(--muted)}
-.step.working{border-style:solid;border-color:var(--line);background:var(--warn);color:#1b1622}
+.step{transition:background-color .3s,transform .3s}
+.step.working{border-style:solid;border-color:var(--line);background:linear-gradient(90deg,var(--warn),#ffd978,var(--warn));background-size:200% 100%;animation:shim 1.1s linear infinite;color:#1b1622;transform:scale(1.06)}
+.step.waiting{border-style:solid;border-color:var(--line);background:var(--accent2);color:#fff}
+@keyframes shim{to{background-position:-200% 0}}
+.askbox{margin-top:12px;border:3px solid var(--line);border-radius:10px;padding:10px;background:var(--me);animation:paneIn .35s cubic-bezier(.2,1.4,.4,1)}
+.askbox .askhead{display:flex;gap:8px;align-items:center;font-family:var(--display);font-weight:600}
+.askbox canvas{width:30px;height:34px;image-rendering:pixelated}
+.qrow{margin:8px 0;display:flex;flex-direction:column;gap:5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:2px solid var(--line);border-radius:999px;padding:2px 11px;background:var(--panel);cursor:pointer;font-size:14px;transition:transform .12s}
+.chip:hover{transform:translateY(-2px)}
+.chip[aria-pressed="true"]{background:var(--accent);color:#fff}
+.qrow input{border:2px solid var(--line);border-radius:6px;background:var(--bg);padding:3px 8px;font-size:14px;min-width:0}
+.plan{display:flex;flex-direction:column;gap:6px}
+.planrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;border:3px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--panel)}
+.planrow .day{font-family:var(--display);font-weight:600;font-size:14px;background:var(--panel2);border-radius:6px;padding:2px 6px;white-space:nowrap}
+.planrow .pt{min-width:0;font-size:15px;overflow-wrap:anywhere}
+.planrow .pt small{display:block;color:var(--muted);font-size:13px}
+.review{border:3px solid var(--line);border-radius:8px;padding:10px;background:var(--panel2);display:flex;flex-direction:column;gap:4px}
+.review .score{font-family:var(--display);font-weight:800;font-size:22px}
+.review ul{margin:0;padding-left:20px;font-size:14px}
 .step.done{border-style:solid;border-color:var(--line);background:var(--ok);color:#fff}
 .step.error{border-style:solid;border-color:var(--line);background:var(--err);color:#fff}
 .board{margin-top:16px;padding:14px}
@@ -85,13 +140,21 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;pad
 /* Right side */
 .side{display:flex;flex-direction:column;min-height:640px;max-height:calc(100vh - 110px);position:sticky;top:12px}
 @media (max-width:980px){.side{position:static;max-height:none}}
-.tabs{display:flex;border-bottom:4px solid var(--line)}
+.tabs{display:flex;border-bottom:4px solid var(--line);position:relative}
+.tabs .ind{position:absolute;bottom:-4px;height:4px;background:var(--accent);transition:left .35s cubic-bezier(.3,1.4,.5,1),width .35s;left:0;width:0}
 .tabs button{flex:1;border:0;background:var(--panel2);padding:10px;cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px}
-.tabs button[aria-selected="true"]{background:var(--panel)}
+.tabs button{transition:background-color .2s,color .2s}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--accent)}
+.tabs button:hover{filter:brightness(1.04)}
 .tabs button + button{border-left:4px solid var(--line)}
 @media (max-width:560px){.tabs button{font-size:14px;padding:8px 4px}}
 .pane{display:flex;flex-direction:column;flex:1;min-height:0}
 .pane[hidden]{display:none}
+.pane{animation:paneIn .3s ease-out}
+@keyframes paneIn{from{opacity:0;transform:translateY(10px)}}
+.msg{animation:msgIn .3s cubic-bezier(.2,1.3,.4,1)}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(.98)}}
+.card{transition:box-shadow .2s}
 
 .chat-head{display:flex;gap:10px;align-items:center;padding:10px;border-bottom:3px solid var(--line)}
 .chat-head canvas{width:44px;height:44px;image-rendering:pixelated;border:3px solid var(--line);border-radius:6px;background:var(--panel2)}
@@ -168,22 +231,24 @@ dialog label{display:block;margin:10px 0 4px;font-weight:bold}
 dialog input,dialog select{width:100%;border:3px solid var(--line);background:var(--bg);padding:6px;border-radius:6px}
 dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 .drow{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
-@media (prefers-reduced-motion:reduce){.thinking::after{animation:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>ออฟฟิศ AI ส่วนตัว <small>ทีมงาน AI 4 คน ช่วยทำคลิปสั้นตั้งแต่คิดไอเดียจนได้ไฟล์วิดีโอ</small></h1>
+  <h1><span class="logo" aria-hidden="true">🏢</span> ออฟฟิศ AI ส่วนตัว <small>ผู้จัดการ + ทีมงาน AI 4 คน ช่วยทำคลิปสั้นตั้งแต่คิดไอเดียจนได้ไฟล์วิดีโอ</small></h1>
   <span class="lvl" id="lvl" title="เลเวลออฟฟิศ"></span>
   <span class="sync" id="syncLbl">💾 บันทึกในเครื่องนี้</span>
   <button class="btn small" id="themeBtn" title="สลับโหมดมืด/สว่าง" aria-label="สลับโหมดมืด/สว่าง">🌓</button>
   <button class="btn" id="settingsBtn">⚙️ ตั้งค่า</button>
 </header>
-<div class="wrap"><div class="notice" id="notice" hidden></div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<canvas id="party" aria-hidden="true" hidden></canvas>
+<div id="partyCard" hidden><b></b><span></span></div>
 
 <main class="wrap">
   <section>
-    <div class="card office"><canvas id="officeCanvas" width="320" height="180" aria-label="ภาพออฟฟิศพิกเซล คลิกที่โต๊ะเพื่อเลือกพนักงาน"></canvas></div>
+    <div class="card office"><canvas id="officeCanvas" width="320" height="200" aria-label="ภาพออฟฟิศพิกเซล คลิกที่ตัวละครเพื่อเลือกพนักงาน"></canvas></div>
     <div class="team" id="team"></div>
 
     <div class="card make">
@@ -201,10 +266,17 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
         <span id="resumeInfo" style="font-size:14px;color:var(--muted);align-self:center;flex:1;min-width:0"></span>
       </div>
       <div class="steps" id="steps">
-        <span class="step" data-s="creative">1 เขียนบท</span>
-        <span class="step" data-s="animator">2 สตอรี่บอร์ด</span>
-        <span class="step" data-s="editor">3 ตัดต่อ</span>
-        <span class="step" data-s="voice">4 กำกับเสียง</span>
+        <span class="step" data-s="brief">1 รับบรีฟ</span>
+        <span class="step" data-s="creative">2 เขียนบท</span>
+        <span class="step" data-s="animator">3 สตอรี่บอร์ด</span>
+        <span class="step" data-s="editor">4 ตัดต่อ</span>
+        <span class="step" data-s="voice">5 กำกับเสียง</span>
+        <span class="step" data-s="review">6 ตรวจงาน</span>
+      </div>
+      <div class="askbox" id="askBox" hidden>
+        <div class="askhead"><canvas id="mgrAvatar" width="16" height="18"></canvas><span>พี่มายขอถามก่อนเริ่มงาน <small style="font-family:var(--ui);font-weight:400;color:var(--muted)" id="askTopic"></small></span></div>
+        <div id="askQs"></div>
+        <div class="row"><button class="btn primary" id="askSend">ส่งคำตอบ</button><button class="btn" id="askSkip">ให้พี่มายตัดสินใจเอง</button></div>
       </div>
     </div>
 
@@ -219,11 +291,12 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
       <button role="tab" id="tabChat" aria-selected="true" aria-controls="paneChat">💬 คุยกับทีม</button>
       <button role="tab" id="tabStudio" aria-selected="false" aria-controls="paneStudio">🎞️ ห้องตัดต่อ</button>
       <button role="tab" id="tabLib" aria-selected="false" aria-controls="paneLib">📚 คลังคลิป</button>
+      <span class="ind" id="tabInd" aria-hidden="true"></span>
     </div>
 
     <div class="pane" id="paneChat" role="tabpanel">
       <div class="chat-head">
-        <canvas id="chatAvatar" width="16" height="16"></canvas>
+        <canvas id="chatAvatar" width="16" height="18"></canvas>
         <div class="t"><b id="chatName"></b><span id="chatRole"></span></div>
         <button class="btn small" id="clearBtn">🧹 ล้างแชต</button>
       </div>
@@ -240,6 +313,12 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
         <div class="statgrid" id="statGrid"></div>
         <div class="unlocks" id="unlocks"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <b style="font-family:var(--display);font-size:18px;flex:1">📅 แผนคอนเทนต์</b>
+          <button class="btn small" id="planAsk">ให้พี่มายวางแผน</button>
+          <button class="btn small" id="planClear" hidden>ล้างแผน</button>
+        </div>
+        <div class="plan" id="planBox"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <b style="font-family:var(--display);font-size:18px;flex:1">คลิปทั้งหมด</b>
           <button class="btn small" id="demoBtn">ดูคลิปตัวอย่าง</button>
         </div>
@@ -254,6 +333,7 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
           <b id="projTitle" style="font-family:var(--display);font-size:18px;flex:1;min-width:0"></b>
           <span class="example" id="projExample" hidden>ตัวอย่าง</span>
         </div>
+        <div class="review" id="reviewCard" hidden></div>
         <div class="stage"><canvas id="video" width="720" height="1280"></canvas></div>
         <div class="controls">
           <button class="btn small" id="playBtn" aria-label="เล่น">▶ เล่น</button>
@@ -347,8 +427,28 @@ const easeBack=t=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.
 const rnd=i=>{ const x=Math.sin(i*127.1+311.7)*43758.5453; return x-Math.floor(x); };
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=s=>{ s=Math.max(0,s); return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0"); };
-const noticeEl=$("notice");
-function notice(msg, ms=6000){ noticeEl.textContent=msg; noticeEl.hidden=false; clearTimeout(notice.t); notice.t=setTimeout(()=>noticeEl.hidden=true, ms); }
+const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function notice(msg, ms=6000, type){
+  type ||= /^🎉/.test(msg)?"party":/สะดุด|ไม่ได้|ไม่สำเร็จ|⚠️|เต็ม|ไม่ถูกต้อง/.test(msg)?"err":/เสร็จ|เรียบร้อย|บันทึก|คัดลอกแล้ว|ใส่.*แล้ว/.test(msg)?"ok":"info";
+  const box=$("toasts"), el=document.createElement("div"); el.className="toast "+type; el.setAttribute("role","status");
+  el.innerHTML=`<span class="ti" aria-hidden="true">${{party:"🎉",err:"⚠️",ok:"✅",info:"💬"}[type]}</span><span class="tm"></span><button class="tx" aria-label="ปิดการแจ้งเตือน">×</button><i class="tl" style="animation-duration:${ms}ms"></i>`;
+  el.querySelector(".tm").textContent=msg.replace(/^🎉\s*/,"");
+  const close=()=>{ if(el.classList.contains("out")) return; el.classList.add("out"); setTimeout(()=>el.remove(),260); };
+  el.querySelector(".tx").onclick=close; setTimeout(close,ms); box.appendChild(el); while(box.children.length>4) box.firstChild.remove();
+}
+function celebrate(title,sub){
+  const card=$("partyCard"); card.querySelector("b").textContent=title; card.querySelector("span").textContent=sub; card.hidden=false; card.style.animation="none"; void card.offsetWidth; card.style.animation="";
+  setTimeout(()=>card.hidden=true,3200);
+  if(reduceMotion) return;
+  const cv=$("party"); cv.hidden=false; cv.width=innerWidth; cv.height=innerHeight; const c=cv.getContext("2d"); const cols=["#ff5d8f","#ffd23f","#6bc7ff","#5fd38d","#b48cff","#ff8a5c"];
+  const ps=Array.from({length:160},(_,i)=>({x:innerWidth/2,y:innerHeight*0.4,vx:(Math.random()-.5)*16,vy:-Math.random()*16-4,r:Math.random()*Math.PI,s:5+Math.random()*7,c:cols[i%6]}));
+  const t0=performance.now(); const step=now=>{ const k=(now-t0)/1000; c.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{ p.vy+=0.45; p.vx*=0.99; p.x+=p.vx; p.y+=p.vy; p.r+=0.2; c.save(); c.translate(p.x,p.y); c.rotate(p.r); c.globalAlpha=Math.max(0,1-k/3); c.fillStyle=p.c; c.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); c.restore(); });
+    if(k<3) requestAnimationFrame(step); else { c.clearRect(0,0,cv.width,cv.height); cv.hidden=true; } };
+  requestAnimationFrame(step);
+}
+function xpFloat(n){ const el=$("lvl"); if(!el) return; const b=el.getBoundingClientRect(); const f=document.createElement("div"); f.className="xpf"; f.textContent=`+${n} XP`; f.style.left=(b.left+b.width/2)+"px"; f.style.top=(b.bottom+2)+"px"; document.body.appendChild(f); setTimeout(()=>f.remove(),1400); }
+document.addEventListener("pointerdown",ev=>{ const b=ev.target.closest(".btn,.chip,.member"); if(!b||b.disabled||reduceMotion) return; const r=b.getBoundingClientRect(), d=Math.max(r.width,r.height); const sp=document.createElement("span"); sp.className="ripple"; sp.style.cssText=`width:${d}px;height:${d}px;left:${ev.clientX-r.left-d/2}px;top:${ev.clientY-r.top-d/2}px`; if(getComputedStyle(b).position==="static") b.style.position="relative"; b.style.overflow="hidden"; b.appendChild(sp); setTimeout(()=>sp.remove(),600); });
 const inViewer = !!(window.claude && typeof window.claude.use==="function");
 
 /* =========================================================
@@ -885,6 +985,16 @@ const LAYOUT_RULES=`กฎการจัดภาพ:
 - ห้ามใช้ชื่อที่ไม่อยู่ในรายการ`;
 
 const EMPLOYEES=[
+  { id:"manager", name:"พี่มาย", role:"ผู้จัดการทีม / โปรดิวเซอร์", px:{hair:"#4a2c6b",shirt:"#3a3f73",skin:"#f2c9a0",tie:"#ff5d8f"}, bubble:"📋",
+    quick:["วางแผนคอนเทนต์ 7 วันสำหรับ TikTok","ช่วยคิดคอนเซ็ปต์ช่อง + ชื่อช่อง","คลิปแบบไหนยอดวิวดี แนะนำหน่อย"],
+    system:`คุณคือ "พี่มาย" ผู้จัดการทีมและโปรดิวเซอร์ของออฟฟิศ AI ส่วนตัว ดูแลทีม: น้องครีม (เขียนบท), น้องพิกเซล (อนิเมชัน/สตอรี่บอร์ด), น้องคัท (ตัดต่อ), น้องเสียง (กำกับเสียง)
+หน้าที่:
+1) รับบรีฟจากเจ้านาย ถามเฉพาะสิ่งที่จำเป็นจริงๆ (ไม่เกิน 3 ข้อ) แล้วสรุปบรีฟที่ชัดเจนให้ทีม
+2) ตรวจงานก่อนส่ง: ความถูกต้องของข้อมูล ความแรงของ hook 3 วินาทีแรก ความกระชับ ภาษาไทยที่เป็นธรรมชาติ และแก้จุดที่ควรแก้
+3) วางแผนคอนเทนต์ให้ช่องเติบโต
+คุณเข้าใจคลิปสั้น TikTok/Reels/Shorts: hook ใน 3 วินาทีแรก ความยาว 30-60 วินาที หนึ่งคลิปหนึ่งประเด็น ตอนจบชวนคอมเมนต์
+เมื่อเจ้านายขอแผนคอนเทนต์ ให้ตอบเป็นรายการสั้นๆ แล้วตามด้วย JSON ในบล็อก \`\`\`json รูปแบบ {"plan":[{"day":"วันจันทร์","topic":"หัวข้อคลิป","hook":"ประโยคเปิดคลิป"}]} (3-10 รายการ) เพื่อให้ระบบบันทึกเป็นแผนได้
+${STYLE}` },
   { id:"creative", name:"น้องครีม", role:"นักเขียนบท / ครีเอทีฟ", px:{hair:"#ff5d8f",shirt:"#ffd34d",skin:"#ffd7b5"}, bubble:"💡",
     quick:["คิดหัวข้อคลิป What if 5 หัวข้อ","เขียนบทคลิป 45 วินาที เรื่อง...","เขียนแคปชัน TikTok + แฮชแท็ก"],
     system:`คุณคือ "น้องครีม" นักเขียนบทและครีเอทีฟของออฟฟิศ AI ส่วนตัว เชี่ยวชาญคลิปสั้นแนว What if/ความรู้สนุกๆ สำหรับ TikTok/Reels
@@ -933,87 +1043,162 @@ ${STYLE}` },
 const byId=Object.fromEntries(EMPLOYEES.map(e=>[e.id,e]));
 
 /* =========================================================
-   Pixel office (canvas)
+   Pixel office (canvas): actors walk, chat, react; time-of-day lighting
    ========================================================= */
+const OW=320, OH=200, LANE=142;
 const OC=$("officeCanvas"), ox=OC.getContext("2d"); ox.imageSmoothingEnabled=false;
-const DESKS=[{x:44,y:128},{x:122,y:128},{x:200,y:128},{x:278,y:128}]; const DS=1.5;
+const SEATS={manager:{x:160,y:104,s:1.3},creative:{x:40,y:170,s:1.5},animator:{x:118,y:170,s:1.5},editor:{x:202,y:170,s:1.5},voice:{x:280,y:170,s:1.5}};
+const COFFEE={x:106,y:96};
 const status={}; EMPLOYEES.forEach(e=>status[e.id]="idle");
-let walkers=[], current=store.get("current","creative"), officeT0=performance.now();
-const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let current=store.get("current","manager"); if(!byId[current]) current="manager";
+let officeT0=performance.now(), lastFrame=performance.now(), spawnT=0;
+const actors={}, parts=[];
+EMPLOYEES.forEach(e=>{ actors[e.id]={id:e.id,mode:"sit",x:0,y:0,path:[],bubble:null,jumpUntil:0,carry:false,dir:1,nextIdle:performance.now()+5000+Math.random()*12000}; });
 function px(c,x,y,w,h,col){ c.fillStyle=col; c.fillRect(Math.round(x),Math.round(y),w,h); }
 function drawPixelPerson(c,x,y,P,{pose="sit",t=0,carry=false,dir=1}={}){
   // 12x18 sprite, origin = top-left of head
   px(c,x+2,y,8,3,P.hair); px(c,x+1,y+2,10,7,P.skin); px(c,x+1,y+2,10,2,P.hair); px(c,x+1,y+2,1,5,P.hair); px(c,x+10,y+2,1,5,P.hair);
-  const blink=(t%4)<0.12; px(c,x+3+(dir<0?-1:0),y+5,1,blink?1:2,"#2b2140"); px(c,x+7+(dir<0?-1:0),y+5,1,blink?1:2,"#2b2140");
+  const blink=(t%4)<0.12, ex=dir<0?-1:0; px(c,x+3+ex,y+5,1,blink?1:2,"#2b2140"); px(c,x+7+ex,y+5,1,blink?1:2,"#2b2140");
   px(c,x+2,y+7,1,1,"#ff9fb8"); px(c,x+9,y+7,1,1,"#ff9fb8"); px(c,x+5,y+8,2,1,"#c0504d");
-  px(c,x+1,y+9,10,6,P.shirt); px(c,x+5,y+9,2,1,P.skin);
+  px(c,x+1,y+9,10,6,P.shirt); px(c,x+5,y+9,2,1,P.skin); if(P.tie) px(c,x+5,y+10,2,4,P.tie);
   if(pose==="sit"){ const k=Math.floor(t*6)%2; px(c,x-1,y+10+k,2,4,P.shirt); px(c,x+11,y+11-k,2,4,P.shirt); px(c,x-1,y+14+k,2,1,P.skin); px(c,x+11,y+15-k,2,1,P.skin); }
-  else { const k=Math.floor(t*8)%2; px(c,x-1,y+10,2,4,P.shirt); px(c,x+11,y+10,2,4,P.shirt); px(c,x+2,y+15,3,3+(k?0:-1),"#3d3d5c"); px(c,x+7,y+15,3,3+(k?-1:0),"#3d3d5c");
-    if(carry){ px(c,x+(dir>0?11:-5),y+8,6,7,"#ffffff"); px(c,x+(dir>0?12:-4),y+10,4,1,"#9aa"); px(c,x+(dir>0?12:-4),y+12,4,1,"#9aa"); } }
+  else { const k=pose==="walk"?Math.floor(t*8)%2:0; px(c,x-1,y+10,2,4,P.shirt); px(c,x+11,y+10,2,4,P.shirt); px(c,x-1,y+14,2,1,P.skin); px(c,x+11,y+14,2,1,P.skin);
+    px(c,x+2,y+15,3,3-(pose==="walk"&&!k?1:0),"#3d3d5c"); px(c,x+7,y+15,3,3-(pose==="walk"&&k?1:0),"#3d3d5c");
+    if(carry){ const ox2=dir>0?11:-5; px(c,x+ox2,y+8,6,7,"#ffffff"); px(c,x+ox2+1,y+10,4,1,"#9aa"); px(c,x+ox2+1,y+12,4,1,"#9aa"); } }
 }
+/* movement */
+function exitPts(id){ const s=SEATS[id]; return id==="manager"?[{x:s.x+38,y:s.y-2},{x:s.x+38,y:LANE}]:[{x:s.x,y:LANE}]; }
+function standPt(id){ const s=SEATS[id]; return id==="manager"?{x:s.x+12,y:s.y-2}:{x:s.x,y:LANE+2}; }
+function say(id,text,sec=2){ actors[id].bubble={text,until:performance.now()+sec*1000}; }
+function trip(id,target,{bubble="",carry=false,stay=1.8,onArrive}={}){
+  const a=actors[id]; if(!a||a.mode!=="sit"||reduceMotion) { if(bubble) say(id,bubble,stay); onArrive&&onArrive(); return false; }
+  const ex=exitPts(id), st=standPt(id);
+  Object.assign(a,{mode:"walk",x:st.x,y:st.y,carry,path:[...ex,{x:target.x,y:LANE},{x:target.x,y:target.y}]});
+  a.onArrive=()=>{ a.mode="stand"; a.carry=false; if(bubble) say(id,bubble,stay); onArrive&&onArrive();
+    setTimeout(()=>{ a.mode="walk"; a.path=[{x:target.x,y:LANE},...ex.slice().reverse(),st]; a.onArrive=()=>{ a.mode="sit"; a.dir=1; }; }, stay*1000); };
+  return true;
+}
+function deskFront(id,fromX){ const s=SEATS[id]; if(id==="manager") return {x:s.x+(fromX<s.x?-40:40),y:s.y+14}; return {x:s.x+(fromX<s.x?-24:24),y:LANE}; }
+function handoff(from,to){ trip(from,deskFront(to,SEATS[from].x),{bubble:"📄",carry:true,stay:1.4,onArrive:()=>setTimeout(()=>say(to,"👍",1.6),350)}); }
+function managerCheck(id){ if(id==="manager"||status.manager==="working"||actors.manager.mode!=="sit"||Math.random()<0.35) return; trip("manager",deskFront(id,SEATS.manager.x),{bubble:["👀","💪","👍","✨"][Math.floor(Math.random()*4)],stay:2}); }
+function moveActors(dt){ for(const a of Object.values(actors)){ if(a.mode!=="walk") continue; const p=a.path[0]; if(!p){ const f=a.onArrive; a.onArrive=null; f?f():a.mode="stand"; continue; }
+  const dx=p.x-a.x, dy=p.y-a.y, d=Math.hypot(dx,dy), sp=44*dt; if(Math.abs(dx)>0.5) a.dir=dx>0?1:-1;
+  if(d<=sp){ a.x=p.x; a.y=p.y; a.path.shift(); if(!a.path.length){ const f=a.onArrive; a.onArrive=null; f?f():a.mode="stand"; } } else { a.x+=dx/d*sp; a.y+=dy/d*sp; } } }
+function idleTick(now){
+  if(reduceMotion) return;
+  for(const e of EMPLOYEES){ const a=actors[e.id]; if(a.mode!=="sit"||status[e.id]==="working"||now<a.nextIdle) continue;
+    a.nextIdle=now+14000+Math.random()*24000; const r=Math.random();
+    if(r<0.38) trip(e.id,{x:COFFEE.x+(Math.random()*14-7),y:COFFEE.y},{bubble:"☕",stay:2.2});
+    else if(r<0.72){ const others=EMPLOYEES.filter(o=>o.id!==e.id&&actors[o.id].mode==="sit"&&status[o.id]!=="working"); if(others.length){ const o=others[Math.floor(Math.random()*others.length)];
+      trip(e.id,deskFront(o.id,SEATS[e.id].x),{bubble:["💬","😂","🤔","🎵","📱"][Math.floor(Math.random()*5)],stay:2.6,onArrive:()=>setTimeout(()=>say(o.id,["😆","👍","💡","🙌","❤️"][Math.floor(Math.random()*5)],1.8),600)}); } }
+    else { a.jumpUntil=now+700; say(e.id,["🙆","✨","🎶","😴","💻"][Math.floor(Math.random()*5)],1.8); }
+  }
+}
+/* particles */
+function spawn(x,y,o={}){ if(parts.length>180) return; parts.push(Object.assign({x,y,vx:0,vy:-8,life:1.2,col:"#fff",size:1,kind:"dot"},o,{max:o.life||1.2})); }
+function stepParts(dt){ for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.life-=dt; if(p.life<=0){ parts.splice(i,1); continue; } p.x+=p.vx*dt; p.y+=p.vy*dt; if(p.kind==="spark") p.vy+=40*dt; if(p.kind==="steam") p.x+=Math.sin(p.life*6)*0.15; } }
+function drawParts(c){ for(const p of parts){ c.globalAlpha=clamp(p.life/p.max,0,1)*(p.kind==="steam"?0.6:1); px(c,p.x,p.y,p.size,p.size,p.col); } c.globalAlpha=1; }
+function spawnAmbient(night){
+  EMPLOYEES.forEach((e,i)=>{ const s=SEATS[e.id];
+    if(e.id!=="manager"&&Math.random()<0.5) spawn(s.x+(14.5)*s.s,s.y-6*s.s,{kind:"steam",vy:-6,life:1.4,col:"#ffffff"});
+    if(status[e.id]==="working") for(let k=0;k<2;k++) spawn(s.x+(Math.random()*16-8)*s.s,s.y-1*s.s,{kind:"spark",vx:(Math.random()-.5)*20,vy:-22-Math.random()*12,life:0.6,col:["#ffd23f","#6bf2ff","#ff8ab0","#a6ff9b"][(i+k)%4]}); });
+  if(Math.random()<0.6) spawn(COFFEE.x+2+Math.random()*4,58,{kind:"steam",vy:-7,life:1.6});
+  if(!night&&Math.random()<0.5){ const w=[18,96,214][Math.floor(Math.random()*3)]; spawn(w+20+Math.random()*50,60+Math.random()*120,{kind:"dust",vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:2.5,col:"#fff8d0"}); }
+}
+/* bubbles */
+function bubbleAt(c,x,y,text){ c.font="8px sans-serif"; const w=Math.max(12,Math.ceil(c.measureText(text).width)+6); const bx=Math.round(clamp(x-w/2,1,OW-w-1)), by=Math.round(y-12);
+  px(c,bx+1,by,w-2,11,"#2b2140"); px(c,bx,by+1,w,9,"#2b2140"); px(c,bx+1,by+1,w-2,9,"#ffffff"); px(c,Math.round(x)-1,by+10,3,2,"#2b2140"); px(c,Math.round(x),by+10,1,1,"#ffffff");
+  c.fillStyle="#2b2140"; c.textBaseline="middle"; c.textAlign="center"; c.fillText(text,bx+w/2,by+6); c.textAlign="left"; c.textBaseline="alphabetic"; }
+/* scene pieces */
+function drawDesk(c,e,i,t,LV,now){
+  const s=SEATS[e.id], a=actors[e.id], st=status[e.id], mgr=e.id==="manager";
+  const jump=now<a.jumpUntil?Math.abs(Math.sin((a.jumpUntil-now)/700*Math.PI*2))*5:0;
+  c.save(); c.translate(s.x,s.y); c.scale(s.s,s.s);
+  px(c,-26,10,52,4,"rgba(0,0,0,.15)");
+  px(c,-6,-4,12,10,mgr?"#6b2737":"#4a4a66"); if(mgr) px(c,-7,-12,14,9,"#7d3243");
+  if(a.mode==="sit") drawPixelPerson(c,-6,-20-jump/s.s,e.px,{pose:"sit",t:st==="working"&&!reduceMotion?t:0});
+  const top=mgr?"#5a3a2a":"#8b5a2b", side=mgr?"#3e281c":"#6d4421";
+  px(c,-24,0,48,6,top); px(c,-24,6,48,2,side); px(c,-22,8,3,10,side); px(c,19,8,3,10,side);
+  if(mgr){ px(c,-24,8,48,9,side); px(c,-6,10,12,4,"#d9b44a"); px(c,-5,11,10,2,"#f3d77a"); }
+  px(c,-10,-11,20,11,"#2d2d3a"); px(c,-9,-10,18,9,st==="working"?(Math.floor(t*4)%2?"#8ff0ff":"#bff7ff"):"#3b4a6b"); px(c,-2,-1,4,1,"#555");
+  if(st==="working"){ px(c,-7,-8,8,1,"#2d6b8a"); px(c,-7,-6,12,1,"#2d6b8a"); px(c,-7,-4,6,1,"#2d6b8a"); }
+  else { px(c,-9,-10,18,2,"rgba(255,255,255,.08)"); }
+  if(mgr){ px(c,14,-3,8,3,"#ffffff"); px(c,15,-5,8,2,"#f1ead8"); px(c,-21,-2,6,2,"#222"); px(c,-20,-4,4,2,"#444"); if(LV>=5){ px(c,-19,-12,6,7,"#ffd23f"); px(c,-21,-14,10,3,"#ffd23f"); px(c,-17,-5,2,3,"#e6a817"); px(c,-19,-3,6,2,"#7a5236"); } }
+  else { px(c,13,-4,4,4,"#ffffff"); px(c,17,-3,1,2,"#ffffff"); px(c,-21,-3,8,3,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d"][(i-1)%4]);
+    if(LV>=7){ px(c,-21,-14,1,11,"#c9a227"); px(c,-23,-16,6,3,"#ffd23f"); c.fillStyle="rgba(255,230,120,.25)"; c.fillRect(-26,-13,12,10); } }
+  c.restore();
+}
+function drawStanding(c,a,t,now){
+  const e=byId[a.id], S=SEATS[a.id].s, jump=now<a.jumpUntil?Math.abs(Math.sin((a.jumpUntil-now)/700*Math.PI*2))*5:0;
+  c.fillStyle="rgba(0,0,0,.18)"; c.beginPath(); c.ellipse(a.x,a.y+1,7*S/1.5,2,0,0,7); c.fill();
+  c.save(); c.translate(Math.round(a.x),Math.round(a.y-jump)); c.scale(S,S); drawPixelPerson(c,-6,-18,e.px,{pose:a.mode==="walk"?"walk":"stand",t,carry:a.carry,dir:a.dir}); c.restore();
+}
+function headPos(id){ const a=actors[id], s=SEATS[id]; return a.mode==="sit"?{x:s.x,y:s.y-21*s.s}:{x:a.x,y:a.y-19*s.s}; }
 function drawOffice(now){
-  const c=ox, t=(now-officeT0)/1000, hr=new Date().getHours(), LV=levelOf(stats.xp); const night=hr<6||hr>=19, dusk=hr>=17&&hr<19;
+  const c=ox, t=(now-officeT0)/1000, hr=new Date().getHours(), LV=levelOf(stats.xp); const night=hr<6||hr>=19, dusk=(hr>=17&&hr<19)||hr===6;
   // wall
-  px(c,0,0,320,70,"#ffd9a8"); for(let x=0;x<320;x+=16) px(c,x,0,1,70,"#f5c992"); px(c,0,66,320,4,"#c98f5a");
-  // windows
+  px(c,0,0,OW,70,"#ffd9a8"); for(let x=0;x<OW;x+=16) px(c,x,0,1,70,"#f5c992"); px(c,0,62,OW,8,"#e9b47c"); px(c,0,66,OW,4,"#c98f5a");
   [[18,10],[96,10],[214,10]].forEach(([wx,wy],i)=>{ px(c,wx-2,wy-2,52,38,"#7a5236"); px(c,wx,wy,48,34,night?"#1b2a55":dusk?"#ff9e7a":"#8fd8ff");
-    if(!night){ const cx=((t*4+i*40)%80)-16; px(c,wx+cx,wy+8,12,4,"#ffffff"); px(c,wx+cx+3,wy+5,6,3,"#ffffff"); } else { for(let s=0;s<5;s++) px(c,wx+4+rnd(s+i*9)*40,wy+3+rnd(s+i)*26,1,1,(Math.floor(t*2)+s)%3?"#fff":"#ffe9a0"); }
-    px(c,wx+23,wy,2,34,"#7a5236"); px(c,wx,wy+16,48,2,"#7a5236"); });
-  // sign + clock + board
-  px(c,276,12,36,18,"#2b2140"); c.fillStyle="#ffd23f"; c.font="6px monospace"; c.fillText("AI",286,20); c.fillStyle="#ff5d8f"; c.fillText("OFFICE",278,27);
-  px(c,160,12,22,22,"#2b2140"); px(c,162,14,18,18,"#ffffff"); const m=new Date().getMinutes(), hh=(hr%12+m/60)/12*Math.PI*2, mm=m/60*Math.PI*2;
-  c.strokeStyle="#2b2140"; c.lineWidth=1; c.beginPath(); c.moveTo(171,23); c.lineTo(171+Math.sin(hh)*5,23-Math.cos(hh)*5); c.moveTo(171,23); c.lineTo(171+Math.sin(mm)*7,23-Math.cos(mm)*7); c.stroke();
+    if(night){ for(let k=0;k<6;k++) px(c,wx+3+rnd(k+i*9)*42,wy+3+rnd(k+i)*26,1,1,(Math.floor(t*2)+k)%3?"#fff":"#ffe9a0"); if(i===2){ px(c,wx+34,wy+5,7,7,"#f6f0c4"); px(c,wx+36,wy+5,5,5,"#1b2a55"); } }
+    else { const cx=((t*4+i*40)%80)-16; px(c,wx+cx,wy+8,12,4,"#ffffff"); px(c,wx+cx+3,wy+5,6,3,"#ffffff"); if(i===0&&!dusk){ px(c,wx+4,wy+4,6,6,"#fff3a0"); } }
+    px(c,wx+23,wy,2,34,"#7a5236"); px(c,wx,wy+16,48,2,"#7a5236"); px(c,wx-3,wy+34,54,3,"#9c6a44"); });
+  const flick=reduceMotion||rnd(Math.floor(t*8))>0.06; px(c,276,12,36,18,"#2b2140"); c.font="6px monospace"; c.fillStyle=flick?"#ffd23f":"#6b5a20"; c.fillText("AI",286,20); c.fillStyle=flick?"#ff5d8f":"#5a2a3a"; c.fillText("OFFICE",278,27);
+  px(c,150,12,22,22,"#2b2140"); px(c,152,14,18,18,"#ffffff"); const m=new Date().getMinutes(), hh=(hr%12+m/60)/12*Math.PI*2, mm=m/60*Math.PI*2;
+  c.strokeStyle="#2b2140"; c.lineWidth=1; c.beginPath(); c.moveTo(161,23); c.lineTo(161+Math.sin(hh)*5,23-Math.cos(hh)*5); c.moveTo(161,23); c.lineTo(161+Math.sin(mm)*7,23-Math.cos(mm)*7); c.stroke();
+  // coffee machine + plants
+  px(c,96,40,20,30,"#5b5b70"); px(c,98,42,16,8,"#2b2140"); px(c,100,44,4,2,Math.floor(t*2)%2?"#5fd38d":"#2fa866"); px(c,106,44,6,2,"#ff5d8f"); px(c,101,56,10,8,"#3d3d50"); px(c,103,60,6,4,"#ffffff");
+  [[2,46],[306,46]].forEach(([x,y])=>{ px(c,x+2,y+14,10,10,"#c0634a"); px(c,x+3,y+13,8,2,"#a14f3a"); px(c,x,y+4,4,10,"#3fa860"); px(c,x+5,y,4,14,"#4fbe6c"); px(c,x+10,y+5,4,10,"#3fa860"); });
   // floor
-  for(let y=70;y<180;y+=10) for(let x=0;x<320;x+=10) px(c,x,y,10,10,LV>=10?(((x+y)/10)%2?"#f3cf6b":"#e6b94a"):(((x+y)/10)%2?"#e8b98a":"#dfa977"));
-  px(c,0,70,320,2,"#b9875a");
-  // decor: plants, coffee machine, rug
-  [[2,150],[306,150]].forEach(([x,y])=>{ px(c,x+2,y+14,10,10,"#c0634a"); px(c,x,y+4,4,10,"#3fa860"); px(c,x+5,y,4,14,"#4fbe6c"); px(c,x+10,y+5,4,10,"#3fa860"); });
-  px(c,140,44,20,26,"#5b5b70"); px(c,143,47,14,8,"#2b2140"); px(c,145,49,4,2,Math.floor(t*2)%2?"#5fd38d":"#2fa866"); px(c,146,60,8,6,"#ffffff"); if(!reduceMotion){ const k=(t*1.2)%1; px(c,149,58-k*8,1,2,"rgba(255,255,255,"+(1-k)+")"); }
-  px(c,60,160,200,16,"#c76b8f"); px(c,64,163,192,10,"#e08aa9");
-  // level unlocks
-  if(LV>=2){ px(c,188,36,26,34,"#7a5236"); [40,51,62].forEach((y,r)=>{ px(c,190,y-3,22,1,"#5a3a24"); for(let k=0;k<5;k++) px(c,191+k*4,y-2-((k+r)%3?6:7),3,(k+r)%3?6:7,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d","#b48cff"][(k+r)%5]); }); }
+  for(let y=70;y<OH;y+=10) for(let x=0;x<OW;x+=10) px(c,x,y,10,10,LV>=10?(((x+y)/10)%2?"#f3cf6b":"#e6b94a"):(((x+y)/10)%2?"#e8b98a":"#dfa977"));
+  px(c,0,70,OW,2,"#b9875a");
+  px(c,70,128,180,22,"#c76b8f"); px(c,73,131,174,16,"#e08aa9"); for(let x=78;x<244;x+=8) px(c,x,138,4,2,"#c76b8f");
+  // unlocks on the wall/floor
+  if(LV>=2){ px(c,188,34,26,36,"#7a5236"); [40,52,64].forEach((y,r)=>{ px(c,190,y-1,22,1,"#5a3a24"); for(let k=0;k<5;k++) px(c,191+k*4,y-2-((k+r)%3?6:7),3,(k+r)%3?6:7,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d","#b48cff"][(k+r)%5]); }); }
   if(LV>=3){ px(c,70,14,20,26,"#ffffff"); px(c,71,15,18,24,"#ff5d8f"); px(c,77,22,2,10,"#fff"); px(c,79,23,2,8,"#fff"); px(c,81,25,2,4,"#fff"); }
   if(LV>=4){ const on=reduceMotion||Math.floor(t*1.5)%4!==0; px(c,188,8,26,11,"#2b2140"); c.fillStyle=on?"#ff4d6d":"#6b2737"; c.font="6px monospace"; c.fillText("ON AIR",189,16); }
-  if(LV>=5){ px(c,24,160,10,3,"#7a5236"); px(c,26,150,6,10,"#ffd23f"); px(c,23,146,12,5,"#ffd23f"); px(c,22,147,2,3,"#e6a817"); px(c,34,147,2,3,"#e6a817"); px(c,28,152,2,2,"#fff7b0"); }
-  if(LV>=6){ px(c,268,148,30,22,"#2b2140"); px(c,270,150,26,18,"#6bc7ff"); px(c,270,164,26,4,"#e8d18a"); const fx=270+((t*8)%22); px(c,fx,156,4,3,"#ff8a4d"); px(c,fx-1,157,1,1,"#ff8a4d"); px(c,284-((t*5)%12),160,3,2,"#ffd23f"); if(!reduceMotion) px(c,276,150+((t*6)%14),1,1,"#e6f7ff"); }
-  if(LV>=8){ const cx=((t*10)%380)-30; px(c,cx,170,10,6,"#ffb347"); px(c,cx+8,167,5,5,"#ffb347"); px(c,cx+8,166,1,2,"#ffb347"); px(c,cx+12,166,1,2,"#ffb347"); px(c,cx-2,168+(Math.floor(t*4)%2),3,2,"#ffb347"); px(c,cx+10,169,1,1,"#2b2140"); }
-  if(LV>=9){ px(c,272,8,44,6,"#6bf2ff"); if(!reduceMotion){ const k=Math.floor(t*4)%44; px(c,272+k,7,2,8,"#ffffff"); } }
-  // desks + people
-  const walkingIds=new Set(walkers.map(w=>w.who));
-  EMPLOYEES.forEach((e,i)=>{ const d=DESKS[i], st=status[e.id];
-    c.save(); c.translate(d.x,d.y); c.scale(DS,DS);
-    px(c,-6,-4,12,10,"#4a4a66");
-    if(!walkingIds.has(e.id)) drawPixelPerson(c,-6,-20,e.px,{pose:"sit",t:st==="working"&&!reduceMotion?t:0});
-    px(c,-24,0,48,6,"#8b5a2b"); px(c,-24,6,48,2,"#6d4421"); px(c,-22,8,3,10,"#6d4421"); px(c,19,8,3,10,"#6d4421");
-    px(c,-10,-11,20,11,"#2d2d3a"); px(c,-9,-10,18,9,st==="working"?(Math.floor(t*4)%2?"#8ff0ff":"#bff7ff"):"#3b4a6b"); px(c,-2,-1,4,1,"#555");
-    px(c,13,-4,4,4,"#ffffff"); px(c,17,-3,1,2,"#ffffff"); px(c,-21,-3,8,3,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d"][i]);
-    if(LV>=7){ px(c,-21,-14,1,11,"#c9a227"); px(c,-23,-16,6,3,"#ffd23f"); c.fillStyle="rgba(255,230,120,.25)"; c.fillRect(-26,-13,12,10); }
-    if(st==="working"){ px(c,4,-34,22,11,"#ffffff"); px(c,6,-23,3,2,"#ffffff"); const k=Math.floor(t*3)%4; for(let j=0;j<3;j++) px(c,8+j*6,-30,3,3,j<k?"#2b2140":"#d8d0dc"); }
-    else if(st==="done"){ px(c,4,-34,12,11,"#2fa866"); px(c,7,-29,2,2,"#fff"); px(c,9,-28,2,2,"#fff"); px(c,11,-31,2,3,"#fff"); }
-    else if(st==="error"){ px(c,4,-34,12,11,"#d9434a"); px(c,9,-32,2,5,"#fff"); px(c,9,-26,2,2,"#fff"); }
-    if(e.id===current){ const bb=reduceMotion?0:Math.floor(t*3)%2; px(c,-3,-34-bb,6,2,"#ff5d8f"); px(c,-2,-32-bb,4,2,"#ff5d8f"); px(c,-1,-30-bb,2,2,"#ff5d8f"); }
-    c.restore();
+  if(LV>=6){ px(c,266,40,32,26,"#2b2140"); px(c,268,42,28,22,"#6bc7ff"); px(c,268,59,28,5,"#e8d18a"); const fx=268+((t*8)%24); px(c,fx,49,4,3,"#ff8a4d"); px(c,fx-1,50,1,1,"#ff8a4d"); px(c,284-((t*5)%14),54,3,2,"#ffd23f"); px(c,272,44+((t*6)%16),1,1,"#e6f7ff"); px(c,264,66,36,4,"#7a5236"); }
+  if(LV>=9){ px(c,272,6,44,4,"#6bf2ff"); if(!reduceMotion){ const k=Math.floor(t*4)%44; px(c,272+k,5,2,6,"#ffffff"); } }
+  // manager row, walkers, team row (depth order)
+  drawDesk(c,byId.manager,0,t,LV,now);
+  const walkers=Object.values(actors).filter(a=>a.mode!=="sit").sort((p,q)=>p.y-q.y);
+  walkers.filter(a=>a.y<=LANE+6).forEach(a=>drawStanding(c,a,t,now));
+  EMPLOYEES.forEach((e,i)=>{ if(e.id!=="manager") drawDesk(c,e,i,t,LV,now); });
+  walkers.filter(a=>a.y>LANE+6).forEach(a=>drawStanding(c,a,t,now));
+  if(LV>=8){ const cx=((t*10)%380)-30, b=Math.floor(t*4)%2; px(c,cx,192,10,5,"#ffb347"); px(c,cx+8,189,5,5,"#ffb347"); px(c,cx+8,188,1,2,"#ffb347"); px(c,cx+12,188,1,2,"#ffb347"); px(c,cx-2,190+b,3,2,"#ffb347"); px(c,cx+10,191,1,1,"#2b2140"); px(c,cx+1,197,2,2-b,"#d98a2b"); px(c,cx+7,197,2,1+b,"#d98a2b"); }
+  // lighting
+  if(!night){ c.save(); c.globalAlpha=dusk?0.10:0.12; c.fillStyle=dusk?"#ffb38a":"#fff6c8"; [[18,10],[96,10],[214,10]].forEach(([wx,wy])=>{ c.beginPath(); c.moveTo(wx,wy+36); c.lineTo(wx+48,wy+36); c.lineTo(wx+92,OH); c.lineTo(wx+44,OH); c.closePath(); c.fill(); }); c.restore(); }
+  if(night||dusk){ c.fillStyle=night?"rgba(14,16,56,.42)":"rgba(255,120,60,.10)"; c.fillRect(0,0,OW,OH);
+    if(night){ c.save(); c.globalCompositeOperation="lighter"; const glow=(x,y,r,col)=>{ const g=c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,col); g.addColorStop(1,"rgba(0,0,0,0)"); c.fillStyle=g; c.fillRect(x-r,y-r,r*2,r*2); };
+      EMPLOYEES.forEach(e=>{ const s=SEATS[e.id]; const w=status[e.id]==="working"; glow(s.x,s.y-8*s.s,w?36:22,w?"rgba(120,230,255,.42)":"rgba(110,150,255,.2)"); if(LV>=7&&e.id!=="manager") glow(s.x-20*s.s,s.y-12*s.s,18,"rgba(255,220,120,.35)"); });
+      glow(108,48,14,"rgba(100,255,150,.28)"); glow(294,21,24,"rgba(255,93,143,.32)"); if(LV>=6) glow(282,53,22,"rgba(100,200,255,.3)"); c.restore(); } }
+  drawParts(c);
+  // status + speech bubbles, selection marker
+  EMPLOYEES.forEach(e=>{ const h=headPos(e.id), a=actors[e.id], st=status[e.id];
+    if(a.bubble&&now<a.bubble.until) bubbleAt(c,h.x,h.y-2,a.bubble.text);
+    else if(st==="working"){ const k=Math.floor(t*3)%4; const bx=Math.round(h.x+6), by=Math.round(h.y-14); px(c,bx,by,22,11,"#2b2140"); px(c,bx+1,by+1,20,9,"#ffffff"); px(c,bx+2,by+10,3,2,"#2b2140"); for(let j=0;j<3;j++) px(c,bx+4+j*6,by+4,3,3,j<k?"#2b2140":"#d8d0dc"); }
+    else if(st==="done"&&a.mode==="sit"){ const bx=Math.round(h.x+6), by=Math.round(h.y-14); px(c,bx,by,12,11,"#2fa866"); px(c,bx+3,by+5,2,2,"#fff"); px(c,bx+5,by+6,2,2,"#fff"); px(c,bx+7,by+3,2,3,"#fff"); }
+    else if(st==="error"){ const bx=Math.round(h.x+6), by=Math.round(h.y-14); px(c,bx,by,12,11,"#d9434a"); px(c,bx+5,by+2,2,5,"#fff"); px(c,bx+5,by+8,2,2,"#fff"); }
+    if(e.id===current){ const b=reduceMotion?0:Math.floor(t*3)%2, x=Math.round(h.x), y=Math.round(h.y-16-b); px(c,x-3,y,6,2,"#ff5d8f"); px(c,x-2,y+2,4,2,"#ff5d8f"); px(c,x-1,y+4,2,2,"#ff5d8f"); }
   });
-  // walkers (hand-offs)
-  walkers=walkers.filter(w=>now<w.t0+w.dur*1000);
-  walkers.forEach(w=>{ const e=byId[w.who], a=DESKS[EMPLOYEES.indexOf(e)], b=DESKS[EMPLOYEES.indexOf(byId[w.to])]; let k=(now-w.t0)/(w.dur*1000); const going=k<0.5; k=going?k*2:(1-k)*2;
-    const x=lerp(a.x,b.x-(b.x>=a.x?22:-22),easeInOut(k)), y=a.y+30; c.save(); c.translate(x,y); c.scale(DS,DS); drawPixelPerson(c,-6,-18,e.px,{pose:"walk",t,carry:going,dir:(going?1:-1)*(b.x>=a.x?1:-1)}); c.restore(); });
 }
-function officeLoop(now){ drawOffice(now); requestAnimationFrame(officeLoop); }
-OC.addEventListener("click",ev=>{ const r=OC.getBoundingClientRect(); const x=(ev.clientX-r.left)/r.width*320, y=(ev.clientY-r.top)/r.height*180;
-  let best=-1,bd=1e9; DESKS.forEach((d,i)=>{ const dd=Math.hypot(d.x-x,d.y-15-y); if(dd<bd){bd=dd;best=i;} }); if(best>=0&&bd<50){ select(EMPLOYEES[best].id); showTab("chat"); } });
-function handoff(from,to){ walkers.push({who:from,to,t0:performance.now(),dur:3}); }
-function avatar(cv,e){ const c=cv.getContext("2d"); c.imageSmoothingEnabled=false; c.clearRect(0,0,16,16); drawPixelPerson(c,2,0,e.px,{pose:"sit",t:0}); }
+function officeLoop(now){ const dt=Math.min(0.05,(now-lastFrame)/1000); lastFrame=now; moveActors(dt); idleTick(now); spawnT+=dt; if(spawnT>0.25&&!reduceMotion){ spawnT=0; const hr=new Date().getHours(); spawnAmbient(hr<6||hr>=19); } stepParts(dt); drawOffice(now); requestAnimationFrame(officeLoop); }
+OC.addEventListener("click",ev=>{ const r=OC.getBoundingClientRect(); const x=(ev.clientX-r.left)/r.width*OW, y=(ev.clientY-r.top)/r.height*OH;
+  let best=null,bd=1e9,bh=null; EMPLOYEES.forEach(e=>{ const h=headPos(e.id); const d=Math.hypot(h.x-x,h.y+8-y); if(d<bd){bd=d;best=e.id;bh=h;} });
+  if(best&&bd<30){ const a=actors[best]; a.jumpUntil=performance.now()+700; say(best,["👋","😊","💪","✨","🫡","🥳"][Math.floor(Math.random()*6)],1.6);
+    if(!reduceMotion) for(let i=0;i<8;i++) spawn(bh.x+(Math.random()-.5)*10,bh.y,{kind:"spark",vx:(Math.random()-.5)*40,vy:-30-Math.random()*20,life:0.8,col:["#ff5d8f","#ffd23f","#ffffff"][i%3],size:2});
+    select(best); showTab("chat"); } });
+function avatar(cv,e){ const c=cv.getContext("2d"); c.imageSmoothingEnabled=false; c.clearRect(0,0,cv.width,cv.height); drawPixelPerson(c,2,0,e.px,{pose:"stand",t:0}); }
 
 /* =========================================================
    Team cards, tasks, chat
    ========================================================= */
 let chats=store.get("chats",{}); EMPLOYEES.forEach(e=>{ chats[e.id] ||= []; });
 let tasks=store.get("tasks",[]);
-function renderTeam(){ const box=$("team"); box.innerHTML=""; EMPLOYEES.forEach(e=>{ const b=document.createElement("button"); b.className="member"; b.setAttribute("aria-pressed",String(e.id===current));
-  const st=status[e.id]; b.innerHTML=`<b></b><span></span><em class="pill ${st}">${{idle:"ว่าง",working:"กำลังทำ",done:"เสร็จแล้ว",error:"มีปัญหา"}[st]}</em>`; b.querySelector("b").textContent=e.bubble+" "+e.name; b.querySelector("span").textContent=e.role;
-  b.onclick=()=>{ select(e.id); showTab("chat"); }; box.appendChild(b); }); }
-function setStatus(id,s){ status[id]=s; renderTeam(); }
+function renderTeam(){ const box=$("team"); box.innerHTML=""; EMPLOYEES.forEach(e=>{ const st=status[e.id]; const b=document.createElement("button"); b.className="member"+(e.id==="manager"?" mgr":"")+(st==="working"?" busy":""); b.setAttribute("aria-pressed",String(e.id===current));
+  b.innerHTML=`<canvas width="16" height="18" aria-hidden="true"></canvas><span class="mi"><b></b><span></span><em class="pill ${st}">${{idle:"ว่าง",working:"กำลังทำ",done:"เสร็จแล้ว",error:"มีปัญหา"}[st]}</em></span>`;
+  avatar(b.querySelector("canvas"),e); b.querySelector("b").textContent=e.bubble+" "+e.name; b.querySelector(".mi > span").textContent=e.role;
+  b.onclick=()=>{ select(e.id); showTab("chat"); actors[e.id].jumpUntil=performance.now()+700; say(e.id,"👋",1.4); }; box.appendChild(b); }); }
+function setStatus(id,s){ const was=status[id]; status[id]=s; renderTeam(); if(s==="working"&&was!=="working") managerCheck(id); if(s==="done"&&was==="working"&&!reduceMotion){ const h=headPos(id); for(let k=0;k<10;k++) spawn(h.x,h.y,{kind:"spark",vx:(Math.random()-.5)*50,vy:-30-Math.random()*25,life:0.9,col:["#5fd38d","#ffd23f","#ffffff"][k%3],size:2}); } }
 function renderTasks(){ const ul=$("tasks"); ul.innerHTML=""; if(!tasks.length){ ul.innerHTML=`<li><span class="what" style="color:var(--muted)">ยังไม่มีงาน ลองพิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" ดูสิ</span></li>`; return; }
   tasks.slice().reverse().forEach(t=>{ const li=document.createElement("li"); li.innerHTML=`<span>${{working:"⏳",done:"✅",error:"⚠️"}[t.state]||"•"}</span><span class="who"></span><span class="what"></span>`; li.querySelector(".who").textContent=byId[t.who]?.name||t.who; li.querySelector(".what").textContent=t.what; li.querySelector(".what").title=t.what; ul.appendChild(li); }); }
 function addTask(who,what){ const t={who,what:what.replace(/\s+/g," ").slice(0,120),state:"working"}; tasks.push(t); tasks=tasks.slice(-40); store.set("tasks",tasks); renderTasks(); return t; }
@@ -1037,6 +1222,7 @@ function addTools(div,text,who){ const tools=document.createElement("div"); tool
   const j=extractJSON(text);
   if(j&&Array.isArray(j.scenes)) btn("🎞️ เปิดในห้องตัดต่อ (บันทึกลงคลัง)",()=>{ let p; try{ p=normalizeProject(j); }catch(e){ notice("เปิดไม่ได้: "+e.message); return; } const r=newRecFromProject(p); openRec(r.id,{switchTab:true}); });
   if(j&&Array.isArray(j.lines)&&project) btn("🎙️ ใช้บทพากย์นี้กับคลิป",()=>{ applyVoice(j); showTab("studio"); });
+  if(j&&Array.isArray(j.plan)) btn("📅 บันทึกเป็นแผนคอนเทนต์",()=>{ setPlan(j.plan); showTab("lib"); });
   btn("📋 คัดลอก",()=>copyText(text));
   EMPLOYEES.filter(x=>x.id!==who).forEach(o=>btn(`➡️ ส่งให้${o.name}`,()=>{ select(o.id); input.value=`งานจาก${byId[who].name}:\n\n${text}\n\nช่วยต่องานนี้ตามหน้าที่ของเธอหน่อย`; input.focus(); }));
   div.appendChild(tools); }
@@ -1048,7 +1234,9 @@ function renderChat(){ const e=byId[current]; avatar($("chatAvatar"),e); $("chat
   const q=$("quick"); q.innerHTML=""; e.quick.forEach(s=>{ const b=document.createElement("button"); b.className="btn small"; b.textContent=s; b.onclick=()=>{ input.value=s; input.focus(); }; q.appendChild(b); });
   sendBtn.disabled=status[e.id]==="working"; }
 function select(id){ current=id; store.set("current",id); renderTeam(); renderChat(); }
-function showTab(which){ [["chat","tabChat","paneChat"],["studio","tabStudio","paneStudio"],["lib","tabLib","paneLib"]].forEach(([k,t,pn])=>{ $(t).setAttribute("aria-selected",String(k===which)); $(pn).hidden=k!==which; }); if(which==="studio"&&project) drawAt(playT); if(which==="lib") renderLibrary(); }
+function moveInd(){ const sel=document.querySelector('.tabs [aria-selected="true"]'), ind=$("tabInd"); if(sel&&ind){ ind.style.left=sel.offsetLeft+"px"; ind.style.width=sel.offsetWidth+"px"; } }
+addEventListener("resize",moveInd);
+function showTab(which){ [["chat","tabChat","paneChat"],["studio","tabStudio","paneStudio"],["lib","tabLib","paneLib"]].forEach(([k,t,pn])=>{ $(t).setAttribute("aria-selected",String(k===which)); $(pn).hidden=k!==which; }); moveInd(); if(which==="studio"&&project) drawAt(playT); if(which==="lib") renderLibrary(); }
 $("tabChat").onclick=()=>showTab("chat"); $("tabStudio").onclick=()=>showTab("studio"); $("tabLib").onclick=()=>showTab("lib");
 
 /* =========================================================
@@ -1117,8 +1305,11 @@ function applyVoice(j){ if(!project) return; applyVoiceTo(project,j); relayout()
 /* =========================================================
    Progress: clip library, resumable pipeline, stats, sync
    ========================================================= */
-const STEPS=["creative","animator","editor","voice"];
-const STEP_NAME={creative:"เขียนบท",animator:"สตอรี่บอร์ด",editor:"ตัดต่อ",voice:"กำกับเสียง"};
+const OLD_STEPS=["creative","animator","editor","voice"], NEW_STEPS=["brief","creative","animator","editor","voice","review"], ALL_STEPS=NEW_STEPS;
+const stepsOf=r=>r.steps||OLD_STEPS;
+const STEP_NAME={brief:"รับบรีฟ",creative:"เขียนบท",animator:"สตอรี่บอร์ด",editor:"ตัดต่อ",voice:"กำกับเสียง",review:"ตรวจงาน"};
+const STEP_WHO={brief:"manager",creative:"creative",animator:"animator",editor:"editor",voice:"voice",review:"manager"};
+const WAIT={wait:true};
 let recs=store.get("recs",{});                 // clip records by id
 let tomb=new Set(store.get("tomb",[]));        // ids deleted on this device
 let stats=Object.assign({xp:0,clips:0,exports:0,done:{}},store.get("stats",{}));
@@ -1141,7 +1332,8 @@ async function flush(key,retried=false){
 const clone=o=>JSON.parse(JSON.stringify(o));
 function saveRec(r,{keepTime=false}={}){ if(!keepTime) r.updatedAt=Date.now(); recs[r.id]=r; saveLocal(); queueWrite("p:"+r.id,()=>stateDoc().collection("projects").doc(r.id),()=>recs[r.id]?clone(recs[r.id]):null); renderLibrary(); renderResume(); }
 function deleteRec(id){ delete recs[id]; tomb.add(id); if(openRecId===id){ openRecId=null; store.set("openRec",null); } saveLocal(); queueWrite("p:"+id,()=>stateDoc().collection("projects").doc(id),()=>null); renderLibrary(); renderResume(); }
-function saveStats(){ saveLocal(); queueWrite("stats",()=>stateDoc(),()=>({stats:clone(stats)})); renderLevel(); renderLibrary(); }
+function writeState(){ saveLocal(); queueWrite("stats",()=>stateDoc(),()=>({stats:clone(stats),plan:clone(plan),planAt})); }
+function saveStats(){ writeState(); renderLevel(); renderLibrary(); }
 function saveChats(id){ chats[id]=chats[id].slice(-60); chatsAt[id]=Date.now(); store.set("chats",chats); store.set("chatsAt",chatsAt); queueWrite("c:"+id,()=>stateDoc().collection("chats").doc(id),()=>({messages:clone(chats[id]),updatedAt:chatsAt[id]})); }
 let persistT=0;
 function persistOpen(){ if(!project||!openRecId||!recs[openRecId]) return; clearTimeout(persistT); persistT=setTimeout(()=>{ const r=recs[openRecId]; if(!r) return; const p=clone(project); delete p._total; r.project=p; r.title=p.title; saveRec(r); },600); }
@@ -1150,14 +1342,15 @@ function persistOpen(){ if(!project||!openRecId||!recs[openRecId]) return; clear
 const LEVELS=[0,100,250,450,700,1000,1400,1900,2500,3200];
 const UNLOCKS=["ออฟฟิศเริ่มต้น","ชั้นหนังสือ","โปสเตอร์ช่อง","ป้ายไฟ ON AIR","ถ้วยรางวัล","ตู้ปลา","โคมไฟตั้งโต๊ะสีทอง","แมวประจำออฟฟิศ","ป้ายเพชร","พื้นทองระดับตำนาน"];
 const levelOf=xp=>{ let l=1; LEVELS.forEach((v,i)=>{ if(xp>=v) l=i+1; }); return l; };
-function addXP(n){ const before=levelOf(stats.xp); stats.xp+=n; saveStats(); const after=levelOf(stats.xp); if(after>before) notice(`🎉 ออฟฟิศเลเวลอัปเป็น Lv.${after}! ปลดล็อก: ${UNLOCKS[after-1]}`,8000); }
+function addXP(n){ const before=levelOf(stats.xp); stats.xp+=n; saveStats(); xpFloat(n); const after=levelOf(stats.xp); if(after>before){ celebrate(`LEVEL UP! Lv.${after}`,`ปลดล็อก: ${UNLOCKS[after-1]}`); notice(`🎉 ออฟฟิศเลเวลอัปเป็น Lv.${after}! ปลดล็อก: ${UNLOCKS[after-1]}`,8000); EMPLOYEES.forEach((e,i)=>setTimeout(()=>{ actors[e.id].jumpUntil=performance.now()+700; say(e.id,"🎉",2); },i*120)); } }
 function renderLevel(){ const l=levelOf(stats.xp), lo=LEVELS[l-1], hi=LEVELS[l]??null; const pct=hi?((stats.xp-lo)/(hi-lo))*100:100;
   const el=$("lvl"); el.innerHTML=`<b>Lv.${l}</b><span class="xp" aria-hidden="true"><i style="width:${pct.toFixed(0)}%"></i></span><span>${stats.xp} XP</span>`; el.title=hi?`อีก ${hi-stats.xp} XP ถึง Lv.${l+1} (${UNLOCKS[l]})`:"เลเวลสูงสุดแล้ว"; }
 
 /* Library */
-function recState(r){ const done=STEPS.filter(s=>r.out?.[s]!=null).length; if(r.manual||done===4) return {k:"done",t:"เสร็จแล้ว"};
+function recState(r){ const S=stepsOf(r); const done=S.filter(s=>r.out?.[s]!=null).length; if(r.manual||done===S.length) return {k:"done",t:"เสร็จแล้ว"};
+  if(r.waiting&&runningRec!==r.id) return {k:"ask",t:"รอคุณตอบคำถามของพี่มาย"};
   if(runningRec===r.id) return {k:"run",t:"กำลังทำ"}; if(r.runningAt&&Date.now()-r.runningAt<6*60e3) return {k:"maybe",t:"อาจกำลังทำอยู่ในแท็บ/เครื่องอื่น"};
-  const nx=STEPS.find(s=>r.out?.[s]==null); return {k:"stuck",t:`ค้างที่ขั้น "${STEP_NAME[nx]}"`+(r.error?.msg?` (${r.error.msg})`:"")}; }
+  const nx=S.find(s=>r.out?.[s]==null); return {k:"stuck",t:`ค้างที่ขั้น "${STEP_NAME[nx]}"`+(r.error?.msg?` (${r.error.msg})`:"")}; }
 const fmtDate=t=>t?new Date(t).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
 function renderLibrary(){
   const g=$("statGrid"); if(!g) return;
@@ -1169,32 +1362,59 @@ function renderLibrary(){
   if(!arr.length){ list.innerHTML=`<div class="empty">ยังไม่มีคลิปในคลัง พิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" คลิปจะถูกบันทึกที่นี่อัตโนมัติ</div>`; }
   arr.forEach(r=>{ const st=recState(r); const d=document.createElement("div"); d.className="rec"+(r.id===openRecId?" open":"");
     d.innerHTML=`<div class="top"><b></b><span class="pill ${st.k==="done"?"done":st.k==="stuck"?"error":"working"}"></span></div><div class="meta"></div><div class="dots"></div><div class="tools"></div>`;
-    d.querySelector("b").textContent=r.title||r.topic||"คลิป"; d.querySelector(".pill").textContent=st.k==="done"?"เสร็จแล้ว":st.k==="stuck"?"ค้าง":"กำลังทำ";
+    d.querySelector("b").textContent=r.title||r.topic||"คลิป"; d.querySelector(".pill").textContent=st.k==="done"?"เสร็จแล้ว":st.k==="stuck"?"ค้าง":st.k==="ask"?"รอคำตอบ":"กำลังทำ"; if(r.out?.review) d.querySelector(".pill").textContent+=` · ${r.out.review.score}/10`;
     d.querySelector(".meta").textContent=`${r.topic&&r.topic!==r.title?"หัวข้อ: "+r.topic+" · ":""}${r.aspect||""} · แก้ล่าสุด ${fmtDate(r.updatedAt)}`+(st.k!=="done"?" · "+st.t:"");
-    const dots=d.querySelector(".dots"); if(!r.manual) STEPS.forEach((s,i)=>{ const sp=document.createElement("span"); sp.textContent=`${i+1} ${STEP_NAME[s]}`; if(r.out?.[s]!=null) sp.className="ok"; else if(r.error?.stage===s) sp.className="bad"; dots.appendChild(sp); });
+    const dots=d.querySelector(".dots"); if(!r.manual) stepsOf(r).forEach((s,i)=>{ const sp=document.createElement("span"); sp.textContent=`${i+1} ${STEP_NAME[s]}`; if(r.out?.[s]!=null) sp.className="ok"; else if(r.error?.stage===s) sp.className="bad"; dots.appendChild(sp); });
     const tools=d.querySelector(".tools"); const btn=(label,fn,cls="btn small")=>{ const b=document.createElement("button"); b.className=cls; b.textContent=label; b.onclick=fn; tools.appendChild(b); return b; };
     if(r.project) btn("🎞️ เปิด",()=>openRec(r.id,{switchTab:true}));
-    if(st.k!=="done") btn("▶ ทำต่อ",()=>runPipeline(r),"btn small primary").disabled=!!runningRec;
+    if(st.k==="ask") btn("💬 ตอบคำถาม",()=>{ showAsk(r); $("askBox").scrollIntoView({behavior:reduceMotion?"auto":"smooth",block:"center"}); },"btn small primary");
+    else if(st.k!=="done") btn("▶ ทำต่อ",()=>runPipeline(r),"btn small primary").disabled=!!runningRec;
     const del=btn("🗑️ ลบ",()=>{ if(del.dataset.armed!=="1"){ del.dataset.armed="1"; del.textContent="กดอีกครั้งเพื่อลบ"; setTimeout(()=>{ if(del.isConnected){ del.dataset.armed=""; del.textContent="🗑️ ลบ"; } },3000); return; } deleteRec(r.id); });
     if(runningRec===r.id) del.disabled=true;
     list.appendChild(d); });
+  renderPlan();
   $("syncNote").textContent=Sync.mode==="cloud"?"คลิป สถิติ และแชตซิงก์กับบัญชี claude.ai ของคุณ เปิดลิงก์นี้จากมือถือหรือคอมเครื่องอื่นก็เห็นงานเดียวกัน (ไฟล์วิดีโอและเสียงที่อัปโหลดไม่ซิงก์ ต้องสร้าง/อัปโหลดใหม่ในเครื่องนั้น)"
     :(inViewer?"ตอนนี้บันทึกในเครื่องนี้เท่านั้น (เชื่อมระบบซิงก์ไม่ได้ ลองโหลดหน้าใหม่)":"เวอร์ชันไฟล์นี้บันทึกในเบราว์เซอร์เครื่องนี้ ถ้าอยากใช้หลายเครื่อง ให้เปิดผ่านลิงก์ claude.ai");
 }
 function renderResume(){ const stuck=Object.values(recs).filter(r=>recState(r).k==="stuck"||recState(r).k==="maybe").sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
   const row=$("resumeRow"); if(!stuck||runningRec){ row.hidden=true; return; } row.hidden=false; $("resumeInfo").textContent=`"${stuck.title||stuck.topic}" ${recState(stuck).t}`; $("resumeBtn").onclick=()=>runPipeline(stuck); }
-function showSteps(r){ STEPS.forEach(s=>stepState(s, r.out?.[s]!=null?"done":(r.error?.stage===s?"error":""))); }
-function openRec(id,{switchTab=false}={}){ const r=recs[id]; if(!r?.project) return; if(loadProject(r.project,{switchTab})){ openRecId=id; store.set("openRec",id); renderLibrary(); } }
+function showSteps(r){ const S=stepsOf(r); ALL_STEPS.forEach(s=>stepState(s, !S.includes(s)?"":r.out?.[s]!=null?"done":(r.error?.stage===s?"error":(r.waiting&&s==="brief"?"waiting":"")))); }
+function openRec(id,{switchTab=false}={}){ const r=recs[id]; if(!r?.project) return; if(loadProject(r.project,{switchTab})){ openRecId=id; store.set("openRec",id); renderLibrary(); renderReview(); } }
+function renderReview(){ const box=$("reviewCard"), rv=openRecId&&recs[openRecId]?.out?.review; if(!rv){ box.hidden=true; return; } box.hidden=false; const stars="★".repeat(Math.round(rv.score/2))+"☆".repeat(5-Math.round(rv.score/2));
+  box.innerHTML=`<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><span class="score"></span><span style="color:var(--warn);letter-spacing:2px">${stars}</span><span style="font-size:13px;color:var(--muted)"></span></div><div class="sum"></div><ul></ul>`;
+  box.querySelector(".score").textContent=`📝 พี่มายตรวจแล้ว ${rv.score}/10`; box.querySelector("span:nth-child(3)").textContent=rv.applied?`แก้ให้แล้ว ${rv.applied} จุด`:"ไม่ต้องแก้"; box.querySelector(".sum").textContent=rv.summary||""; const ul=box.querySelector("ul"); (rv.notes||[]).forEach(n=>{ const li=document.createElement("li"); li.textContent=n; ul.appendChild(li); }); }
 function newRecFromProject(pj){ const id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); const p=clone(pj); delete p._total; p.example=false; const r={id,topic:"",title:p.title||"คลิปจากแชต",aspect:p.aspect||"9:16",createdAt:Date.now(),out:{},manual:true,project:p}; saveRec(r); return r; }
 
 /* Resumable whole-team pipeline */
 function stepState(id,s){ if(!id) return; document.querySelector(`.step[data-s="${id}"]`).className="step "+s; }
 const STEP_FN={
-  async creative(r){ r.out.creative=await ask("creative",`เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก`); },
+  async brief(r){
+    if(!r.questions){
+      const j=extractJSON(await ask("manager",`เจ้านายสั่งทำคลิปหัวข้อ: "${r.topic}" (วิดีโอ ${r.aspect})\nก่อนส่งงานให้ทีม ถ้ามีสิ่งที่จำเป็นต้องรู้ ถามได้ไม่เกิน 3 ข้อ แต่ละข้อมีตัวเลือกสั้นๆ 2-4 ตัว (เช่น กลุ่มคนดู โทน ความยาว มุมเล่า) ถ้าข้อมูลพอแล้วให้ส่ง questions เป็นรายการว่าง\nตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"questions":[{"q":"คำถาม","options":["ตัวเลือก 1","ตัวเลือก 2"]}]}\n\`\`\``));
+      r.questions=(Array.isArray(j?.questions)?j.questions:[]).slice(0,3).map(q=>({q:str(q?.q,140),options:(Array.isArray(q?.options)?q.options:[]).slice(0,4).map(o=>str(String(o),40)).filter(Boolean)})).filter(q=>q.q);
+      saveRec(r);
+    }
+    if(r.questions.length&&!r.answers) throw WAIT;
+    const ans=r.questions.length?r.questions.map((q,i)=>`- ${q.q} → ${r.answers[i]||"ให้พี่มายตัดสินใจเอง"}`).join("\n"):"(ไม่มีคำถาม ใช้วิจารณญาณของพี่มายเอง)";
+    const j=extractJSON(await ask("manager",`คำตอบจากเจ้านาย:\n${ans}\n\nสรุปบรีฟสำหรับทีม ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"brief":"บรีฟ 3-5 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว สิ่งที่ต้องมี/ห้ามมี","music":"${CAT.music.join("|")}"}\n\`\`\``));
+    r.out.brief={text:str(j?.brief,900)||`หัวข้อ: ${r.topic}`,music:pick(j?.music,CAT.music,"")};
+  },
+  async review(r){
+    const p=r.project, total=p.scenes.reduce((a,x)=>a+x.duration,0);
+    const summary=p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration}`).join("\n");
+    const j=extractJSON(await ask("manager",`ตรวจคลิป "${p.title}" ก่อนส่งเจ้านาย (ยาวรวม ${total.toFixed(0)} วินาที, เพลง ${p.music})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\n${summary}\n\nให้คะแนน 1-10 สรุปสั้นๆ และแก้ได้เลยถ้าจำเป็น (แก้ได้เฉพาะ title, caption, narration ห้ามเปลี่ยนจำนวนฉาก) ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น/สิ่งที่แก้"],"title":"ชื่อใหม่ถ้าจะแก้","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
+    let applied=0;
+    if(j){ if(typeof j.title==="string"&&j.title.trim()&&j.title.trim()!==p.title){ p.title=str(j.title,80); applied++; }
+      (Array.isArray(j.edits)?j.edits:[]).forEach(e=>{ const x=p.scenes[(Number(e?.scene)||0)-1]; if(!x) return;
+        if(typeof e.caption==="string"&&e.caption.trim()!==x.caption){ x.caption=str(e.caption,40); applied++; }
+        if(typeof e.narration==="string"&&e.narration.trim()&&e.narration.trim()!==x.narration){ x.narration=str(e.narration,220); x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); applied++; } }); }
+    r.out.review={score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,6).map(x=>str(String(x),160)).filter(Boolean),applied}; r.title=p.title;
+  },
+  async creative(r){ r.out.creative=await ask("creative",`${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก`); },
   async animator(r){ let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก:\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
     r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; },
-  async editor(r){ const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
+  async editor(r){ const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
     let f; try{ f=normalizeProject({...cut,aspect:r.aspect}); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
     r.out.editor=f; r.project=clone(f); r.title=f.title; },
   async voice(r){ const lines=r.project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
@@ -1205,24 +1425,57 @@ async function runPipeline(r){
   if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(EMPLOYEES.some(e=>status[e.id]==="working")){ notice("มีพนักงานกำลังทำงานอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(!inViewer&&!settings().key){ openSettings(); return; }
-  AU.ensure(); runningRec=r.id; r.out ||= {}; r.error=null; r.runningAt=Date.now(); saveRec(r); showSteps(r);
+  AU.ensure(); runningRec=r.id; r.out ||= {}; r.error=null; r.waiting=false; r.runningAt=Date.now(); $("askBox").hidden=true; saveRec(r); showSteps(r);
   $("makeBtn").disabled=true; let stage=null;
   try{
-    for(const st of STEPS){ if(r.out[st]!=null) continue; stage=st; stepState(st,"working"); select(st); showTab("chat");
+    const S=stepsOf(r);
+    for(const st of S){ if(r.out[st]!=null) continue; stage=st; stepState(st,"working"); select(STEP_WHO[st]); showTab("chat");
       await STEP_FN[st](r); r.runningAt=Date.now(); saveRec(r); stepState(st,"done");
-      const nx=STEPS[STEPS.indexOf(st)+1]; if(nx&&r.out[nx]==null) handoff(st,nx); }
+      const nx=S[S.indexOf(st)+1]; if(nx&&r.out[nx]==null&&STEP_WHO[nx]!==STEP_WHO[st]) handoff(STEP_WHO[st],STEP_WHO[nx]); }
     r.runningAt=0; r.finishedAt=Date.now(); runningRec=null; saveRec(r); stats.clips++; addXP(50);
-    openRec(r.id,{switchTab:true}); notice("ทีมทำคลิปเสร็จแล้ว! บันทึกลงคลังคลิปแล้ว กด ▶ เล่น เพื่อดู แล้วกด 🎬 สร้างไฟล์วิดีโอ",8000);
-  }catch(err){ r.runningAt=0; r.error={stage,msg:friendlyError(err)}; runningRec=null; saveRec(r); stepState(stage,"error"); notice(`งานสะดุดที่ขั้น "${STEP_NAME[stage]||"?"}": ${friendlyError(err)} ความคืบหน้าบันทึกไว้แล้ว กด "▶ ทำต่อ" ได้เลย`,10000); }
+    openRec(r.id,{switchTab:true}); planLink(r);
+    notice(`ทีมทำคลิปเสร็จแล้ว!${r.out.review?` พี่มายให้ ${r.out.review.score}/10`:""} บันทึกลงคลังแล้ว กด ▶ เล่น เพื่อดู แล้วกด 🎬 สร้างไฟล์วิดีโอ`,9000);
+  }catch(err){
+    if(err===WAIT){ r.runningAt=0; r.waiting=true; runningRec=null; saveRec(r); showSteps(r); showAsk(r); notice("พี่มายมีคำถามก่อนเริ่มงาน ตอบในกล่องใต้ช่องสั่งงานได้เลย",7000,"info"); return; } r.runningAt=0; r.error={stage,msg:friendlyError(err)}; runningRec=null; saveRec(r); stepState(stage,"error"); notice(`งานสะดุดที่ขั้น "${STEP_NAME[stage]||"?"}": ${friendlyError(err)} ความคืบหน้าบันทึกไว้แล้ว กด "▶ ทำต่อ" ได้เลย`,10000); }
   finally{ runningRec=null; $("makeBtn").disabled=false; renderLibrary(); renderResume(); }
 }
 $("makeBtn").onclick=()=>{
   const topic=$("topic").value.trim(); if(!topic){ $("topic").focus(); notice("พิมพ์หัวข้อคลิปก่อนนะ",3000); return; }
   if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; }
-  const r={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),topic,title:topic,aspect:$("aspect").value,createdAt:Date.now(),out:{}};
-  saveRec(r); $("topic").value=""; runPipeline(r);
+  const r=newRec(topic,$("aspect").value); $("topic").value=""; runPipeline(r);
 };
-$("demoBtn").onclick=()=>{ openRecId=null; store.set("openRec",null); loadProject(DEMO,{switchTab:true}); renderLibrary(); };
+function newRec(topic,aspect){ const r={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),topic,title:topic,aspect,createdAt:Date.now(),out:{},steps:NEW_STEPS}; saveRec(r); return r; }
+
+/* Manager's questions before work */
+let askRec=null;
+function showAsk(r){ askRec=r; const box=$("askBox"), qs=$("askQs"); $("askTopic").textContent=`(${r.topic})`; qs.innerHTML=""; avatar($("mgrAvatar"),byId.manager);
+  r.questions.forEach((q,i)=>{ const row=document.createElement("div"); row.className="qrow"; row.innerHTML=`<b></b><div class="chips"></div><input aria-label="คำตอบของคุณเอง" placeholder="หรือพิมพ์คำตอบเอง">`; row.querySelector("b").textContent=`${i+1}. ${q.q}`;
+    const inp=row.querySelector("input"), chips=row.querySelector(".chips");
+    q.options.forEach(o=>{ const c=document.createElement("button"); c.type="button"; c.className="chip"; c.textContent=o; c.setAttribute("aria-pressed","false"); c.onclick=()=>{ chips.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed","false")); c.setAttribute("aria-pressed","true"); inp.value=o; }; chips.appendChild(c); });
+    inp.oninput=()=>chips.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",String(x.textContent===inp.value)));
+    qs.appendChild(row); });
+  box.hidden=false; stepState("brief","waiting"); actors.manager.jumpUntil=performance.now()+700; say("manager","❓",3); }
+function answerAsk(skip){ const r=askRec&&recs[askRec.id]; if(!r) { $("askBox").hidden=true; return; } r.answers=skip?r.questions.map(()=>""):[...$("askQs").querySelectorAll("input")].map(i=>i.value.trim()); r.waiting=false; $("askBox").hidden=true; saveRec(r); runPipeline(r); }
+$("askSend").onclick=()=>answerAsk(false); $("askSkip").onclick=()=>answerAsk(true);
+
+/* Content plan */
+let plan=store.get("plan",[]), planAt=store.get("planAt",0);
+function savePlan(){ planAt=Date.now(); store.set("plan",plan); store.set("planAt",planAt); writeState(); renderPlan(); }
+function setPlan(items){ plan=items.slice(0,14).map(x=>({id:"t"+Math.random().toString(36).slice(2,8),day:str(x?.day,30),topic:str(x?.topic,140),hook:str(x?.hook,180),recId:null})).filter(x=>x.topic); savePlan(); notice(`บันทึกแผนคอนเทนต์ ${plan.length} คลิปแล้ว`,4000); }
+function planLink(r){ const it=plan.find(x=>x.recId===r.id); if(it) renderPlan(); }
+function renderPlan(){ const box=$("planBox"); if(!box) return; box.innerHTML=""; $("planClear").hidden=!plan.length;
+  if(!plan.length){ box.innerHTML=`<div class="empty">ยังไม่มีแผน กด "ให้พี่มายวางแผน" แล้วกดปุ่ม 📅 บันทึกเป็นแผนคอนเทนต์ ใต้คำตอบของพี่มาย</div>`; return; }
+  plan.forEach(it=>{ const row=document.createElement("div"); row.className="planrow"; const r=it.recId&&recs[it.recId], st=r?recState(r):null;
+    row.innerHTML=`<span class="day"></span><span class="pt"><span class="tp"></span><small></small></span><span class="tools" style="margin:0"></span>`;
+    row.querySelector(".day").textContent=it.day||"-"; row.querySelector(".tp").textContent=(st?.k==="done"?"✅ ":"")+it.topic; row.querySelector("small").textContent=it.hook?`hook: ${it.hook}`:"";
+    const tools=row.querySelector(".tools"), b=document.createElement("button"); b.className="btn small"+(r?"":" primary");
+    if(r&&st.k==="done"){ b.textContent="🎞️ เปิด"; b.onclick=()=>openRec(r.id,{switchTab:true}); }
+    else if(r){ b.textContent=st.k==="ask"?"💬 ตอบคำถาม":"▶ ทำต่อ"; b.onclick=()=>st.k==="ask"?(showAsk(r),$("askBox").scrollIntoView({block:"center"})):runPipeline(r); b.disabled=!!runningRec&&st.k!=="ask"; }
+    else { b.textContent="🎬 สั่งทำ"; b.disabled=!!runningRec; b.onclick=()=>{ const nr=newRec(it.topic+(it.hook?` (hook: ${it.hook})`:""),$("aspect").value); nr.title=it.topic; it.recId=nr.id; savePlan(); runPipeline(nr); }; }
+    tools.appendChild(b); box.appendChild(row); }); }
+$("planAsk").onclick=()=>{ select("manager"); showTab("chat"); input.value="วางแผนคอนเทนต์ 7 วันสำหรับ TikTok ช่องความรู้สนุกๆ แนว What if"; input.focus(); };
+const planClear=$("planClear"); planClear.onclick=()=>{ if(planClear.dataset.armed!=="1"){ planClear.dataset.armed="1"; planClear.textContent="กดอีกครั้งเพื่อล้าง"; setTimeout(()=>{ planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; },3000); return; } planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; plan=[]; savePlan(); };
+$("demoBtn").onclick=()=>{ openRecId=null; store.set("openRec",null); loadProject(DEMO,{switchTab:true}); renderLibrary(); renderReview(); };
 
 /* Cloud sync through the claude.ai viewer */
 async function initCloud(){
@@ -1235,7 +1488,10 @@ async function initCloud(){
   const timer=setTimeout(()=>{ if(!gotProjects) syncLabel("💾 ออฟไลน์ (บันทึกในเครื่องแล้ว)"); },10000);
   let gotProjects=false, firstConfirmed=true;
   const fail=e=>{ clearTimeout(timer); if(e?.code==="revoked"||e?.code==="not_granted"){ Sync.mode="local"; } syncLabel("💾 บันทึกในเครื่องนี้ (ซิงก์ไม่ได้)"); renderLibrary(); };
-  stateDoc().onSnapshot(snap=>{ const d=snap.data(); const r=d?.stats; if(!r) { if(!snap.metadata.fromCache&&stats.xp>0) saveStats(); return; }
+  stateDoc().onSnapshot(snap=>{ const d=snap.data();
+    if(d&&Array.isArray(d.plan)&&(d.planAt||0)>planAt){ plan=clone(d.plan); planAt=d.planAt; store.set("plan",plan); store.set("planAt",planAt); renderPlan(); }
+    const r=d?.stats; if(!r) { if(!snap.metadata.fromCache&&(stats.xp>0||plan.length)) saveStats(); return; }
+    if(!snap.metadata.fromCache&&planAt>(d.planAt||0)) writeState();
     let ch=false, mine=false; for(const k of ["xp","clips","exports"]){ if((r[k]||0)>(stats[k]||0)){ stats[k]=r[k]; ch=true; } else if((stats[k]||0)>(r[k]||0)) mine=true; }
     for(const k of Object.keys(r.done||{})) if((r.done[k]||0)>(stats.done[k]||0)){ stats.done[k]=r.done[k]; ch=true; }
     for(const k of Object.keys(stats.done)) if((stats.done[k]||0)>(r.done?.[k]||0)) mine=true;
@@ -1271,7 +1527,9 @@ renderTeam(); renderTasks(); renderChat(); requestAnimationFrame(officeLoop);
 renderLevel();
 if(openRecId&&recs[openRecId]?.project) loadProject(recs[openRecId].project); else { openRecId=null; loadProject(DEMO); }
 Object.values(recs).forEach(r=>{ if(r.runningAt&&Date.now()-r.runningAt>6*60e3){ r.runningAt=0; } });
-renderLibrary(); renderResume(); initCloud();
+renderLibrary(); renderResume(); renderPlan(); renderReview(); requestAnimationFrame(moveInd);
+{ const w=Object.values(recs).filter(r=>r.waiting).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0]; if(w){ showSteps(w); showAsk(w); } }
+initCloud();
 fontsReady().then(()=>{ if(project){ R.layout(); project._total=R.total; drawAt(playT); } });
 </script>
 </body>
