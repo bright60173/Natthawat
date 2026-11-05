@@ -54,7 +54,7 @@ header h1{margin:0;font-family:var(--display);font-weight:800;font-size:24px;fle
 header h1 small{display:block;font-family:var(--ui);font-weight:400;font-size:14px;color:var(--muted)}
 header h1 .logo{display:inline-block;transition:transform .3s cubic-bezier(.3,1.8,.5,1)}
 header h1:hover .logo{transform:rotate(-12deg) scale(1.2)}
-.toasts{position:fixed;z-index:50;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100vw - 24px));pointer-events:none}
+.toasts{position:fixed;z-index:95;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100vw - 24px));pointer-events:none}
 @media (max-width:560px){.toasts{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px));width:auto}}
 .toast{pointer-events:auto;display:flex;gap:8px;align-items:flex-start;border:3px solid var(--line);border-radius:10px;background:var(--infobg);box-shadow:4px 4px 0 var(--line);padding:8px 10px 12px;position:relative;overflow:hidden;animation:tin .4s cubic-bezier(.2,1.5,.4,1)}
 .toast.ok{background:var(--okbg)} .toast.err{background:var(--errbg)} .toast.party{background:var(--partybg)}
@@ -312,6 +312,10 @@ header .btn,header .lvl{color:var(--ink)}
 .empty{border:3px dashed var(--muted);border-radius:8px;padding:14px;color:var(--muted);text-align:center}
 .example{font-size:13px;background:var(--warn);color:#1b1622;border-radius:999px;padding:0 8px;border:2px solid var(--line)}
 
+.vstat{display:block;font-size:13px;line-height:1.45}
+.vbad{color:var(--err);font-weight:bold}
+.vok{color:var(--ok);font-weight:bold}
+.opt input[type=range]{width:100%;accent-color:var(--accent)}
 .recov{position:fixed;inset:0;z-index:90;background:#000;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
 .recov[hidden]{display:none!important}
 #recCv{display:block}
@@ -453,7 +457,10 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
             <label for="ttsToggle">🗣️ เสียงพากย์ตอนพรีวิว</label>
             <select id="ttsToggle"><option value="on">เปิด (เสียงสังเคราะห์)</option><option value="off">ปิด</option></select>
             <select id="voicePick" aria-label="เลือกเสียง"></select>
+            <label for="ttsRate" style="font-weight:normal">ความเร็วเสียง <span id="ttsRateLbl"></span></label>
+            <input type="range" id="ttsRate" min="0.6" max="1.3" step="0.02" aria-label="ความเร็วเสียงพากย์">
             <button class="btn small" id="ttsTest" type="button">🔊 ทดสอบเสียงพากย์</button>
+            <small id="voiceStatus" class="vstat"></small>
             <small>ใช้ฟังตอนพรีวิวเท่านั้น ฝังลงไฟล์วิดีโอไม่ได้ ถ้าไม่ได้ยิน: เปิดเสียงเครื่องและปิดโหมดเงียบ</small>
           </div>
           <div class="opt">
@@ -505,6 +512,8 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
       <li>กลับมาแตะ "▶ เริ่มเล่น"</li>
       <li>จบคลิปแล้วหยุดอัด เปิดแอปรูปภาพ > แก้ไข > ครอบตัด ให้เหลือแค่ภาพคลิป แล้วโพสต์ลง IG/TikTok ได้เลย</li>
     </ol>
+    <p class="vstat" id="recVoice"></p>
+    <p><button class="btn small" id="recTest" type="button">🔊 ทดสอบเสียงพากย์</button></p>
     <p class="hint">เปิดเสียงเครื่อง และปิดโหมดเงียบก่อน ถ้าไม่อยากให้เสียงรอบข้างติดมา ให้ปิดไมโครโฟนในปุ่มบันทึกหน้าจอ (กดค้างที่ปุ่ม)</p>
     <div class="row"><button class="btn primary big" id="recGo">▶ เริ่มเล่น</button><button class="btn" id="recClose">ปิด</button></div>
   </div>
@@ -542,6 +551,9 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 
 <script>
 "use strict";
+/* roundRect for older Safari (before 16) */
+if(!CanvasRenderingContext2D.prototype.roundRect) CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){ let rs=Array.isArray(r)?r:[r]; if(rs.length===1) rs=[rs[0],rs[0],rs[0],rs[0]]; else if(rs.length===2) rs=[rs[0],rs[1],rs[0],rs[1]]; else if(rs.length===3) rs=[rs[0],rs[1],rs[2],rs[1]];
+  const [a,b,c,d]=rs.map(v=>Math.max(0,Math.min(Number(v)||0,Math.abs(w)/2,Math.abs(h)/2))); this.moveTo(x+a,y); this.lineTo(x+w-b,y); this.quadraticCurveTo(x+w,y,x+w,y+b); this.lineTo(x+w,y+h-c); this.quadraticCurveTo(x+w,y+h,x+w-c,y+h); this.lineTo(x+d,y+h); this.quadraticCurveTo(x,y+h,x,y+h-d); this.lineTo(x,y+a); this.quadraticCurveTo(x,y,x+a,y); this.closePath(); };
 /* Align canvas text ourselves: measure, then draw left-aligned. Safari (iPad/iPhone) places centred or
    right-aligned Thai text wrongly on canvas, which pushed captions off the right edge and made words overlap. */
 (function(){ const P=CanvasRenderingContext2D.prototype, F=P.fillText, S=P.strokeText;
@@ -671,7 +683,7 @@ function normalizeProject(p){
    Video engine: drawing
    ========================================================= */
 const OL="#2b2140";
-function outline(c,w=4){ c.lineWidth=w; c.strokeStyle=OL; c.lineJoin="round"; c.lineCap="round"; }
+function outline(c,w=4){ c.lineWidth=w*0.6; c.strokeStyle="rgba(43,33,64,.55)"; c.lineJoin="round"; c.lineCap="round"; }
 function circ(c,x,y,r,fill,stroke=true){ c.beginPath(); c.arc(x,y,r,0,Math.PI*2); if(fill){c.fillStyle=fill;c.fill();} if(stroke)c.stroke(); }
 function ell(c,x,y,rx,ry,fill,stroke=true,rot=0){ c.beginPath(); c.ellipse(x,y,rx,ry,rot,0,Math.PI*2); if(fill){c.fillStyle=fill;c.fill();} if(stroke)c.stroke(); }
 function rr(c,x,y,w,h,r,fill,stroke=true){ c.beginPath(); c.roundRect(x,y,w,h,r); if(fill){c.fillStyle=fill;c.fill();} if(stroke)c.stroke(); }
@@ -755,73 +767,94 @@ const PROPS={
 };
 function bigGlyph(c,ch,col){ c.font="800 110px Kanit, sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.lineWidth=10; c.strokeStyle=OL; c.strokeText(ch,0,4); c.fillStyle=col; c.fillText(ch,0,4); }
 
-/* Characters: origin at feet, ~200 units tall */
+/* Characters: flat style without outlines (shading instead of strokes). Origin at the feet, ~230 units tall. */
 const LOOKS={
-  boy:{skin:"#ffd7b5",hair:"#3b2a20",top:"#ff6b6b",bottom:"#3d5a9e"},
-  girl:{skin:"#ffd7b5",hair:"#7a3b2e",top:"#ffb3d1",bottom:"#6c5ce7",pig:true},
-  scientist:{skin:"#f2c9a0",hair:"#e8e8e8",top:"#ffffff",bottom:"#4b4b5e",glasses:true,coat:true},
-  robot:{skin:"#b9c3d6",top:"#8f9bb5",bottom:"#6f7a92",robot:true},
-  cat:{skin:"#ffb347",top:"#ffb347",bottom:"#ffb347",cat:true},
-  alien:{skin:"#7ee081",top:"#5c6bc0",bottom:"#3f4a8a",alien:true},
+  boy:{skin:"#ffcfa8",hair:"#3a2a24",top:"#ff6b6b",bottom:"#3d5a9e",shoe:"#2b2f4a"},
+  girl:{skin:"#ffd6b8",hair:"#8a3b2b",top:"#ff9fc8",bottom:"#7b68ee",shoe:"#5a3a6e",pig:true},
+  scientist:{skin:"#f1c49b",hair:"#ececec",top:"#f6f7fb",bottom:"#4b4f66",shoe:"#2b2f4a",glasses:true,coat:true,shirt:"#7fb3ff"},
+  robot:{skin:"#c3cde0",top:"#94a3c4",bottom:"#6f7d9c",shoe:"#4c5873",robot:true},
+  cat:{skin:"#ffae45",top:"#ffae45",bottom:"#ffae45",shoe:"#ff9a2e",cat:true},
+  alien:{skin:"#7fe08a",top:"#5c6bc0",bottom:"#3f4a8a",shoe:"#2d356b",alien:true},
 };
+function shade(hex,amt){ let h=String(hex).replace("#",""); if(h.length===3) h=h.split("").map(x=>x+x).join(""); const n=parseInt(h,16); let r=n>>16&255,g=n>>8&255,b=n&255; const f=amt<0?0:255, t=Math.abs(amt); r=Math.round(r+(f-r)*t); g=Math.round(g+(f-g)*t); b=Math.round(b+(f-b)*t); return `rgb(${r},${g},${b})`; }
+function limb(c,pts,w,col){ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w; c.strokeStyle=col; c.beginPath(); c.moveTo(pts[0],pts[1]); if(pts.length===6) c.quadraticCurveTo(pts[2],pts[3],pts[4],pts[5]); else c.lineTo(pts[2],pts[3]); c.stroke(); }
+function fillE(c,x,y,rx,ry,col,rot=0){ c.beginPath(); c.ellipse(x,y,Math.abs(rx),Math.abs(ry),rot,0,Math.PI*2); c.fillStyle=col; c.fill(); }
 function drawCharacter(c,el,lt,talking){
-  const L=LOOKS[el.look]||LOOKS.boy, emo=el.emotion; let bob=Math.sin(lt*3)*2;
-  const walking=el.motion==="walk", waving=el.motion==="wave";
-  if(emo==="excited") bob=Math.abs(Math.sin(lt*8))*-8;
-  if(emo==="scared"||emo==="shocked") c.translate(Math.sin(lt*40)*1.5,0);
-  const legSwing=walking?Math.sin(lt*10)*16:0;
-  outline(c,5);
-  if(L.cat){ // tail
-    c.beginPath(); c.moveTo(30,-30); c.quadraticCurveTo(70,-40+Math.sin(lt*4)*10,58,-90); c.lineWidth=14; c.strokeStyle=OL; c.stroke(); c.lineWidth=8; c.strokeStyle=L.skin; c.stroke(); outline(c,5);
-  }
-  // legs
-  c.beginPath(); c.moveTo(-14,-58); c.lineTo(-14-legSwing*0.5,-4); c.moveTo(14,-58); c.lineTo(14+legSwing*0.5,-4); c.lineWidth=18; c.strokeStyle=OL; c.stroke(); c.lineWidth=11; c.strokeStyle=L.bottom; c.stroke(); outline(c,5);
-  ell(c,-16-legSwing*0.5,-2,14,7,"#2b2140",false); ell(c,16+legSwing*0.5,-2,14,7,"#2b2140",false);
-  c.translate(0,bob);
-  // arms
-  const armUp = emo==="excited"||emo==="shocked"||waving;
-  const wave = waving? Math.sin(lt*10)*0.5 : 0;
-  const armL = armUp? [-56,-150] : (emo==="thinking"? [-10,-118] : [-50,-70+Math.sin(lt*3)*3]);
-  const armR = armUp? [56+wave*20,-150-wave*10] : [50,-70-Math.sin(lt*3)*3];
-  [[ -30,armL],[30,armR]].forEach(([sx,[ex,ey]])=>{ c.beginPath(); c.moveTo(sx,-110); c.lineTo(ex,ey); c.lineWidth=16; c.strokeStyle=OL; c.stroke(); c.lineWidth=9; c.strokeStyle=L.coat?"#ffffff":L.top; c.stroke(); circ(c,ex,ey,8,L.skin,false); outline(c,5); circ(c,ex,ey,8,null); });
-  // body
-  rr(c,-32,-122,64,68,18,L.top);
-  if(L.coat){ c.beginPath(); c.moveTo(0,-122); c.lineTo(0,-54); c.stroke(); rr(c,-14,-118,28,16,4,"#7fb3ff"); }
-  if(L.robot){ rr(c,-16,-108,32,22,4,"#5d6a86"); circ(c,-6,-97,4,"#ff6b6b",false); circ(c,8,-97,4,"#6bff9a",false); }
-  // head
-  const hy=-168;
-  if(L.robot){ rr(c,-40,hy-36,80,72,14,L.skin); c.beginPath(); c.moveTo(0,hy-36); c.lineTo(0,hy-56); c.stroke(); circ(c,0,hy-60,7,Math.sin(lt*6)>0?"#ff5d8f":"#ffd23f"); }
-  else if(L.alien){ ell(c,0,hy-6,44,46,L.skin); c.beginPath(); c.moveTo(-14,hy-48); c.lineTo(-24,hy-74); c.moveTo(14,hy-48); c.lineTo(24,hy-74); c.stroke(); circ(c,-24,hy-76,6,"#ff5d8f"); circ(c,24,hy-76,6,"#ff5d8f"); }
-  else if(L.cat){ poly(c,[[-38,hy-20],[-30,hy-62],[-8,hy-38]],L.skin); poly(c,[[38,hy-20],[30,hy-62],[8,hy-38]],L.skin); circ(c,0,hy,42,L.skin); }
-  else {
-    if(L.pig){ circ(c,-44,hy-4,14,L.hair); circ(c,44,hy-4,14,L.hair); }
-    circ(c,0,hy,42,L.skin);
-    c.beginPath(); c.arc(0,hy-4,44,Math.PI*1.05,Math.PI*1.95); c.quadraticCurveTo(10,hy-26,-40,hy-14); c.closePath(); c.fillStyle=L.hair; c.fill(); c.stroke();
-    if(el.look==="scientist"){ for(let i=-2;i<=2;i++){ circ(c,i*16,hy-44,10,L.hair); } }
-  }
+  const L=LOOKS[el.look]||LOOKS.boy, emo=el.emotion, walking=el.motion==="walk"||el.motion==="move", waving=el.motion==="wave";
+  const breath=Math.sin(lt*2.4)*0.012, swing=walking?Math.sin(lt*9):0;
+  let bob=Math.sin(lt*2.4)*1.5; if(emo==="excited") bob=-Math.abs(Math.sin(lt*7))*7;
+  if(emo==="scared"||emo==="shocked") c.translate(Math.sin(lt*38)*1.6,0);
+  if(walking) c.rotate(0.05);
+  const skinD=shade(L.skin,-0.18), topD=shade(L.top,-0.2), botD=shade(L.bottom,-0.22);
+  // tail (cat)
+  if(L.cat){ limb(c,[26,-48,74,-70+Math.sin(lt*3)*12,58,-118+Math.sin(lt*3)*6],15,shade(L.skin,-0.12)); fillE(c,58,-118+Math.sin(lt*3)*6,9,9,"#fff1df"); }
+  // legs: back leg darker
+  const leg=(x,sw,col,shoe)=>{ const fx=x+sw*14, kx=x+sw*7; limb(c,[x,-62,kx,-30,fx,-8],20,col); fillE(c,fx+3,-6,15,8,shoe); };
+  leg(10,-swing,botD,shade(L.shoe,-0.15)); leg(-10,swing,L.bottom,L.shoe);
+  c.save(); c.translate(0,bob); c.scale(1-breath*0.5,1+breath);
+  // back arm
+  const talkG=talking?Math.sin(lt*6):0;
+  const armUp=emo==="excited"||emo==="shocked"||waving, wv=waving?Math.sin(lt*9):0;
+  const backArm=armUp?[ 30,-118, 52,-150, 58+wv*10,-178-wv*6]:(talking?[30,-118,48,-96+talkG*6,40+talkG*8,-130-Math.abs(talkG)*22]:[30,-118,40,-92,38,-66+Math.sin(lt*2.4)*2]);
+  limb(c,backArm,17,L.coat?shade(L.top,-0.1):topD); fillE(c,backArm[4],backArm[5],9,9,skinD);
+  // body (rounded, shaded)
+  const g=c.createLinearGradient(-30,-140,30,-50); g.addColorStop(0,shade(L.top,0.12)); g.addColorStop(1,topD);
+  c.beginPath(); c.roundRect(-34,-138,68,86,[30,30,18,18]); c.fillStyle=g; c.fill();
+  if(L.coat){ c.fillStyle=L.shirt; c.beginPath(); c.moveTo(-10,-138); c.lineTo(10,-138); c.lineTo(4,-96); c.lineTo(-4,-96); c.closePath(); c.fill(); fillE(c,-18,-80,6,8,shade(L.top,-0.12)); }
+  else if(L.robot){ c.beginPath(); c.roundRect(-18,-120,36,26,6); c.fillStyle="#5d6a86"; c.fill(); fillE(c,-7,-107,4,4,Math.sin(lt*5)>0?"#ff6b6b":"#ffd1d1"); fillE(c,8,-107,4,4,"#6bff9a"); }
+  else { c.fillStyle="rgba(255,255,255,.14)"; c.beginPath(); c.roundRect(-26,-132,16,60,8); c.fill(); }
+  // neck shadow
+  fillE(c,0,-136,18,6,skinD);
+  // front arm
+  const frontArm=emo==="thinking"?[-30,-118,-34,-90,-6,-150]:armUp?[-30,-118,-52,-150,-58,-178]:[-30,-118,-42,-92-talkG*4,-38,-66+Math.sin(lt*2.4+1)*2];
+  limb(c,frontArm,17,L.top); fillE(c,frontArm[4],frontArm[5],9.5,9.5,L.skin);
+  // head group (tilts)
+  const hy=-188, tilt=(emo==="thinking"?-0.13:0)+(talking?Math.sin(lt*4.5)*0.05:0)+Math.sin(lt*1.2)*0.02+(emo==="sad"?0.06:0);
+  c.save(); c.translate(0,-140); c.rotate(tilt); c.translate(0,140);
+  if(L.pig){ fillE(c,-50,hy+2,15,17,shade(L.hair,-0.1)); fillE(c,50,hy+2,15,17,shade(L.hair,-0.1)); }
+  if(L.cat){ c.fillStyle=L.skin; c.beginPath(); c.moveTo(-40,hy-18); c.lineTo(-32,hy-66); c.lineTo(-8,hy-40); c.fill(); c.beginPath(); c.moveTo(40,hy-18); c.lineTo(32,hy-66); c.lineTo(8,hy-40); c.fill();
+    c.fillStyle="#ffc9d6"; c.beginPath(); c.moveTo(-32,hy-30); c.lineTo(-30,hy-54); c.lineTo(-16,hy-38); c.fill(); c.beginPath(); c.moveTo(32,hy-30); c.lineTo(30,hy-54); c.lineTo(16,hy-38); c.fill(); }
+  if(L.alien){ limb(c,[-14,hy-40,-26,hy-74],5,shade(L.skin,-0.2)); limb(c,[14,hy-40,26,hy-74],5,shade(L.skin,-0.2)); fillE(c,-26,hy-77,8,8,"#ff7aa8"); fillE(c,26,hy-77,8,8,"#ff7aa8"); }
+  if(L.robot){ c.beginPath(); c.roundRect(-44,hy-40,88,78,18); const hg=c.createLinearGradient(0,hy-40,0,hy+38); hg.addColorStop(0,shade(L.skin,0.1)); hg.addColorStop(1,shade(L.skin,-0.15)); c.fillStyle=hg; c.fill();
+    limb(c,[0,hy-40,0,hy-60],5,"#8e9ab3"); fillE(c,0,hy-64,8,8,Math.sin(lt*5)>0?"#ff5d8f":"#ffd23f");
+    c.beginPath(); c.roundRect(-32,hy-20,64,40,12); c.fillStyle="#1f2638"; c.fill(); }
+  else { const hg=c.createRadialGradient(-14,hy-16,6,0,hy,52); hg.addColorStop(0,shade(L.skin,0.12)); hg.addColorStop(1,L.skin); fillE(c,0,hy,L.alien?48:46,L.alien?50:45,hg);
+    fillE(c,-46,hy+4,7,10,skinD); fillE(c,46,hy+4,7,10,skinD); }
+  // hair
+  if(!L.robot&&!L.alien&&!L.cat){ c.fillStyle=L.hair; c.beginPath(); c.ellipse(0,hy-14,49,36,0,Math.PI,0); c.quadraticCurveTo(36,hy-8,18,hy-22); c.quadraticCurveTo(-6,hy-6,-30,hy-20); c.quadraticCurveTo(-44,hy-8,-49,hy-14); c.fill();
+    if(el.look==="scientist"){ for(let i=-2;i<=2;i++) fillE(c,i*17,hy-46+Math.abs(i)*4,13,12,L.hair); }
+    if(el.look==="girl"){ c.beginPath(); c.ellipse(0,hy-16,52,38,0,Math.PI,0); c.fill(); }
+    fillE(c,-16,hy-38,14,5,"rgba(255,255,255,.18)",-0.3); }
   // face
-  const eyeY=hy+2, ex=16;
-  c.fillStyle=OL; c.strokeStyle=OL;
-  const blink = (lt*1.3)%3<0.12;
-  if(L.robot){ rr(c,-26,eyeY-10,52,18,6,"#20263a",false); c.fillStyle=emo==="angry"?"#ff4d4d":"#6bf2ff"; c.fillRect(-20,eyeY-5,14,8); c.fillRect(6,eyeY-5,14,8); }
-  else if(blink){ c.lineWidth=4; c.beginPath(); c.moveTo(-ex-6,eyeY); c.lineTo(-ex+6,eyeY); c.moveTo(ex-6,eyeY); c.lineTo(ex+6,eyeY); c.stroke(); }
-  else if(emo==="happy"||emo==="excited"){ c.lineWidth=4; c.beginPath(); c.arc(-ex,eyeY+3,7,Math.PI*1.1,Math.PI*1.9); c.moveTo(ex+7,eyeY+3); c.arc(ex,eyeY+3,7,Math.PI*1.9,Math.PI*1.1,true); c.stroke(); }
-  else { const r=(emo==="shocked"||emo==="scared")?9:6; const big=L.alien?1.6:1; ell(c,-ex,eyeY,r*big,(r+2)*big,"#fff",true); ell(c,ex,eyeY,r*big,(r+2)*big,"#fff",true); const look=emo==="thinking"?-3:0; circ(c,-ex+look,eyeY+(emo==="thinking"?-3:1),r*0.55*big,OL,false); circ(c,ex+look,eyeY+(emo==="thinking"?-3:1),r*0.55*big,OL,false); }
-  if(L.glasses){ c.lineWidth=3; c.beginPath(); c.arc(-ex,eyeY,12,0,7); c.moveTo(ex+12,eyeY); c.arc(ex,eyeY,12,0,7); c.moveTo(-ex+12,eyeY); c.lineTo(ex-12,eyeY); c.stroke(); }
-  c.lineWidth=4;
-  if(emo==="angry"){ c.beginPath(); c.moveTo(-ex-10,eyeY-16); c.lineTo(-ex+8,eyeY-10); c.moveTo(ex+10,eyeY-16); c.lineTo(ex-8,eyeY-10); c.stroke(); }
-  if(emo==="sad"||emo==="scared"){ c.beginPath(); c.moveTo(-ex-8,eyeY-10); c.lineTo(-ex+8,eyeY-15); c.moveTo(ex+8,eyeY-10); c.lineTo(ex-8,eyeY-15); c.stroke(); }
-  if(L.cat){ c.beginPath(); c.moveTo(-40,hy+16); c.lineTo(-16,hy+14); c.moveTo(-40,hy+24); c.lineTo(-16,hy+20); c.moveTo(40,hy+16); c.lineTo(16,hy+14); c.moveTo(40,hy+24); c.lineTo(16,hy+20); c.lineWidth=2; c.stroke(); c.lineWidth=4; poly(c,[[-5,hy+10],[5,hy+10],[0,hy+15]],"#ff8aa8"); }
-  if(!L.robot){ ell(c,-28,hy+16,8,5,"rgba(255,110,140,.45)",false); ell(c,28,hy+16,8,5,"rgba(255,110,140,.45)",false); }
-  const my=hy+24; const open = talking ? (Math.abs(Math.sin(lt*14))*8+2) : 0;
-  c.fillStyle="#6b2737";
-  if(emo==="shocked"||emo==="scared"){ ell(c,0,my+2,8,10+open*0.3,"#6b2737",true); }
-  else if(open>0){ ell(c,0,my,10,open,"#6b2737",true); }
-  else if(emo==="sad"){ c.beginPath(); c.arc(0,my+10,10,Math.PI*1.15,Math.PI*1.85); c.stroke(); }
-  else if(emo==="angry"){ c.beginPath(); c.moveTo(-10,my+2); c.lineTo(10,my+2); c.stroke(); }
-  else if(emo==="thinking"||emo==="neutral"){ c.beginPath(); c.moveTo(-6,my); c.lineTo(8,my-2); c.stroke(); }
-  else { c.beginPath(); c.arc(0,my-6,12,0.25,Math.PI-0.25); c.stroke(); }
-  if(emo==="scared"){ ell(c,36,hy-20,5,8,"#7fd0ff",false); }
+  const ey=hy+4, ex=17, dark="#2b2140", blink=(lt+el.x*3)%3.4<0.13, look=emo==="thinking"?-4:(walking?3:0);
+  if(L.robot){ const col=emo==="angry"?"#ff5a5a":"#6bf2ff"; if(blink){ c.fillStyle=col; c.fillRect(-22,ey-2,14,3); c.fillRect(8,ey-2,14,3); } else { c.fillStyle=col; c.beginPath(); c.roundRect(-22,ey-9,14,14,4); c.roundRect(8,ey-9,14,14,4); c.fill(); }
+    const mo=talking?Math.abs(Math.sin(lt*12))*7+2:2; c.fillStyle=col; c.fillRect(-12,ey+16-mo/2,24,mo); }
+  else {
+    const big=L.alien?1.7:1;
+    if(blink){ limb(c,[-ex-7,ey,-ex+7,ey],4,dark); limb(c,[ex-7,ey,ex+7,ey],4,dark); }
+    else if(emo==="excited"){ limb(c,[-ex-8,ey+3,-ex,ey-5,-ex+8,ey+3],5,dark); limb(c,[ex-8,ey+3,ex,ey-5,ex+8,ey+3],5,dark); }
+    else if(emo==="shocked"||emo==="scared"){ fillE(c,-ex,ey,11*big,13*big,"#fff"); fillE(c,ex,ey,11*big,13*big,"#fff"); fillE(c,-ex,ey+1,4.5*big,5*big,dark); fillE(c,ex,ey+1,4.5*big,5*big,dark); }
+    else { const ry=emo==="sad"?6.5:8; fillE(c,-ex+look,ey+(emo==="sad"?3:0),6*big,ry*big,dark); fillE(c,ex+look,ey+(emo==="sad"?3:0),6*big,ry*big,dark); fillE(c,-ex+look+2,ey-3,2.2*big,2.6*big,"#fff"); fillE(c,ex+look+2,ey-3,2.2*big,2.6*big,"#fff"); }
+    if(L.glasses){ c.strokeStyle="rgba(43,33,64,.85)"; c.lineWidth=3.5; c.beginPath(); c.arc(-ex,ey,13,0,7); c.moveTo(ex+13,ey); c.arc(ex,ey,13,0,7); c.moveTo(-ex+13,ey); c.lineTo(ex-13,ey); c.stroke(); }
+    // brows
+    const bc=L.cat||L.alien?shade(L.skin,-0.35):shade(L.hair==="#ececec"?"#9a9a9a":L.hair,0);
+    const brow=(dx,y1,y2)=>limb(c,[dx-8,ey-17+y1,dx+8,ey-17+y2],4.5,bc);
+    if(emo==="angry"){ brow(-ex,-2,5); brow(ex,5,-2); } else if(emo==="sad"||emo==="scared"){ brow(-ex,5,-3); brow(ex,-3,5); } else if(emo==="shocked"||emo==="thinking"){ brow(-ex,-5,-5); brow(ex,emo==="thinking"?-1:-5,emo==="thinking"?-4:-5); } else { brow(-ex,0,-1); brow(ex,-1,0); }
+    // cheeks
+    fillE(c,-30,ey+15,9,5.5,emo==="angry"?"rgba(255,80,80,.45)":"rgba(255,120,150,.4)"); fillE(c,30,ey+15,9,5.5,emo==="angry"?"rgba(255,80,80,.45)":"rgba(255,120,150,.4)");
+    if(L.cat){ c.fillStyle="#ff8aa8"; c.beginPath(); c.moveTo(-5,ey+12); c.lineTo(5,ey+12); c.lineTo(0,ey+17); c.fill(); [[-1,0],[1,0]].forEach(([sx])=>{ limb(c,[sx*14,ey+18,sx*40,ey+14],2,"rgba(43,33,64,.6)"); limb(c,[sx*14,ey+22,sx*40,ey+24],2,"rgba(43,33,64,.6)"); }); }
+    // mouth
+    const my=ey+26, open=talking?Math.abs(Math.sin(lt*13))*9+3:0, mouth="#7a2638";
+    if(emo==="shocked"||emo==="scared"){ fillE(c,0,my+2,8,11+open*0.3,mouth); fillE(c,0,my+7,5,3.5,"#ff8a9a"); }
+    else if(open>0){ fillE(c,0,my,11,open,mouth); if(open>6) fillE(c,0,my+open*0.45,6,open*0.35,"#ff8a9a"); }
+    else if(emo==="sad"||emo==="angry"){ limb(c,[-10,my+5,0,my-3,10,my+5],4.5,mouth); }
+    else if(emo==="neutral"||emo==="thinking"){ limb(c,[-6,my,8,my-2],4.5,mouth); }
+    else { c.fillStyle=mouth; c.beginPath(); c.moveTo(-12,my-4); c.quadraticCurveTo(0,my+14,12,my-4); c.closePath(); c.fill(); fillE(c,0,my+4,5,2.5,"#ff8a9a"); }
+    if(emo==="sad"){ fillE(c,-ex-2,ey+16+((lt*30)%14),3,5,"rgba(110,190,255,.85)"); }
+    if(emo==="scared"){ fillE(c,40,hy-20+Math.sin(lt*6)*2,5,8,"rgba(110,200,255,.9)"); }
+  }
+  c.restore(); // head
+  c.restore(); // body bob/breath
 }
 
 /* Thai-aware line wrapping */
@@ -871,7 +904,7 @@ class Renderer{
     const maxW=W*0.88; let fs=Math.round(m*0.088);
     const measure=f=>ch.words.map(w=>{ const ff=w.emph?f*1.22:f; c.font=`800 ${ff}px Kanit, sans-serif`; return {w,f:ff,width:c.measureText(w.text).width+(w.sp?ff*0.28:0)}; });
     let items=measure(fs), total=items.reduce((a,x)=>a+x.width,0);
-    if(total>maxW){ fs=Math.round(fs*Math.max(0.72,maxW/total)); items=measure(fs); total=items.reduce((a,x)=>a+x.width,0); }
+    if(total>maxW){ fs=Math.round(fs*Math.max(0.6,maxW/total)); items=measure(fs); total=items.reduce((a,x)=>a+x.width,0); }
     const lines=[]; let line=[],lw=0; items.forEach(it=>{ if(line.length&&lw+it.width>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push(it); lw+=it.width; }); if(line.length) lines.push({items:line,w:lw});
     const lh=Math.max(...items.map(x=>x.f))*1.38, L={fs,lines,lh,w:Math.max(...lines.map(l=>l.w)),h:lines.length*lh};
     ch._k=key; ch._L=L; return L;
@@ -932,34 +965,53 @@ class Renderer{
     if(s.camera==="zoom-in") sc=1+0.14*easeInOut(p); else if(s.camera==="zoom-out") sc=1.14-0.14*easeInOut(p);
     else if(s.camera==="pan-left"){ sc=1.12; dx=lerp(W*0.05,-W*0.05,easeInOut(p)); } else if(s.camera==="pan-right"){ sc=1.12; dx=lerp(-W*0.05,W*0.05,easeInOut(p)); }
     else if(s.camera==="shake"){ sc=1.05; dx=Math.sin(lt*45)*8*u; dy=Math.cos(lt*37)*8*u; }
+    else if(!reduceMotion){ sc=1.02+0.035*easeInOut(p); dx=Math.sin(p*Math.PI+idx)*W*0.008; }   // slow drift so no shot is ever frozen
     sc*=1+this.punch(idx,lt)+this.beatPulse((this.starts[idx]||0)+lt);
+    // parallax: the background moves about half as much as the characters
+    c.save(); const bsc=1+(sc-1)*0.5+0.02; c.translate(W/2+dx*0.45,H/2+dy*0.6); c.scale(bsc,bsc); c.translate(-W/2,-H/2);
+    (BG[s.bg]||BG.sky)(c,W,H,lt+idx*3,s.time); c.restore();
     c.translate(W/2+dx,H/2+dy); c.scale(sc,sc); c.translate(-W/2,-H/2);
-    (BG[s.bg]||BG.sky)(c,W,H,lt+idx*3,s.time);
     // elements (props behind characters, text on top)
     const order=[...s.elements].sort((a,b)=>({prop:0,character:1,text:2}[a.type]-{prop:0,character:1,text:2}[b.type]));
     for(const el of order) this.drawElement(c,el,lt,s,u);
     c.restore();
     this.drawEffect(c,s.effect,lt,s.duration,u,idx);
+    { const vg=c.createRadialGradient(W/2,H*0.5,Math.min(W,H)*0.45,W/2,H*0.5,Math.hypot(W,H)*0.62); vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,s.time==="night"?"rgba(5,8,30,.38)":"rgba(20,10,40,.2)"); c.fillStyle=vg; c.fillRect(0,0,W,H); }
     if(s.caption) this.drawCaption(c,s.caption,lt,u);
   }
   drawElement(c,el,lt,s,u){
-    const W=this.W,H=this.H; if(el.enter!=="none" && lt<el.at) return;
-    const ep=el.enter==="none"?1:clamp((lt-el.at)/0.55,0,1), e=easeOut(ep);
-    const mt=clamp((lt-el.at)/Math.max(0.5,s.duration-el.at),0,1);
-    let x=el.x, y=el.y, sc=el.scale, rot=0, alpha=1;
-    switch(el.enter){ case "pop": sc*=easeBack(ep); break; case "fade": alpha=e; break; case "left": x=lerp(-0.3,el.x,e); break; case "right": x=lerp(1.3,el.x,e); break; case "top": y=lerp(-0.3,el.y,e); break; case "bottom": y=lerp(1.3,el.y,e); break; }
+    const W=this.W,H=this.H, idx=s.elements.indexOf(el);
+    const at=el.at>0?el.at:(el.enter!=="none"?Math.max(0,idx)*0.14:0);        // auto-stagger elements that share t=0
+    if(el.enter!=="none" && lt<at) return;
+    const ep=el.enter==="none"?1:clamp((lt-at)/0.55,0,1), e=easeOut(ep);
+    const mt=clamp((lt-at)/Math.max(0.5,s.duration-at),0,1);
+    let x=el.x, y=el.y, sc=el.scale, rot=0, alpha=1, sx=1, sy=1;
+    switch(el.enter){ case "pop": sc*=easeBack(ep); if(ep<1&&!reduceMotion){ const q=Math.sin(ep*Math.PI)*(1-ep); sx=1-q*0.25; sy=1+q*0.3; } break; case "fade": alpha=e; break; case "left": x=lerp(-0.3,el.x,e); break; case "right": x=lerp(1.3,el.x,e); break; case "top": y=lerp(-0.3,el.y,e); break; case "bottom": y=lerp(1.3,el.y,e); break; }
     if(el.type==="text") y+=this.textShift(s,el);
-    const T=lt;
+    const T=lt; let lift=0;
     switch(el.motion){
-      case "float": y+=Math.sin(T*2)*0.012; break; case "spin": rot=T*1.6; break; case "pulse": sc*=1+Math.sin(T*6)*0.06; break;
-      case "shake": x+=Math.sin(T*40)*0.006; break; case "fall": y=lerp(el.y-0.7,el.y,easeOut(mt)); break; case "rise": y=lerp(el.y,el.toY<el.y?el.toY:el.y-0.5,easeInOut(mt)); break;
-      case "move": case "walk": x=lerp(x,el.toX,easeInOut(mt)); y=lerp(y,el.toY,easeInOut(mt)); break;
-      case "jump": y-=Math.abs(Math.sin(T*5))*0.06; break;
+      case "float": y+=Math.sin(T*2)*0.012; rot+=Math.sin(T*1.6)*0.04; break; case "spin": rot=T*1.6; break; case "pulse": sc*=1+Math.sin(T*6)*0.06; break;
+      case "shake": x+=Math.sin(T*40)*0.006; break; case "fall": { y=lerp(el.y-0.7,el.y,easeOut(mt)); const land=(lt-at)/Math.max(0.5,s.duration-at); if(mt>0.92&&mt<1&&!reduceMotion){ sx=1.12; sy=0.88; } break; }
+      case "rise": y=lerp(el.y,el.toY<el.y?el.toY:el.y-0.5,easeInOut(mt)); break;
+      case "move": case "walk": { x=lerp(x,el.toX,easeInOut(mt)); y=lerp(y,el.toY,easeInOut(mt)); if(el.type!=="character"&&mt<1) rot+=(el.toX>el.x?1:-1)*0.05*Math.sin(mt*Math.PI); break; }
+      case "jump": { const ph=Math.abs(Math.sin(T*5)); lift=ph*0.06; y-=lift; if(!reduceMotion){ if(ph<0.15){ sx=1+(0.15-ph)*0.9; sy=1-(0.15-ph)*0.9; } else { sx=1-ph*0.05; sy=1+ph*0.07; } } break; }
     }
-    const base=Math.min(W,H);
-    c.save(); c.globalAlpha=alpha; c.translate(x*W,y*H); c.rotate(rot);
+    if(el.type==="character"&&!reduceMotion){ const br=Math.sin(T*2.4)*0.012; sy*=1+br; sx*=1-br*0.5; }
+    const base=Math.min(W,H), X=x*W, Y=y*H;
+    // ground shadow (characters and grounded props)
+    const GROUND=["car","house","building","tree","coin","burger","book","bomb","volcano","ice","phone","wave"];
+    if(alpha>0.05&&(el.type==="character"||(el.type==="prop"&&GROUND.includes(el.name)&&!["float","fall","rise","spin"].includes(el.motion)))){
+      const gy=(y+lift)*H+(el.type==="character"?0:base*0.0022*el.scale*48), r=(el.type==="character"?base*0.075:base*0.09)*el.scale*(1-lift*4);
+      c.save(); c.globalAlpha=alpha*0.22; c.fillStyle="#1b1230"; c.beginPath(); c.ellipse(X,gy,r,r*0.22,0,0,Math.PI*2); c.fill(); c.restore(); }
+    // entrance sparkle burst and speed lines
+    if(!reduceMotion&&el.enter!=="none"&&el.type!=="text"){ const k=(lt-at)/0.5;
+      if(k>=0&&k<1&&(el.enter==="pop"||el.enter==="fade")){ const cy=el.type==="character"?Y-base*0.27*el.scale:Y, R0=base*0.12*el.scale*(0.6+k*0.9);
+        c.save(); c.globalAlpha=(1-k)*0.9; for(let i=0;i<8;i++){ const ang=i*Math.PI/4+idx; const px=X+Math.cos(ang)*R0, py=cy+Math.sin(ang)*R0; c.fillStyle=["#fff6a8","#ffffff","#ffd1e6"][i%3]; c.beginPath(); c.arc(px,py,base*0.008*(1-k)+1,0,7); c.fill(); } c.restore(); }
+      if(ep<1&&["left","right","top","bottom"].includes(el.enter)){ const dir={left:[-1,0],right:[1,0],top:[0,-1],bottom:[0,1]}[el.enter]; const cy=el.type==="character"?Y-base*0.25*el.scale:Y;
+        c.save(); c.globalAlpha=(1-ep)*0.6; c.strokeStyle="#ffffff"; c.lineCap="round"; for(let i=-1;i<=1;i++){ c.lineWidth=base*0.006; const ox=dir[1]?i*base*0.05:0, oy=dir[0]?i*base*0.06:0, L0=base*0.12, L1=base*0.32; c.beginPath(); c.moveTo(X+ox+dir[0]*L0,cy+oy+dir[1]*L0); c.lineTo(X+ox+dir[0]*L1,cy+oy+dir[1]*L1); c.stroke(); } c.restore(); } }
+    c.save(); c.globalAlpha=alpha; c.translate(X,Y); c.rotate(rot); c.scale(sx,sy);
     if(el.type==="character"){ const k=base*0.0024*sc; c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,el.motion==="talk"||(el.motion==="none"&&!!el.say)); c.restore();
-      if(el.say && lt>=el.at+0.3) this.drawBubble(c,el.say,x*W,y*H-base*0.0024*sc*240,u,s,sc);
+      if(el.say && lt>=at+0.3) this.drawBubble(c,el.say,X,Y-base*0.0024*sc*250,u,s,sc);
       return; }
     if(el.type==="emoji"){ const fs=Math.round(base*0.17*sc); c.font=`${fs}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.fillText(el.char,0,0); c.restore(); return; }
     if(el.type==="text"){ const fs=Math.round(base*0.09*sc); c.font=`800 ${fs}px Kanit, sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.lineWidth=fs*0.16; c.strokeStyle=OL; c.lineJoin="round"; c.strokeText(el.text,0,0); c.fillStyle=el.color; c.fillText(el.text,0,0); c.restore(); return; }
@@ -1159,35 +1211,64 @@ function highlightScene(t){ const i=t>=R.endStart?-1:R.sceneAt(t); document.quer
    starts inside a tap, drops an utterance spoken right after cancel(), and can garbage-collect utterances
    mid-sentence, so all three are handled here. */
 const TTS={ ok:"speechSynthesis" in window, voices:[], keep:null, warned:false };
-function loadVoices(){ if(!TTS.ok) return; try{ TTS.voices=speechSynthesis.getVoices()||[]; }catch{ TTS.voices=[]; } renderVoicePick(); }
+function loadVoices(){ if(!TTS.ok) return; try{ TTS.voices=speechSynthesis.getVoices()||[]; }catch{ TTS.voices=[]; } renderVoicePick(); renderVoiceStatus(); }
 const thaiVoices=()=>TTS.voices.filter(v=>v.lang&&v.lang.toLowerCase().replace("_","-").startsWith("th"));
-function pickVoice(){ const th=thaiVoices(), want=store.get("voiceName",""); return th.find(v=>v.name===want)||th.find(v=>/premium|enhanced|natural|neural|google/i.test(v.name))||th[0]||null; }
+const GOODV=/premium|enhanced|natural|neural|siri|ปรับปรุง|คุณภาพสูง|google/i;
+function pickVoice(){ const th=thaiVoices(), want=store.get("voiceName",""); return th.find(v=>v.name===want)||th.find(v=>GOODV.test(v.name))||th.find(v=>v.localService)||th[0]||null; }
 function renderVoicePick(){ const sel=$("voicePick"); if(!sel) return; const th=thaiVoices(), cur=pickVoice();
   sel.innerHTML=""; if(!th.length){ const o=document.createElement("option"); o.textContent=TTS.ok?"ไม่พบเสียงภาษาไทยในเครื่องนี้ (ใช้เสียงเริ่มต้น)":"เบราว์เซอร์นี้ไม่รองรับเสียงพากย์"; sel.appendChild(o); sel.disabled=true; return; }
-  sel.disabled=false; th.forEach(v=>{ const o=document.createElement("option"); o.value=v.name; o.textContent=v.name+(v.localService?"":" (ออนไลน์)"); if(cur&&v.name===cur.name) o.selected=true; sel.appendChild(o); }); }
+  sel.disabled=false; th.forEach(v=>{ const o=document.createElement("option"); o.value=v.name; o.textContent=v.name+(GOODV.test(v.name)?" ⭐":"")+(v.localService?"":" (ออนไลน์)"); if(cur&&v.name===cur.name) o.selected=true; sel.appendChild(o); }); }
+function voiceStatusHTML(){ if(!TTS.ok) return `<span class="vbad">⚠️ เบราว์เซอร์นี้ไม่มีเสียงพากย์</span>`; const th=thaiVoices(), v=pickVoice();
+  if(!th.length) return `<span class="vbad">⚠️ เครื่องนี้ยังไม่มีเสียงภาษาไทย เสียงที่ได้ยินจะเป็นสำเนียงต่างชาติ</span><br>วิธีแก้ (iPad/iPhone): ตั้งค่า > การช่วยการเข้าถึง > เนื้อหาที่พูด > เสียง > ไทย > เลือกเสียงแบบ "ปรับปรุงแล้ว/Enhanced" แล้วกดดาวน์โหลด จากนั้นปิดแล้วเปิดหน้านี้ใหม่`;
+  return `<span class="vok">✅ ใช้เสียงภาษาไทย: ${esc(v.name)}</span>`+(GOODV.test(v.name)?"":`<br>อยากได้เสียงที่เป็นธรรมชาติขึ้น: ดาวน์โหลดเสียงไทยแบบ "ปรับปรุงแล้ว/Enhanced" ใน ตั้งค่า > การช่วยการเข้าถึง > เนื้อหาที่พูด > เสียง > ไทย`); }
+function renderVoiceStatus(){ ["voiceStatus","recVoice"].forEach(id=>{ const el=$(id); if(el) el.innerHTML=voiceStatusHTML(); }); }
 if(TTS.ok){ loadVoices(); try{ speechSynthesis.addEventListener("voiceschanged",loadVoices); }catch{ speechSynthesis.onvoiceschanged=loadVoices; } setTimeout(loadVoices,800); setTimeout(loadVoices,2500); }
+/* Split Thai narration into breath-sized phrases (at spaces and punctuation) so the voice pauses naturally. */
+function phrases(t){ const parts=cleanStar(t).replace(/([,.!?…;:])/g,"$1\u0001").split(/\u0001|\s+/).map(x=>x.trim()).filter(Boolean); const out=[];
+  parts.forEach(pt=>{ const last=out[out.length-1]; if(last&&(last.replace(/[ัิ-ฺ็-๎]/g,"").length<5||pt.replace(/[ัิ-ฺ็-๎]/g,"").length<3)&&!/[.!?…]$/.test(last)) out[out.length-1]=last+" "+pt; else out.push(pt); });
+  return out; }
+const ttsRate=()=>num(store.get("ttsRate",0.92),0.6,1.4,0.92);
 function speakText(text,{rate=1,pitch=1,onEnd=null}={}){
-  if(!TTS.ok) return false; const t=cleanStar(text); if(!t) return false;
+  if(!TTS.ok) return false; const ps=phrases(text); if(!ps.length) return false;
   let busy=false; try{ busy=speechSynthesis.speaking||speechSynthesis.pending; if(busy) speechSynthesis.cancel(); if(speechSynthesis.paused) speechSynthesis.resume(); }catch{}
-  const u=new SpeechSynthesisUtterance(t); u.lang="th-TH"; u.rate=clamp(rate,0.6,1.6); u.pitch=clamp(pitch,0.5,1.8); u.volume=1; const v=pickVoice(); if(v) u.voice=v;
-  let fired=false; TTS.keep=u; u.onend=u.onerror=()=>{ if(TTS.keep===u) TTS.keep=null; if(!fired){ fired=true; onEnd&&onEnd(); } };
-  // Safari drops an utterance queued right after cancel(): wait a moment in that case (the first, unlocking utterance is never delayed)
-  const go=()=>{ try{ speechSynthesis.speak(u); }catch{} }; if(busy) setTimeout(go,120); else go();
-  if(!thaiVoices().length&&!TTS.warned){ TTS.warned=true; notice("เครื่องนี้ยังไม่มีเสียงภาษาไทย บน iPad/iPhone: ตั้งค่า > การช่วยการเข้าถึง > เนื้อหาที่พูด > เสียง > ไทย แล้วดาวน์โหลดเสียง จากนั้นโหลดหน้านี้ใหม่",12000,"info"); }
+  const v=pickVoice(), r=clamp(rate*ttsRate(),0.5,1.6), token={}; TTS.token=token; TTS.keep=[]; let fired=false;
+  const us=ps.map((t,i)=>{ const u=new SpeechSynthesisUtterance(t); u.lang="th-TH"; u.rate=r; u.pitch=clamp(pitch,0.5,1.8); u.volume=1; if(v) u.voice=v;
+    if(i===ps.length-1) u.onend=u.onerror=()=>{ if(!fired&&TTS.token===token){ fired=true; onEnd&&onEnd(); } }; else u.onerror=()=>{ if(!fired&&TTS.token===token){ fired=true; onEnd&&onEnd(); } };
+    TTS.keep.push(u); return u; });
+  // all phrases are queued at once: the voice pauses briefly between them; Safari drops an utterance queued right after cancel(), so wait a moment in that case
+  const go=()=>{ try{ us.forEach(u=>speechSynthesis.speak(u)); }catch{} }; if(busy) setTimeout(go,120); else go();
+  if(!thaiVoices().length&&!TTS.warned){ TTS.warned=true; notice("เครื่องนี้ยังไม่มีเสียงภาษาไทย เสียงจะเป็นสำเนียงต่างชาติ ดูวิธีติดตั้งได้ในช่อง \"เสียงพากย์ตอนพรีวิว\" ในห้องตัดต่อ",12000,"info"); }
   return true;
 }
 function speakScene(i){
   if($("ttsToggle").value!=="on"||voiceBuf||!TTS.ok) return;
   const s=project.scenes[i]; if(!s?.narration) return;
-  speakText(s.narration,{rate:(s.voice?.rate||1)*1.05,pitch:s.voice?.pitch||1});
+  speakText(s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1});
 }
+/* Preview playback. With the synthetic voice on, the picture waits at the end of each scene until the
+   sentence has been fully spoken (like the screen-recording mode), so phrases are never cut off. */
+const PV={held:0,done:true,doneAt:0,scene:-1,t0:0};
+function previewVoiceOn(){ return $("ttsToggle").value==="on"&&!voiceBuf&&TTS.ok; }
+function beginPreviewScene(i){ const s=project.scenes[i]; PV.scene=i; PV.done=false; PV.t0=performance.now();
+  const ac=AU.ac; if(ac&&AU.master){ if(s.sfx!=="none") AU.sfx(s.sfx,ac.currentTime+0.02); if(project.emphOn!==false) (R.subs[i]?.emphStarts||[]).forEach(f=>AU.osc("sine",900,ac.currentTime+f,0.09,0.12,AU.master,{glideTo:1500})); }
+  const ok=s.narration&&speakText(s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1,onEnd:()=>{ if(PV.scene===i) PV.done=true; }}); if(!ok) PV.done=true; }
 function play(){
   if(!project) return; if(playT>=R.total-0.05) playT=0; playing=true; $("playBtn").textContent="⏸ หยุด";
-  AU.start(project, playT, {voice:voiceBuf, accents:R.emphTimes(), musicVol:$("ttsToggle").value==="on"&&!voiceBuf?0.3:0.55});
-  lastSpokenScene=-1;
-  if(playT<R.endStart){ const i0=R.sceneAt(playT); if(playT-R.starts[i0]<0.6){ lastSpokenScene=i0; speakScene(i0); } else lastSpokenScene=i0; }
-  const loop=()=>{ if(!playing) return; const t=AU.now(); if(t>=R.total){ stopPlay(); drawAt(R.total-0.01); return; }
-    const i=R.sceneAt(t); if(t<R.endStart && i!==lastSpokenScene){ lastSpokenScene=i; speakScene(i); }
+  const paced=previewVoiceOn();
+  AU.start(project, playT, {voice:voiceBuf, accents:paced?[]:R.emphTimes(), noSfx:paced, length:paced?R.total*2+20:null, musicVol:paced?0.3:0.55});
+  PV.held=0; PV.scene=-1; PV.done=true;
+  if(paced&&playT<R.endStart){ const i0=R.sceneAt(playT); if(playT-R.starts[i0]<0.6) beginPreviewScene(i0); else { PV.scene=i0; PV.done=true; } }
+  lastSpokenScene=PV.scene;
+  let last=performance.now();
+  const loop=now=>{ if(!playing) return; const dt=Math.min(0.1,(now-last)/1000); last=now;
+    let t=AU.now()-PV.held;
+    if(paced&&PV.scene>=0&&PV.scene<project.scenes.length){ const next=PV.scene+1<project.scenes.length?R.starts[PV.scene+1]:R.endStart, s=project.scenes[PV.scene];
+      const guard=(performance.now()-PV.t0)/1000>s.duration+speakSeconds(s.narration)*1.8+4;
+      if(t>=next-0.02&&!PV.done&&!guard){ PV.held+=t-(next-0.02); t=next-0.02; }      // hold the last frame of the scene while the voice finishes
+      else if(t>=next&&PV.scene+1<project.scenes.length) beginPreviewScene(PV.scene+1);
+      else if(t>=next) PV.scene=project.scenes.length; }
+    if(t>=R.total){ stopPlay(); drawAt(R.total-0.01); return; }
+    if(!paced){ const i=R.sceneAt(t); if(t<R.endStart&&i!==lastSpokenScene){ lastSpokenScene=i; speakScene(i); } }
     drawAt(Math.max(0,t)); rafId=requestAnimationFrame(loop); };
   rafId=requestAnimationFrame(loop);
 }
@@ -1199,6 +1280,8 @@ $("musicSel").onchange=e=>{ project.music=e.target.value; persistOpen(); if(play
 $("aspectStudio").onchange=e=>{ project.aspect=e.target.value; stopPlay(); R.load(project); relayout(); };
 $("ttsToggle").onchange=()=>{ if(playing){ stopPlay(); play(); } };
 $("voicePick").onchange=e=>{ store.set("voiceName",e.target.value); speakText("ทดสอบเสียงพากย์ภาษาไทย"); };
+{ const rr=$("ttsRate"), lbl=$("ttsRateLbl"); const show=()=>lbl.textContent=`(${Math.round(ttsRate()*100)}%)`; rr.value=ttsRate(); show(); rr.oninput=()=>{ store.set("ttsRate",Number(rr.value)); show(); }; rr.onchange=()=>speakText("ทดสอบความเร็วเสียงพากย์ภาษาไทย"); }
+$("recTest").onclick=()=>$("ttsTest").click();
 $("ttsTest").onclick=()=>{ if(!TTS.ok){ notice("เบราว์เซอร์นี้ไม่รองรับเสียงพากย์ ลองใช้ Safari หรือ Chrome",6000,"err"); return; } const i=project?R.sceneAt(Math.min(playT,R.endStart-0.01)):0; const ok=speakText(project?.scenes[i]?.narration||"สวัสดีครับ ทดสอบเสียงพากย์ภาษาไทย"); if(ok) notice(`กำลังพูดด้วยเสียง: ${pickVoice()?.name||"เสียงเริ่มต้นของเครื่อง"}`,4000,"info"); };
 $("voiceFile").onchange=async e=>{
   const f=e.target.files[0]; if(!f) return; const ac=AU.ensure();
@@ -1273,7 +1356,7 @@ function recFit(){ const rc=$("recCv"), ov=$("recOv"); if(ov.hidden) return; con
   const k=Math.min(aw/R.W,ah/R.H); rc.style.width=Math.floor(R.W*k)+"px"; rc.style.height=Math.floor(R.H*k)+"px"; }
 addEventListener("resize",recFit); document.addEventListener("fullscreenchange",recFit); document.addEventListener("webkitfullscreenchange",recFit);
 function recBlit(){ const rc=$("recCv"); if(rc.width!==R.W||rc.height!==R.H){ rc.width=R.W; rc.height=R.H; recFit(); } rc.getContext("2d").drawImage(videoCv,0,0); }
-function recOpen(){ if(!project) return; stopPlay(); $("recOv").hidden=false; recFit(); $("recUi").hidden=false; $("recEnd").hidden=true; $("recX").hidden=false; R.drawFrame(0.6); recBlit(); }
+function recOpen(){ if(!project) return; stopPlay(); loadVoices(); $("recOv").hidden=false; recFit(); $("recUi").hidden=false; $("recEnd").hidden=true; $("recX").hidden=false; R.drawFrame(0.6); recBlit(); }
 function recStop(){ REC.on=false; cancelAnimationFrame(REC.raf); AU.stop(); try{ if(TTS.ok&&(speechSynthesis.speaking||speechSynthesis.pending)) speechSynthesis.cancel(); }catch{} }
 function recClose(){ recStop(); $("recOv").hidden=true; try{ if(document.fullscreenElement) document.exitFullscreen(); else if(document.webkitFullscreenElement) document.webkitExitFullscreen(); }catch{} drawAt(Math.min(playT,R.total-0.01)); }
 function recStart(){
@@ -1285,7 +1368,7 @@ function recStart(){
   const begin=k=>{ i=k; t0=performance.now(); done=false; doneAt=0; const s=project.scenes[k];
     if(s.sfx!=="none") AU.sfx(s.sfx,ac.currentTime+0.02);
     if(project.emphOn!==false) (R.subs[k]?.emphStarts||[]).forEach(f=>AU.osc("sine",900,ac.currentTime+f,0.09,0.12,AU.master,{glideTo:1500}));
-    const ok=useTTS&&s.narration&&speakText(s.narration,{rate:(s.voice?.rate||1)*1.05,pitch:s.voice?.pitch||1,onEnd:()=>{ done=true; doneAt=(performance.now()-t0)/1000; }});
+    const ok=useTTS&&s.narration&&speakText(s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1,onEnd:()=>{ done=true; doneAt=(performance.now()-t0)/1000; }});
     if(!ok){ done=true; doneAt=0; } };
   begin(0);   // first sentence starts inside the tap (iOS requirement)
   const loop=now=>{ if(!REC.on) return;
