@@ -125,6 +125,32 @@ header .btn,header .lvl{color:var(--ink)}
 .tl.working span{color:#6b5a20}
 .tl.error{border-style:solid;border-color:var(--line);background:var(--errbg)}
 .tl.waiting{border-style:solid;border-color:var(--line);background:var(--soft)}
+.tl{cursor:pointer;font:inherit;color:inherit}
+.tl:hover{transform:translateY(-2px)}
+.tl.sel{outline:3px solid var(--accent2);outline-offset:2px}
+.work{display:flex;flex-direction:column;gap:8px}
+.live,.out{border:3px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.whead{display:flex;gap:8px;align-items:center;padding:6px 10px;background:var(--soft);border-bottom:2px solid var(--line);font-weight:bold;font-size:14px;flex-wrap:wrap}
+.whead span:not(.dot){flex:1;min-width:0}
+.live .dot{width:10px;height:10px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 0 rgba(255,59,92,.6);animation:pulse 1.2s infinite;flex:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(255,59,92,0)}100%{box-shadow:0 0 0 0 rgba(255,59,92,0)}}
+.wbody{padding:8px 10px;max-height:260px;overflow:auto;font-size:14px;overflow-wrap:anywhere}
+.wbody h4{margin:6px 0 2px;font-family:var(--display);font-weight:600}
+.wbody ul,.wbody ol{margin:4px 0;padding-left:20px}
+.wbody .meter{display:flex;gap:8px;align-items:center;margin-top:6px;color:var(--muted)}
+.typing::after{content:"▍";animation:blink .7s steps(2) infinite;color:var(--accent)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.thumbs.wide{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.thumb{display:flex;flex-direction:column;gap:3px;font-size:12px;min-width:0}
+.thumb canvas{width:100%;height:auto;border:2px solid var(--line);border-radius:6px;background:#000}
+.thumb b{font-size:12px}
+.thumb .tg{color:var(--muted);font-size:11px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;margin:4px 0}
+.kv dt{font-weight:bold}
+.kv dd{margin:0}
+.notes{list-style:none;padding:0!important;display:flex;flex-direction:column;gap:4px}
+.notes li{display:flex;gap:6px;align-items:flex-start}
+.notes canvas{width:18px;height:20px;image-rendering:pixelated;flex:none}
 .feedwrap h3{margin:4px 0 6px;font-family:var(--display);font-weight:600;font-size:16px}
 .feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
 .feed li{display:flex;gap:8px;align-items:flex-start;font-size:14px;animation:msgIn .35s ease-out}
@@ -330,6 +356,16 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
         <div class="bar big" aria-hidden="true"><i id="jobBar"></i></div>
         <div class="now" id="jobNow"></div>
         <ol class="timeline" id="steps"></ol>
+        <div class="work">
+          <div class="live" id="liveBox" hidden>
+            <div class="whead"><span class="dot" aria-hidden="true"></span><span id="liveHead"></span></div>
+            <div class="wbody" id="liveBody" aria-live="off"></div>
+          </div>
+          <div class="out" id="outBox" hidden>
+            <div class="whead"><span id="outHead"></span><button class="btn small" id="outLive" hidden>🔴 กลับไปดูสด</button></div>
+            <div class="wbody" id="outBody"></div>
+          </div>
+        </div>
       </div>
       <div class="askbox" id="askBox" hidden>
         <div class="askhead"><canvas id="mgrAvatar" width="16" height="18"></canvas><span>พี่มายขอถามก่อนเริ่มงาน <small style="font-family:var(--ui);font-weight:400;color:var(--muted)" id="askTopic"></small></span></div>
@@ -1505,7 +1541,8 @@ async function ask(id,userText){
   const l0=ensureLive(); if(l0) l0.innerHTML=`<span class="thinking">${esc(e.name)} กำลังคิด</span>`;
   try{
     let hist=chats[id].slice(-13); if(hist[0].role!=="user") hist=hist.slice(1);
-    let text=await callClaude(e,hist,t=>{ const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(t)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; } });
+    if(runningRec) liveWork(id,"");
+    let text=await callClaude(e,hist,t=>{ if(runningRec) liveWork(id,t); const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(t)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; } });
     if(!text.trim()) text="(ไม่มีข้อความตอบกลับ)";
     chats[id].push({role:"assistant",content:text}); saveChats(id); finishTask(task,"done"); setStatus(id,"done"); stats.done[id]=(stats.done[id]||0)+1; addXP(10); if(current===id) renderChat(); return text;
   }catch(err){ chats[id].pop(); saveChats(id); finishTask(task,"error"); setStatus(id,"error"); if(current===id){ renderChat(); bubble("sys","⚠️ "+friendlyError(err)); input.value=userText; } throw err; }
@@ -1655,7 +1692,7 @@ const STEP_FN={
       const j=extractJSON(await ask("qa",`ตรวจคลิป "${p.title}" รอบที่ ${rounds+1} (ยาว ${total.toFixed(0)} วินาที, เพลง ${p.music}, ซับ ${p.subStyle})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\nผลตรวจอัตโนมัติจากระบบ:\n${auto.length?auto.map(x=>"- "+x).join("\n"):"- ไม่พบปัญหา"}\n\n${summary}\n\nแก้ข้อความเล็กๆ ได้เองผ่าน edits (คงเครื่องหมาย *คำเน้น*) ปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ใส่ใน issues และตั้ง pass เป็น false ${rounds?"(นี่เป็นรอบตรวจซ้ำ ถ้าแก้ดีขึ้นแล้วให้ผ่าน)":""}\nตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"pass":true,"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น"],"issues":[{"scene":2,"problem":"ปัญหาและวิธีแก้","owner":"editor"}],"title":"","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
       const applied=applyTextEdits(p,j);
       const issues=(Array.isArray(j?.issues)?j.issues:[]).slice(0,8).map(x=>({scene:Number(x?.scene)||0,problem:str(x?.problem,220)})).filter(x=>x.problem);
-      last={score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
+      last={auto,score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
       if(last.pass||!issues.length||rounds>=1) break;
       rounds++; logAct(r,"qa",`พบ ${issues.length} จุดที่ต้องแก้ ส่งกลับให้น้องคัท`); handoff("qa","editor");
       const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nแก้แล้วส่ง JSON ฉบับเต็มกลับมา (คงจำนวนฉากและ *คำเน้น* ไว้):\n\`\`\`json\n${JSON.stringify(stripP(p))}\n\`\`\``));
@@ -1712,7 +1749,7 @@ async function runPipeline(r){
   if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(EMPLOYEES.some(e=>status[e.id]==="working")){ notice("มีพนักงานกำลังทำงานอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(!inViewer&&!settings().key){ openSettings(); return; }
-  AU.ensure(); runningRec=r.id; stopReq=false; r.out ||= {}; r.error=null; r.waiting=false; r.runningAt=Date.now(); $("askBox").hidden=true; jobRec=r; stepUI={};
+  AU.ensure(); runningRec=r.id; stopReq=false; userPicked=false; viewStep=null; outKey=""; liveState={id:null,text:""}; r.out ||= {}; r.error=null; r.waiting=false; r.runningAt=Date.now(); $("askBox").hidden=true; jobRec=r; stepUI={};
   logAct(r,stepsOf(r)[0]==="plan"?"coord":"manager",r.log?.length?"กลับมาทำงานต่อจากขั้นที่ค้างไว้":"รับงานคลิปใหม่ เริ่มประสานงาน"); saveRec(r);
   $("makeBtn").disabled=true; $("stopBtn").hidden=false; $("stopBtn").disabled=false; $("stopBtn").textContent="⏸ หยุดหลังจบขั้นนี้"; let stage=null;
   try{
@@ -1752,14 +1789,81 @@ function renderJob(){
   const now=$("jobNow"); now.innerHTML="";
   if(curStep){ const who=STEP_WHO[curStep]; now.appendChild(miniAvatar(who)); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${byId[who].name} กำลัง${STEP_VERB[curStep]}...`; now.appendChild(t); const el=document.createElement("span"); el.className="el"; el.textContent=r.stepAt?fmt((Date.now()-r.stepAt)/1000):""; now.appendChild(el); }
   else { const st=recState(r); const t=document.createElement("span"); t.textContent=st.k==="done"?`✅ เสร็จแล้ว${r.out?.qa?` · ตรวจผ่าน ${r.out.qa.score}/10`:""}`:st.k==="ask"?"💬 รอคุณตอบคำถาม":`⏸ ${st.t}`; now.appendChild(t); }
-  const ol=$("steps"); ol.innerHTML=""; ol.style.setProperty("--n",S.length); ol.style.setProperty("--nm",Math.ceil(S.length/2));
-  S.forEach((st,i)=>{ const li=document.createElement("li"); const state=r.out?.[st]!=null?"done":(running&&st===curStep)?"working":(stepUI[st]==="error"||r.error?.stage===st)?"error":(r.waiting&&st==="brief")?"waiting":""; li.className="tl "+state; li.dataset.s=st;
-    li.appendChild(miniAvatar(STEP_WHO[st])); const b=document.createElement("b"); b.textContent=`${i+1}. ${STEP_NAME[st]}`; li.appendChild(b); const sp=document.createElement("span"); sp.textContent=byId[STEP_WHO[st]]?.name||""; li.appendChild(sp); ol.appendChild(li); });
+  const ol=$("steps"); const states=S.map(st=>r.out?.[st]!=null?"done":(running&&st===curStep)?"working":(stepUI[st]==="error"||r.error?.stage===st)?"error":(r.waiting&&st==="brief")?"waiting":"");
+  const sig=r.id+"|"+states.join(",")+"|"+viewStep; if(ol.dataset.sig!==sig){ ol.dataset.sig=sig; ol.innerHTML=""; ol.style.setProperty("--n",S.length); ol.style.setProperty("--nm",Math.ceil(S.length/2));
+  S.forEach((st,i)=>{ const li=document.createElement("li"); li.className="tl "+states[i]+(viewStep===st?" sel":""); li.dataset.s=st; li.tabIndex=0; li.setAttribute("role","button"); li.setAttribute("aria-label",`ดูผลงานขั้น ${STEP_NAME[st]}`);
+    li.appendChild(miniAvatar(STEP_WHO[st])); const b=document.createElement("b"); b.textContent=`${i+1}. ${STEP_NAME[st]}`; li.appendChild(b); const sp=document.createElement("span"); sp.textContent=byId[STEP_WHO[st]]?.name||""; li.appendChild(sp);
+    const go=()=>{ viewStep=st; userPicked=true; renderJob(); }; li.onclick=go; li.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } }; ol.appendChild(li); }); }
+  renderWork(r,S,curStep,running);
   feed.innerHTML=""; const logs=(r.log||[]).slice(-12).reverse();
   if(!logs.length) feed.innerHTML=`<li class="hint">ยังไม่มีกิจกรรมของงานนี้</li>`;
   logs.forEach(l=>{ const li=document.createElement("li"); li.appendChild(miniAvatar(l.who)); const d=document.createElement("div"); d.className="ft"; const b=document.createElement("b"); b.textContent=byId[l.who]?.name||""; d.appendChild(b); d.appendChild(document.createTextNode(l.text)); li.appendChild(d); const tm=document.createElement("time"); tm.textContent=fmtAgo(l.t); li.appendChild(tm); feed.appendChild(li); });
 }
 setInterval(()=>{ if(runningRec) renderJob(); },1000);
+
+/* Watching each step: live output + finished work */
+let viewStep=null, userPicked=false, liveState={id:null,text:""}, outKey="";
+function liveWork(id,text){ liveState={id,text}; paintLive(); }
+function paintLive(){
+  const box=$("liveBox"); const r=runningRec&&recs[runningRec]; if(!r){ box.hidden=true; return; }
+  const st=stepsOf(r).find(s=>r.out?.[s]==null); if(!st){ box.hidden=true; return; }
+  box.hidden=false; const who=liveState.id||STEP_WHO[st]; $("liveHead").textContent=`สด · ${byId[who]?.name||""} กำลัง${who===STEP_WHO[st]?STEP_VERB[st]:"แก้งานตามที่ฝ่ายตรวจสอบแจ้ง"}`;
+  const body=$("liveBody"), t=liveState.text||"";
+  if(!t.trim()){ body.innerHTML=`<div class="meter"><span class="spin" aria-hidden="true"></span><span>${esc(byId[who]?.name||"")} กำลังคิดก่อนเขียน (ปกติใช้เวลา 10-60 วินาที)</span></div>`; return; }
+  const cut=t.search(/```json/i), prose=cut>=0?t.slice(0,cut):t, js=cut>=0?t.slice(cut):"";
+  let meter="";
+  if(js){ const n=k=>(js.match(new RegExp('"'+k+'"\\s*:','g'))||[]).length;
+    if(n("bg")) meter=`🎬 กำลังวางฉาก... ได้ ${n("bg")} ฉาก · ${n("type")} องค์ประกอบภาพ`;
+    else if(n("lines")||n("rate")) meter=`🎙️ กำลังกำกับเสียง... ${Math.max(n("text"),n("scene"))} ฉาก`;
+    else if(n("problem")||n("pass")) meter=`🔍 กำลังเขียนผลตรวจ... พบ ${n("problem")} ประเด็น`;
+    else if(n("topic")||n("brief")) meter="🧭 กำลังเขียนบรีฟและแจกงาน...";
+    else if(n("approved")||n("post")) meter="✍️ กำลังเขียนแคปชันโพสต์...";
+    else meter="📦 กำลังเขียนข้อมูลให้ห้องตัดต่อ..."; }
+  body.innerHTML=(prose.trim()?renderMarkdown(prose):"")+(meter?`<div class="meter"><span class="spin" aria-hidden="true"></span><span>${esc(meter)}</span></div>`:"")+(js?"":`<span class="typing"></span>`);
+  body.scrollTop=body.scrollHeight;
+}
+function renderWork(r,S,curStep,running){
+  if(!running){ $("liveBox").hidden=true; }
+  const done=S.filter(s=>r.out?.[s]!=null);
+  if(!userPicked||!S.includes(viewStep)||r.out?.[viewStep]==null) viewStep=done[done.length-1]||null;
+  const box=$("outBox"); $("outLive").hidden=!(running&&userPicked); 
+  if(!viewStep){ box.hidden=true; return; }
+  box.hidden=false; const key=r.id+"|"+viewStep+"|"+(r.updatedAt||0)+"|"+(r.project?.aspect||""); if(key===outKey) return; outKey=key;
+  const i=S.indexOf(viewStep); $("outHead").textContent=`📄 ผลงานขั้น ${i+1}: ${STEP_NAME[viewStep]} · ${byId[STEP_WHO[viewStep]]?.name||""}`;
+  const body=$("outBody"); body.innerHTML=""; try{ body.appendChild(stepOutput(r,viewStep)); }catch(e){ body.textContent="แสดงผลงานขั้นนี้ไม่ได้"; }
+  body.scrollTop=0;
+}
+$("outLive").onclick=()=>{ userPicked=false; viewStep=null; outKey=""; renderJob(); };
+const thumbR=new Renderer(document.createElement("canvas"));
+function sceneThumbs(project,{editor=false}={}){
+  const wrap=document.createElement("div"); let p; try{ p=normalizeProject(project); }catch{ wrap.textContent="ไม่มีข้อมูลฉาก"; return wrap; }
+  thumbR.load(p); wrap.className="thumbs"+(p.aspect==="16:9"?" wide":"");
+  p.scenes.forEach((s,i)=>{ const t=thumbR.starts[i]+Math.min(s.duration*0.65,s.duration-0.15); thumbR.drawFrame(t);
+    const d=document.createElement("div"); d.className="thumb"; const cv=document.createElement("canvas"); const w=p.aspect==="16:9"?240:135, h=p.aspect==="16:9"?135:240; cv.width=w; cv.height=h; cv.getContext("2d").drawImage(thumbR.cv,0,0,w,h); d.appendChild(cv);
+    const b=document.createElement("b"); b.textContent=`ฉาก ${i+1} · ${s.duration.toFixed(1)} วิ`; d.appendChild(b);
+    const n=document.createElement("span"); n.textContent=s.narration.replace(/\*/g,""); d.appendChild(n);
+    const tg=document.createElement("span"); tg.className="tg"; tg.textContent=editor?`${s.transition} · ${s.camera}${s.sfx!=="none"?" · เสียง "+s.sfx:""}${s.effect!=="none"?" · "+s.effect:""}`:`${s.bg} · ${s.elements.length} องค์ประกอบ`; d.appendChild(tg);
+    wrap.appendChild(d); });
+  return wrap;
+}
+function stepOutput(r,st){
+  const o=r.out[st], d=document.createElement("div"); const H=(tag,txt)=>{ const e=document.createElement(tag); e.textContent=txt; d.appendChild(e); return e; };
+  const kv=pairs=>{ const dl=document.createElement("dl"); dl.className="kv"; pairs.filter(x=>x[1]).forEach(([k,v])=>{ const dt=document.createElement("dt"); dt.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; dl.append(dt,dd); }); d.appendChild(dl); };
+  if(st==="plan"){ kv([["หัวข้อ",o.topic],["เหตุผล",o.why],["เพลง",o.music]]); H("h4","บรีฟ"); const pre=H("div",o.brief); pre.style.whiteSpace="pre-wrap";
+    const ns=Object.entries(o.notes||{}); if(ns.length){ H("h4","งานที่แจกให้แต่ละคน"); const ul=document.createElement("ul"); ul.className="notes"; ns.forEach(([k,v])=>{ const li=document.createElement("li"); li.appendChild(miniAvatar(k)); const sp=document.createElement("span"); sp.innerHTML=`<b></b> `; sp.querySelector("b").textContent=byId[k]?.name||k; sp.appendChild(document.createTextNode(v)); li.appendChild(sp); ul.appendChild(li); }); d.appendChild(ul); } }
+  else if(st==="creative"){ const t=String(o).split(/```json/i)[0]; d.innerHTML=renderMarkdown(t); }
+  else if(st==="animator"){ H("div",`สตอรี่บอร์ด ${o.scenes.length} ฉาก (ภาพตัวอย่างจากเครื่องเรนเดอร์จริง)`).className="hint"; d.appendChild(sceneThumbs(o)); }
+  else if(st==="editor"){ const total=o.scenes.reduce((a,x)=>a+x.duration,0); kv([["ความยาว",`${total.toFixed(1)} วินาที (${o.scenes.length} ฉาก)`],["เพลง",o.music],["สไตล์ซับ",o.subStyle],["ชื่อคลิป",o.title]]); d.appendChild(sceneThumbs(o,{editor:true})); }
+  else if(st==="voice"){ const ls=o.lines||[]; if(!ls.length) H("div","ไม่มีการปรับบทพากย์"); const ol=document.createElement("ol"); ls.forEach(l=>{ const li=document.createElement("li"); li.textContent=`${String(l.text||"").replace(/\*/g,"")}${l.emotion?` (อารมณ์: ${l.emotion}`:""}${l.rate?`${l.emotion?", ":" ("}ความเร็ว ${l.rate}`:""}${l.emotion||l.rate?")":""}`; ol.appendChild(li); }); d.appendChild(ol); }
+  else if(st==="qa"||st==="review"){ const stars=Math.round((o.score||0)/2); H("h4",`${"★".repeat(stars)}${"☆".repeat(5-stars)} ${o.score}/10 · ${o.pass===false?"ผ่านแบบมีหมายเหตุ":"ผ่าน"}${o.rounds>1?` · ส่งกลับแก้ ${o.rounds-1} รอบ`:""}`); if(o.summary) H("div",o.summary);
+    if(o.auto) { H("h4","ผลตรวจอัตโนมัติ"); const ul=document.createElement("ul"); (o.auto.length?o.auto:["ไม่พบปัญหา ✅"]).forEach(x=>{ const li=document.createElement("li"); li.textContent=x; ul.appendChild(li); }); d.appendChild(ul); }
+    const items=(o.notes||[]).concat((o.issues||[]).map(x=>`ฉาก ${x.scene||"-"}: ${x.problem}`)); if(items.length){ H("h4","ความเห็นของผู้ตรวจ"); const ul=document.createElement("ul"); items.forEach(x=>{ const li=document.createElement("li"); li.textContent=x; ul.appendChild(li); }); d.appendChild(ul); }
+    if(o.applied) H("div",`แก้ข้อความให้แล้ว ${o.applied} จุด`).className="hint"; }
+  else if(st==="approve"){ H("h4",o.approved?"✅ อนุมัติแล้ว":"⚠️ อนุมัติแบบมีข้อสังเกต"); if(o.note) H("div",o.note); H("h4","แคปชันโพสต์"); const pst=H("div",o.post||"-"); pst.className="post"; const b=document.createElement("button"); b.className="btn small"; b.textContent="📋 คัดลอกแคปชัน"; b.style.marginTop="6px"; b.onclick=()=>copyText(o.post||""); d.appendChild(b); }
+  else if(st==="brief"){ H("div",o.text||"").style.whiteSpace="pre-wrap"; }
+  else H("div","ไม่มีข้อมูล");
+  return d;
+}
 
 /* Manager's questions before work */
 let askRec=null;
