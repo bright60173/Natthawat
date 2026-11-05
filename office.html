@@ -38,7 +38,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:17px;
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--accent2);outline-offset:2px}
 
-.btn{border:3px solid var(--line);background:var(--panel);padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--line);border-radius:6px;position:relative;overflow:hidden;transition:transform .14s cubic-bezier(.3,1.6,.5,1),box-shadow .14s,background-color .2s}
+.btn{white-space:nowrap;border:3px solid var(--line);background:var(--panel);padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--line);border-radius:6px;position:relative;overflow:hidden;transition:transform .14s cubic-bezier(.3,1.6,.5,1),box-shadow .14s,background-color .2s}
 .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line)}
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line)}
 .btn.primary{background:linear-gradient(135deg,#ff5d8f,#ff8a5c);color:var(--accent-ink);text-shadow:0 1px 0 rgba(0,0,0,.18)}
@@ -79,12 +79,67 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;pad
 @media (max-width:980px){main{grid-template-columns:minmax(0,1fr)}}
 .card{border:4px solid var(--line);background:var(--panel);box-shadow:6px 6px 0 var(--line);border-radius:8px;min-width:0}
 
+/* Theme polish */
+:root{ --dot:rgba(108,92,231,.10); --head1:#6c5ce7; --head2:#b15ee8; --head3:#ff5d8f; --soft:#efe6ff; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --dot:rgba(255,255,255,.05); --head1:#3a2f86; --head2:#6a2f8a; --head3:#9a2f5c; --soft:#3a2f52; } }
+:root[data-theme="dark"]{ --dot:rgba(255,255,255,.05); --head1:#3a2f86; --head2:#6a2f8a; --head3:#9a2f5c; --soft:#3a2f52; }
+body{background-color:var(--bg);background-image:radial-gradient(var(--dot) 1.2px,transparent 1.6px);background-size:22px 22px}
+header{background:linear-gradient(100deg,var(--head1),var(--head2) 50%,var(--head3));color:#fff}
+header h1 small{color:rgba(255,255,255,.85)}
+header .sync{color:rgba(255,255,255,.9)}
+header .btn,header .lvl{color:var(--ink)}
+.card{border-radius:14px}
+.card h2 .ico,.mhead h2 .ico{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--soft);border:2px solid var(--line);font-size:17px;margin-right:4px;vertical-align:middle}
+.tabs{padding:6px;gap:6px;background:var(--panel2);border-radius:10px 10px 0 0}
+.tabs button{border-radius:8px;border:2px solid transparent!important}
+.tabs button[aria-selected="true"]{background:var(--panel);border-color:var(--line)!important;box-shadow:2px 2px 0 var(--line)}
+.tabs .ind{display:none}
+/* Mission control */
+.mission{margin-top:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.mhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mhead h2{margin:0;font-family:var(--display);font-weight:600;font-size:19px;flex:1;min-width:180px}
+.mhead select{border:3px solid var(--line);background:var(--bg);padding:5px 8px;border-radius:8px}
+.cta{display:flex;gap:8px;flex-wrap:wrap}
+.btn.big{font-family:var(--display);font-weight:600;font-size:19px;padding:10px 18px;flex:1 1 240px;border-radius:10px;box-shadow:4px 4px 0 var(--line)}
+.hint{font-size:14px;color:var(--muted);margin:0}
+.job{border:3px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2);display:flex;flex-direction:column;gap:8px}
+.jobtop{display:flex;gap:8px;align-items:baseline}
+.jobtop b{font-family:var(--display);font-size:17px;flex:1;min-width:0;overflow-wrap:anywhere}
+.pct{font-family:var(--display);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums;color:var(--accent2)}
+.bar.big{height:16px}
+.bar.big i{background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .6s ease}
+.now{display:flex;gap:8px;align-items:center;font-size:15px;min-height:30px}
+.now canvas{width:26px;height:29px;image-rendering:pixelated}
+.now .el{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.spin{display:inline-block;width:12px;height:12px;border:3px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.timeline{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--n,7),minmax(0,1fr));gap:6px}
+@media (max-width:560px){.timeline{grid-template-columns:repeat(var(--nm,4),minmax(0,1fr))}}
+.tl{border:2px dashed var(--muted);border-radius:10px;padding:5px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;text-align:center;background:var(--panel);transition:transform .3s,background-color .3s}
+.tl canvas{width:22px;height:25px;image-rendering:pixelated}
+.tl b{font-size:13px;line-height:1.2;white-space:normal}
+.tl{min-width:0}
+.tl span{font-size:11px;color:var(--muted)}
+.tl.done{border-style:solid;border-color:var(--line);background:var(--okbg)}
+.tl.working{border-style:solid;border-color:var(--line);background:linear-gradient(90deg,#ffe7a8,#fff3cf,#ffe7a8);background-size:200% 100%;animation:shim 1.1s linear infinite;transform:translateY(-2px);color:#1b1622}
+.tl.working span{color:#6b5a20}
+.tl.error{border-style:solid;border-color:var(--line);background:var(--errbg)}
+.tl.waiting{border-style:solid;border-color:var(--line);background:var(--soft)}
+.feedwrap h3{margin:4px 0 6px;font-family:var(--display);font-weight:600;font-size:16px}
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+.feed li{display:flex;gap:8px;align-items:flex-start;font-size:14px;animation:msgIn .35s ease-out}
+.feed canvas{width:22px;height:25px;image-rendering:pixelated;flex:none}
+.feed .ft{flex:1;min-width:0}
+.feed .ft b{margin-right:4px}
+.feed time{font-size:12px;color:var(--muted);white-space:nowrap}
+.post{white-space:pre-wrap;background:var(--panel);border:2px dashed var(--muted);border-radius:8px;padding:6px 8px;font-size:14px}
 /* Office */
 .office{overflow:hidden;padding:0;line-height:0}
 #officeCanvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;aspect-ratio:320/200}
-.team{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
-.member.mgr{grid-column:1/-1;background:linear-gradient(90deg,var(--panel),var(--panel2))}
+.team{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}
+.member.mgr{grid-column:span 2;background:linear-gradient(90deg,var(--panel),var(--soft))}
 .member.mgr .mi{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:10px}
+.member.lead{background:linear-gradient(180deg,var(--panel),var(--soft))}
 @media (max-width:560px){.team{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .member{border:3px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;cursor:pointer;text-align:left;box-shadow:3px 3px 0 var(--line);display:flex;gap:6px;align-items:flex-start;transition:transform .15s cubic-bezier(.3,1.6,.5,1),box-shadow .15s;min-width:0}
 .member:hover{transform:translateY(-3px);box-shadow:3px 6px 0 var(--line)}
@@ -164,6 +219,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;pad
 .msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:260px}
 .msg{max-width:94%;border:3px solid var(--line);padding:8px 11px;background:var(--bubble);border-radius:10px;overflow-wrap:anywhere}
 .msg.me{align-self:flex-end;background:var(--me)}
+.msg.auto{background:var(--soft);font-size:14px;max-width:80%}
+.msg.auto summary{cursor:pointer;font-weight:bold;color:var(--ink)}
+.msg.auto pre{font-size:12px;max-height:200px}
 .msg.sys{align-self:center;font-size:14px;color:var(--muted);border-style:dashed;background:transparent}
 .msg pre{background:var(--code);padding:8px;overflow:auto;white-space:pre-wrap;font-size:13px;margin:6px 0;max-height:260px;border-radius:6px}
 .msg code{font-family:ui-monospace,monospace;font-size:13px}
@@ -236,7 +294,7 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 </head>
 <body>
 <header>
-  <h1><span class="logo" aria-hidden="true">🏢</span> ออฟฟิศ AI ส่วนตัว <small>ผู้จัดการ + ทีมงาน AI 4 คน ช่วยทำคลิปสั้นตั้งแต่คิดไอเดียจนได้ไฟล์วิดีโอ</small></h1>
+  <h1><span class="logo" aria-hidden="true">🏢</span> ออฟฟิศ AI ส่วนตัว <small>ทีม AI 7 คน วางแผน ทำ ตรวจ และอนุมัติคลิปสั้นเอง ตั้งแต่เลือกหัวข้อจนได้ไฟล์วิดีโอ</small></h1>
   <span class="lvl" id="lvl" title="เลเวลออฟฟิศ"></span>
   <span class="sync" id="syncLbl">💾 บันทึกในเครื่องนี้</span>
   <button class="btn small" id="themeBtn" title="สลับโหมดมืด/สว่าง" aria-label="สลับโหมดมืด/สว่าง">🌓</button>
@@ -249,41 +307,41 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 <main class="wrap">
   <section>
     <div class="card office"><canvas id="officeCanvas" width="320" height="200" aria-label="ภาพออฟฟิศพิกเซล คลิกที่ตัวละครเพื่อเลือกพนักงาน"></canvas></div>
-    <div class="team" id="team"></div>
 
-    <div class="card make">
-      <h2>🎬 สั่งทำคลิปใหม่</h2>
-      <div class="row">
-        <input id="topic" placeholder="หัวข้อ เช่น What if โลกหยุดหมุน 1 วินาที" aria-label="หัวข้อคลิป">
+    <div class="card mission">
+      <div class="mhead">
+        <h2><span class="ico" aria-hidden="true">🎛️</span> ศูนย์ควบคุมทีม</h2>
         <select id="aspect" aria-label="สัดส่วนวิดีโอ">
-          <option value="9:16">แนวตั้ง 9:16 (TikTok/Reels)</option>
-          <option value="16:9">แนวนอน 16:9 (YouTube)</option>
+          <option value="9:16">แนวตั้ง 9:16 · TikTok/Reels</option>
+          <option value="16:9">แนวนอน 16:9 · YouTube</option>
         </select>
-        <button class="btn primary" id="makeBtn">สั่งทั้งทีม</button>
       </div>
-      <div class="row" style="margin-top:8px" id="resumeRow" hidden>
+      <div class="cta">
+        <button class="btn primary big" id="makeBtn">🚀 ให้ทีมทำคลิปใหม่</button>
+        <button class="btn" id="stopBtn" hidden>⏸ หยุดหลังจบขั้นนี้</button>
+      </div>
+      <p class="hint" id="makeHint">ไม่ต้องพิมพ์อะไร ฝ่ายประสานงานจะเลือกหัวข้อเอง (จากแผนคอนเทนต์ก่อน ถ้ามี) แจกงานให้ทีม แล้วส่งคลิปให้ฝ่ายตรวจสอบและผู้จัดการอนุมัติ</p>
+      <div class="row" id="resumeRow" hidden>
         <button class="btn" id="resumeBtn">▶ ทำต่อ</button>
-        <span id="resumeInfo" style="font-size:14px;color:var(--muted);align-self:center;flex:1;min-width:0"></span>
+        <span id="resumeInfo" class="hint" style="align-self:center;flex:1;min-width:0;margin:0"></span>
       </div>
-      <div class="steps" id="steps">
-        <span class="step" data-s="brief">1 รับบรีฟ</span>
-        <span class="step" data-s="creative">2 เขียนบท</span>
-        <span class="step" data-s="animator">3 สตอรี่บอร์ด</span>
-        <span class="step" data-s="editor">4 ตัดต่อ</span>
-        <span class="step" data-s="voice">5 กำกับเสียง</span>
-        <span class="step" data-s="review">6 ตรวจงาน</span>
+      <div class="job" id="jobBox" hidden>
+        <div class="jobtop"><b id="jobTitle"></b><span class="pct" id="jobPct">0%</span></div>
+        <div class="bar big" aria-hidden="true"><i id="jobBar"></i></div>
+        <div class="now" id="jobNow"></div>
+        <ol class="timeline" id="steps"></ol>
       </div>
       <div class="askbox" id="askBox" hidden>
         <div class="askhead"><canvas id="mgrAvatar" width="16" height="18"></canvas><span>พี่มายขอถามก่อนเริ่มงาน <small style="font-family:var(--ui);font-weight:400;color:var(--muted)" id="askTopic"></small></span></div>
         <div id="askQs"></div>
         <div class="row"><button class="btn primary" id="askSend">ส่งคำตอบ</button><button class="btn" id="askSkip">ให้พี่มายตัดสินใจเอง</button></div>
       </div>
+      <div class="feedwrap">
+        <h3>📡 ฟีดกิจกรรมทีม</h3>
+        <ul class="feed" id="feed"></ul>
+      </div>
     </div>
-
-    <div class="card board">
-      <h2>📋 บอร์ดงาน</h2>
-      <ul class="tasks" id="tasks"></ul>
-    </div>
+    <div class="team" id="team"></div>
   </section>
 
   <section class="card side">
@@ -1122,15 +1180,32 @@ const LAYOUT_RULES=`กฎการจัดภาพ:
 - ห้ามใช้ชื่อที่ไม่อยู่ในรายการ`;
 
 const EMPLOYEES=[
-  { id:"manager", name:"พี่มาย", role:"ผู้จัดการทีม / โปรดิวเซอร์", px:{hair:"#4a2c6b",shirt:"#3a3f73",skin:"#f2c9a0",tie:"#ff5d8f"}, bubble:"📋",
+  { id:"manager", name:"พี่มาย", role:"ผู้จัดการ / ผู้อนุมัติ", px:{hair:"#4a2c6b",shirt:"#3a3f73",skin:"#f2c9a0",tie:"#ff5d8f"}, bubble:"📋",
     quick:["วางแผนคอนเทนต์ 7 วันสำหรับ TikTok","ช่วยคิดคอนเซ็ปต์ช่อง + ชื่อช่อง","คลิปแบบไหนยอดวิวดี แนะนำหน่อย"],
-    system:`คุณคือ "พี่มาย" ผู้จัดการทีมและโปรดิวเซอร์ของออฟฟิศ AI ส่วนตัว ดูแลทีม: น้องครีม (เขียนบท), น้องพิกเซล (อนิเมชัน/สตอรี่บอร์ด), น้องคัท (ตัดต่อ), น้องเสียง (กำกับเสียง)
+    system:`คุณคือ "พี่มาย" ผู้จัดการทีมและโปรดิวเซอร์ของออฟฟิศ AI ส่วนตัว ดูแลทีม: น้องโฟลว์ (ประสานงาน), น้องเช็ค (ตรวจสอบคลิป), น้องครีม (เขียนบท), น้องพิกเซล (อนิเมชัน/สตอรี่บอร์ด), น้องคัท (ตัดต่อ), น้องเสียง (กำกับเสียง)
 หน้าที่:
 1) รับบรีฟจากเจ้านาย ถามเฉพาะสิ่งที่จำเป็นจริงๆ (ไม่เกิน 3 ข้อ) แล้วสรุปบรีฟที่ชัดเจนให้ทีม
-2) ตรวจงานก่อนส่ง: ความถูกต้องของข้อมูล ความแรงของ hook 3 วินาทีแรก ความกระชับ ภาษาไทยที่เป็นธรรมชาติ และแก้จุดที่ควรแก้
+2) อนุมัติคลิปขั้นสุดท้ายหลังฝ่ายตรวจสอบ (น้องเช็ค) ตรวจแล้ว และเขียนแคปชันโพสต์พร้อมแฮชแท็ก
 3) วางแผนคอนเทนต์ให้ช่องเติบโต
 คุณเข้าใจคลิปสั้น TikTok/Reels/Shorts: hook ใน 3 วินาทีแรก ความยาว 30-60 วินาที หนึ่งคลิปหนึ่งประเด็น ตอนจบชวนคอมเมนต์
 เมื่อเจ้านายขอแผนคอนเทนต์ ให้ตอบเป็นรายการสั้นๆ แล้วตามด้วย JSON ในบล็อก \`\`\`json รูปแบบ {"plan":[{"day":"วันจันทร์","topic":"หัวข้อคลิป","hook":"ประโยคเปิดคลิป"}]} (3-10 รายการ) เพื่อให้ระบบบันทึกเป็นแผนได้
+${STYLE}` },
+  { id:"coord", name:"น้องโฟลว์", role:"ฝ่ายประสานงาน", px:{hair:"#d9822b",shirt:"#7ee0c3",skin:"#ffd7b5",headset:true}, bubble:"🧭",
+    quick:["สรุปงานของทีมตอนนี้ให้หน่อย","เสนอหัวข้อคลิปถัดไป 5 หัวข้อ","ทีมควรปรับการทำงานตรงไหน"],
+    system:`คุณคือ "น้องโฟลว์" ฝ่ายประสานงานของออฟฟิศ AI ส่วนตัว ประสานทีม: พี่มาย (ผู้จัดการ ผู้อนุมัติ), น้องเช็ค (ฝ่ายตรวจสอบคลิป), น้องครีม (เขียนบท), น้องพิกเซล (สตอรี่บอร์ด/อนิเมชัน), น้องคัท (ตัดต่อ), น้องเสียง (กำกับเสียง)
+หน้าที่: 1) เลือกหัวข้อคลิปถัดไปของช่อง: ไม่ซ้ำของเดิม มี hook แรง มีข้อเท็จจริงน่าทึ่งที่ถูกต้อง เหมาะกับคนไทย 2) เขียนบรีฟให้ชัด 3) แจกงานพร้อมหมายเหตุเฉพาะสำหรับแต่ละคน 4) ติดตามงานและสรุปความคืบหน้าให้เจ้านาย
+ทำงานเองได้โดยไม่ต้องถามเจ้านาย ตัดสินใจอย่างมีเหตุผล
+${STYLE}` },
+  { id:"qa", name:"น้องเช็ค", role:"ฝ่ายตรวจสอบคลิป", px:{hair:"#2b2140",shirt:"#ff8ab0",skin:"#f2c9a0",glasses:true}, bubble:"🔍",
+    quick:["เช็กลิสต์ตรวจคลิปก่อนโพสต์มีอะไรบ้าง","คลิปแบบไหนเสี่ยงโดนลดการมองเห็น","ตรวจข้อมูลในคลิปให้ถูกต้องยังไง"],
+    system:`คุณคือ "น้องเช็ค" ฝ่ายตรวจสอบคลิป (QA) ของออฟฟิศ AI ส่วนตัว ตรวจคลิปก่อนส่งผู้จัดการอนุมัติ ตามเช็กลิสต์:
+1) ความถูกต้องของข้อเท็จจริงและตัวเลข (สำคัญที่สุด ถ้าผิดหรือเกินจริงต้องแก้)
+2) hook 3 วินาทีแรกแรงพอให้หยุดเลื่อน
+3) ความยาวรวม 25-60 วินาที จังหวะไม่ยืด
+4) ภาษาไทยถูกต้อง อ่านง่าย ข้อความบนจอสั้น (ไม่เกิน 18 ตัวอักษร)
+5) ทุกฉากมี *คำเน้น* และภาพสื่อตรงกับบท
+6) ความเหมาะสม: ไม่ทำให้เข้าใจผิด ไม่ใช้ของที่มีลิขสิทธิ์ ไม่มีเนื้อหาอันตราย
+เข้มงวดแต่ยุติธรรม แก้ข้อความเล็กๆ ได้เอง ส่วนปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ส่งกลับให้ทีมแก้
 ${STYLE}` },
   { id:"creative", name:"น้องครีม", role:"นักเขียนบท / ครีเอทีฟ", px:{hair:"#ff5d8f",shirt:"#ffd34d",skin:"#ffd7b5"}, bubble:"💡",
     quick:["คิดหัวข้อคลิป What if 5 หัวข้อ","เขียนบทคลิป 45 วินาที เรื่อง...","เขียนแคปชัน TikTok + แฮชแท็ก"],
@@ -1186,7 +1261,7 @@ const byId=Object.fromEntries(EMPLOYEES.map(e=>[e.id,e]));
    ========================================================= */
 const OW=320, OH=200, LANE=142;
 const OC=$("officeCanvas"), ox=OC.getContext("2d"); ox.imageSmoothingEnabled=false;
-const SEATS={manager:{x:160,y:104,s:1.3},creative:{x:40,y:170,s:1.5},animator:{x:118,y:170,s:1.5},editor:{x:202,y:170,s:1.5},voice:{x:280,y:170,s:1.5}};
+const SEATS={manager:{x:160,y:104,s:1.3,back:1,side:1},coord:{x:62,y:104,s:1.3,back:1,side:1},qa:{x:258,y:104,s:1.3,back:1,side:-1},creative:{x:40,y:170,s:1.5},animator:{x:118,y:170,s:1.5},editor:{x:202,y:170,s:1.5},voice:{x:280,y:170,s:1.5}};
 const COFFEE={x:106,y:96};
 const status={}; EMPLOYEES.forEach(e=>status[e.id]="idle");
 let current=store.get("current","manager"); if(!byId[current]) current="manager";
@@ -1199,6 +1274,8 @@ function drawPixelPerson(c,x,y,P,{pose="sit",t=0,carry=false,dir=1}={}){
   px(c,x+2,y,8,3,P.hair); px(c,x+1,y+2,10,7,P.skin); px(c,x+1,y+2,10,2,P.hair); px(c,x+1,y+2,1,5,P.hair); px(c,x+10,y+2,1,5,P.hair);
   const blink=(t%4)<0.12, ex=dir<0?-1:0; px(c,x+3+ex,y+5,1,blink?1:2,"#2b2140"); px(c,x+7+ex,y+5,1,blink?1:2,"#2b2140");
   px(c,x+2,y+7,1,1,"#ff9fb8"); px(c,x+9,y+7,1,1,"#ff9fb8"); px(c,x+5,y+8,2,1,"#c0504d");
+  if(P.glasses){ px(c,x+2,y+4,3,1,"#2b2140"); px(c,x+7,y+4,3,1,"#2b2140"); px(c,x+5,y+4,2,1,"#2b2140"); }
+  if(P.headset){ px(c,x+1,y,10,1,"#3d3d50"); px(c,x,y+3,2,4,"#3d3d50"); px(c,x+10,y+3,2,4,"#3d3d50"); px(c,x+9,y+7,3,1,"#3d3d50"); px(c,x+8,y+8,1,1,"#ff5d8f"); }
   px(c,x+1,y+9,10,6,P.shirt); px(c,x+5,y+9,2,1,P.skin); if(P.tie) px(c,x+5,y+10,2,4,P.tie);
   if(pose==="sit"){ const k=Math.floor(t*6)%2; px(c,x-1,y+10+k,2,4,P.shirt); px(c,x+11,y+11-k,2,4,P.shirt); px(c,x-1,y+14+k,2,1,P.skin); px(c,x+11,y+15-k,2,1,P.skin); }
   else { const k=pose==="walk"?Math.floor(t*8)%2:0; px(c,x-1,y+10,2,4,P.shirt); px(c,x+11,y+10,2,4,P.shirt); px(c,x-1,y+14,2,1,P.skin); px(c,x+11,y+14,2,1,P.skin);
@@ -1206,8 +1283,8 @@ function drawPixelPerson(c,x,y,P,{pose="sit",t=0,carry=false,dir=1}={}){
     if(carry){ const ox2=dir>0?11:-5; px(c,x+ox2,y+8,6,7,"#ffffff"); px(c,x+ox2+1,y+10,4,1,"#9aa"); px(c,x+ox2+1,y+12,4,1,"#9aa"); } }
 }
 /* movement */
-function exitPts(id){ const s=SEATS[id]; return id==="manager"?[{x:s.x+38,y:s.y-2},{x:s.x+38,y:LANE}]:[{x:s.x,y:LANE}]; }
-function standPt(id){ const s=SEATS[id]; return id==="manager"?{x:s.x+12,y:s.y-2}:{x:s.x,y:LANE+2}; }
+function exitPts(id){ const s=SEATS[id]; return s.back?[{x:s.x+38*s.side,y:s.y-2},{x:s.x+38*s.side,y:LANE}]:[{x:s.x,y:LANE}]; }
+function standPt(id){ const s=SEATS[id]; return s.back?{x:s.x+12*s.side,y:s.y-2}:{x:s.x,y:LANE+2}; }
 function say(id,text,sec=2){ actors[id].bubble={text,until:performance.now()+sec*1000}; }
 function trip(id,target,{bubble="",carry=false,stay=1.8,onArrive}={}){
   const a=actors[id]; if(!a||a.mode!=="sit"||reduceMotion) { if(bubble) say(id,bubble,stay); onArrive&&onArrive(); return false; }
@@ -1217,9 +1294,9 @@ function trip(id,target,{bubble="",carry=false,stay=1.8,onArrive}={}){
     setTimeout(()=>{ a.mode="walk"; a.path=[{x:target.x,y:LANE},...ex.slice().reverse(),st]; a.onArrive=()=>{ a.mode="sit"; a.dir=1; }; }, stay*1000); };
   return true;
 }
-function deskFront(id,fromX){ const s=SEATS[id]; if(id==="manager") return {x:s.x+(fromX<s.x?-40:40),y:s.y+14}; return {x:s.x+(fromX<s.x?-24:24),y:LANE}; }
+function deskFront(id,fromX){ const s=SEATS[id]; if(s.back) return {x:s.x+(fromX<s.x?-40:40),y:s.y+14}; return {x:s.x+(fromX<s.x?-24:24),y:LANE}; }
 function handoff(from,to){ trip(from,deskFront(to,SEATS[from].x),{bubble:"📄",carry:true,stay:1.4,onArrive:()=>setTimeout(()=>say(to,"👍",1.6),350)}); }
-function managerCheck(id){ if(id==="manager"||status.manager==="working"||actors.manager.mode!=="sit"||Math.random()<0.35) return; trip("manager",deskFront(id,SEATS.manager.x),{bubble:["👀","💪","👍","✨"][Math.floor(Math.random()*4)],stay:2}); }
+function managerCheck(id){ if(id==="manager"||id==="coord"||status.manager==="working"||actors.manager.mode!=="sit"||Math.random()<0.7) return; trip("manager",deskFront(id,SEATS.manager.x),{bubble:["👀","💪","👍","✨"][Math.floor(Math.random()*4)],stay:2}); }
 function moveActors(dt){ for(const a of Object.values(actors)){ if(a.mode!=="walk") continue; const p=a.path[0]; if(!p){ const f=a.onArrive; a.onArrive=null; f?f():a.mode="stand"; continue; }
   const dx=p.x-a.x, dy=p.y-a.y, d=Math.hypot(dx,dy), sp=44*dt; if(Math.abs(dx)>0.5) a.dir=dx>0?1:-1;
   if(d<=sp){ a.x=p.x; a.y=p.y; a.path.shift(); if(!a.path.length){ const f=a.onArrive; a.onArrive=null; f?f():a.mode="stand"; } } else { a.x+=dx/d*sp; a.y+=dy/d*sp; } } }
@@ -1262,8 +1339,10 @@ function drawDesk(c,e,i,t,LV,now){
   px(c,-10,-11,20,11,"#2d2d3a"); px(c,-9,-10,18,9,st==="working"?(Math.floor(t*4)%2?"#8ff0ff":"#bff7ff"):"#3b4a6b"); px(c,-2,-1,4,1,"#555");
   if(st==="working"){ px(c,-7,-8,8,1,"#2d6b8a"); px(c,-7,-6,12,1,"#2d6b8a"); px(c,-7,-4,6,1,"#2d6b8a"); }
   else { px(c,-9,-10,18,2,"rgba(255,255,255,.08)"); }
+  if(e.id==="coord"){ px(c,14,-5,7,9,"#c69a6b"); px(c,15,-4,5,7,"#ffffff"); px(c,16,-2,3,1,"#9aa"); px(c,16,0,3,1,"#9aa"); }
+  if(e.id==="qa"){ px(c,-21,-6,6,6,"#2b2140"); px(c,-20,-5,4,4,"#bfe9ff"); px(c,-16,-1,4,2,"#2b2140"); }
   if(mgr){ px(c,14,-3,8,3,"#ffffff"); px(c,15,-5,8,2,"#f1ead8"); px(c,-21,-2,6,2,"#222"); px(c,-20,-4,4,2,"#444"); if(LV>=5){ px(c,-19,-12,6,7,"#ffd23f"); px(c,-21,-14,10,3,"#ffd23f"); px(c,-17,-5,2,3,"#e6a817"); px(c,-19,-3,6,2,"#7a5236"); } }
-  else { px(c,13,-4,4,4,"#ffffff"); px(c,17,-3,1,2,"#ffffff"); px(c,-21,-3,8,3,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d"][(i-1)%4]);
+  else { px(c,13,-4,4,4,"#ffffff"); px(c,17,-3,1,2,"#ffffff"); px(c,-21,-3,8,3,({creative:"#ff6b6b",animator:"#6bc7ff",editor:"#ffd23f",voice:"#5fd38d",coord:"#7ee0c3",qa:"#ff8ab0"})[e.id]||"#ccc");
     if(LV>=7){ px(c,-21,-14,1,11,"#c9a227"); px(c,-23,-16,6,3,"#ffd23f"); c.fillStyle="rgba(255,230,120,.25)"; c.fillRect(-26,-13,12,10); } }
   c.restore();
 }
@@ -1298,10 +1377,10 @@ function drawOffice(now){
   if(LV>=6){ px(c,266,40,32,26,"#2b2140"); px(c,268,42,28,22,"#6bc7ff"); px(c,268,59,28,5,"#e8d18a"); const fx=268+((t*8)%24); px(c,fx,49,4,3,"#ff8a4d"); px(c,fx-1,50,1,1,"#ff8a4d"); px(c,284-((t*5)%14),54,3,2,"#ffd23f"); px(c,272,44+((t*6)%16),1,1,"#e6f7ff"); px(c,264,66,36,4,"#7a5236"); }
   if(LV>=9){ px(c,272,6,44,4,"#6bf2ff"); if(!reduceMotion){ const k=Math.floor(t*4)%44; px(c,272+k,5,2,6,"#ffffff"); } }
   // manager row, walkers, team row (depth order)
-  drawDesk(c,byId.manager,0,t,LV,now);
+  ["coord","manager","qa"].forEach(id=>drawDesk(c,byId[id],0,t,LV,now));
   const walkers=Object.values(actors).filter(a=>a.mode!=="sit").sort((p,q)=>p.y-q.y);
   walkers.filter(a=>a.y<=LANE+6).forEach(a=>drawStanding(c,a,t,now));
-  EMPLOYEES.forEach((e,i)=>{ if(e.id!=="manager") drawDesk(c,e,i,t,LV,now); });
+  EMPLOYEES.forEach((e,i)=>{ if(!SEATS[e.id].back) drawDesk(c,e,i,t,LV,now); });
   walkers.filter(a=>a.y>LANE+6).forEach(a=>drawStanding(c,a,t,now));
   if(LV>=8){ const cx=((t*10)%380)-30, b=Math.floor(t*4)%2; px(c,cx,192,10,5,"#ffb347"); px(c,cx+8,189,5,5,"#ffb347"); px(c,cx+8,188,1,2,"#ffb347"); px(c,cx+12,188,1,2,"#ffb347"); px(c,cx-2,190+b,3,2,"#ffb347"); px(c,cx+10,191,1,1,"#2b2140"); px(c,cx+1,197,2,2-b,"#d98a2b"); px(c,cx+7,197,2,1+b,"#d98a2b"); }
   // lighting
@@ -1333,12 +1412,12 @@ function avatar(cv,e){ const c=cv.getContext("2d"); c.imageSmoothingEnabled=fals
    ========================================================= */
 let chats=store.get("chats",{}); EMPLOYEES.forEach(e=>{ chats[e.id] ||= []; });
 let tasks=store.get("tasks",[]);
-function renderTeam(){ const box=$("team"); box.innerHTML=""; EMPLOYEES.forEach(e=>{ const st=status[e.id]; const b=document.createElement("button"); b.className="member"+(e.id==="manager"?" mgr":"")+(st==="working"?" busy":""); b.setAttribute("aria-pressed",String(e.id===current));
+function renderTeam(){ const box=$("team"); box.innerHTML=""; EMPLOYEES.forEach(e=>{ const st=status[e.id]; const b=document.createElement("button"); b.className="member"+(e.id==="manager"?" mgr":"")+(e.id==="coord"||e.id==="qa"?" lead":"")+(st==="working"?" busy":""); b.setAttribute("aria-pressed",String(e.id===current));
   b.innerHTML=`<canvas width="16" height="18" aria-hidden="true"></canvas><span class="mi"><b></b><span></span><em class="pill ${st}">${{idle:"ว่าง",working:"กำลังทำ",done:"เสร็จแล้ว",error:"มีปัญหา"}[st]}</em></span>`;
   avatar(b.querySelector("canvas"),e); b.querySelector("b").textContent=e.bubble+" "+e.name; b.querySelector(".mi > span").textContent=e.role;
   b.onclick=()=>{ select(e.id); showTab("chat"); actors[e.id].jumpUntil=performance.now()+700; say(e.id,"👋",1.4); }; box.appendChild(b); }); }
 function setStatus(id,s){ const was=status[id]; status[id]=s; renderTeam(); if(s==="working"&&was!=="working") managerCheck(id); if(s==="done"&&was==="working"&&!reduceMotion){ const h=headPos(id); for(let k=0;k<10;k++) spawn(h.x,h.y,{kind:"spark",vx:(Math.random()-.5)*50,vy:-30-Math.random()*25,life:0.9,col:["#5fd38d","#ffd23f","#ffffff"][k%3],size:2}); } }
-function renderTasks(){ const ul=$("tasks"); ul.innerHTML=""; if(!tasks.length){ ul.innerHTML=`<li><span class="what" style="color:var(--muted)">ยังไม่มีงาน ลองพิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" ดูสิ</span></li>`; return; }
+function renderTasks(){ const ul=$("tasks"); if(!ul) return; ul.innerHTML=""; if(!tasks.length){ ul.innerHTML=`<li><span class="what" style="color:var(--muted)">ยังไม่มีงาน ลองพิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" ดูสิ</span></li>`; return; }
   tasks.slice().reverse().forEach(t=>{ const li=document.createElement("li"); li.innerHTML=`<span>${{working:"⏳",done:"✅",error:"⚠️"}[t.state]||"•"}</span><span class="who"></span><span class="what"></span>`; li.querySelector(".who").textContent=byId[t.who]?.name||t.who; li.querySelector(".what").textContent=t.what; li.querySelector(".what").title=t.what; ul.appendChild(li); }); }
 function addTask(who,what){ const t={who,what:what.replace(/\s+/g," ").slice(0,120),state:"working"}; tasks.push(t); tasks=tasks.slice(-40); store.set("tasks",tasks); renderTasks(); return t; }
 function finishTask(t,s){ t.state=s; store.set("tasks",tasks); renderTasks(); }
@@ -1367,9 +1446,10 @@ function addTools(div,text,who){ const tools=document.createElement("div"); tool
   div.appendChild(tools); }
 function bubble(role,text,who){ const d=document.createElement("div"); d.className="msg "+(role==="user"?"me":role==="sys"?"sys":"ai");
   if(role==="ai"){ d.innerHTML=renderMarkdown(text); addTools(d,text,who); } else d.textContent=text; msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight; return d; }
+function autoBubble(m){ const d=document.createElement("div"); d.className="msg me auto"; d.innerHTML=`<details><summary></summary><pre></pre></details>`; d.querySelector("summary").textContent=m.label+" (กดดูรายละเอียด)"; d.querySelector("pre").textContent=m.content; msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight; }
 function renderChat(){ const e=byId[current]; avatar($("chatAvatar"),e); $("chatName").textContent=e.bubble+" "+e.name; $("chatRole").textContent=e.role; msgsEl.innerHTML="";
   if(!chats[e.id].length) bubble("sys",`${e.name} (${e.role}) พร้อมทำงานแล้ว สั่งได้เลย`);
-  chats[e.id].forEach(m=>bubble(m.role==="user"?"user":"ai",m.content,e.id)); if(status[e.id]==="working") bubble("sys","⏳ กำลังทำงานอยู่...");
+  chats[e.id].forEach(m=>m.label?autoBubble(m):bubble(m.role==="user"?"user":"ai",m.content,e.id)); if(status[e.id]==="working") bubble("sys","⏳ กำลังทำงานอยู่...");
   const q=$("quick"); q.innerHTML=""; e.quick.forEach(s=>{ const b=document.createElement("button"); b.className="btn small"; b.textContent=s; b.onclick=()=>{ input.value=s; input.focus(); }; q.appendChild(b); });
   sendBtn.disabled=status[e.id]==="working"; }
 function select(id){ current=id; store.set("current",id); renderTeam(); renderChat(); }
@@ -1385,7 +1465,7 @@ function settings(){ return { key:store.get("key",""), model:store.get("model","
 let sampleP=null, sdkP=null;
 async function callClaude(e, history, onText){
   const {key,model,tier,boss}=settings();
-  const sys=e.system+`\nเรียกผู้ใช้ว่า "${boss||"เจ้านาย"}"`;
+  const sys=e.system+`\nเรียกผู้ใช้ว่า "${boss||"เจ้านาย"}"`+(e.id==="coord"||e.id==="manager"?"\n\n"+teamContext():"");
   if(inViewer){
     sampleP ||= claude.use("sample"); const sample=await sampleP;
     if(!sample){ const er=new Error("unavailable"); er.code="unavailable"; throw er; }
@@ -1419,7 +1499,7 @@ function friendlyError(err){
   return err?.message||String(err);
 }
 async function ask(id,userText){
-  const e=byId[id]; chats[id].push({role:"user",content:userText}); saveChats(id);
+  const e=byId[id]; chats[id].push(autoLabel?{role:"user",content:userText,label:autoLabel}:{role:"user",content:userText}); saveChats(id);
   const task=addTask(id,userText); setStatus(id,"working"); if(current===id) renderChat();
   let live=null; const ensureLive=()=>{ if(current!==id) return null; if(!live||!live.isConnected){ live=document.createElement("div"); live.className="msg ai"; msgsEl.appendChild(live); } return live; };
   const l0=ensureLive(); if(l0) l0.innerHTML=`<span class="thinking">${esc(e.name)} กำลังคิด</span>`;
@@ -1444,10 +1524,11 @@ function applyVoice(j){ if(!project) return; applyVoiceTo(project,j); relayout()
 /* =========================================================
    Progress: clip library, resumable pipeline, stats, sync
    ========================================================= */
-const OLD_STEPS=["creative","animator","editor","voice"], NEW_STEPS=["brief","creative","animator","editor","voice","review"], ALL_STEPS=NEW_STEPS;
+const OLD_STEPS=["creative","animator","editor","voice"], NEW_STEPS=["brief","creative","animator","editor","voice","review"], AUTO_STEPS=["plan","creative","animator","editor","voice","qa","approve"], ALL_STEPS=AUTO_STEPS;
 const stepsOf=r=>r.steps||OLD_STEPS;
-const STEP_NAME={brief:"รับบรีฟ",creative:"เขียนบท",animator:"สตอรี่บอร์ด",editor:"ตัดต่อ",voice:"กำกับเสียง",review:"ตรวจงาน"};
-const STEP_WHO={brief:"manager",creative:"creative",animator:"animator",editor:"editor",voice:"voice",review:"manager"};
+const STEP_NAME={plan:"วางแผนงาน",qa:"ตรวจคลิป",approve:"อนุมัติ",brief:"รับบรีฟ",creative:"เขียนบท",animator:"สตอรี่บอร์ด",editor:"ตัดต่อ",voice:"กำกับเสียง",review:"ตรวจงาน"};
+const STEP_VERB={plan:"เลือกหัวข้อและแจกงาน",creative:"เขียนบท",animator:"ทำสตอรี่บอร์ด",editor:"ตัดต่อ",voice:"กำกับเสียง",qa:"ตรวจคลิป",approve:"อนุมัติและเขียนแคปชันโพสต์",brief:"รับบรีฟ",review:"ตรวจงาน"};
+const STEP_WHO={plan:"coord",qa:"qa",approve:"manager",brief:"manager",creative:"creative",animator:"animator",editor:"editor",voice:"voice",review:"manager"};
 const WAIT={wait:true};
 let recs=store.get("recs",{});                 // clip records by id
 let tomb=new Set(store.get("tomb",[]));        // ids deleted on this device
@@ -1469,8 +1550,8 @@ async function flush(key,retried=false){
   finally{ Sync.busy.delete(key); if(Sync.pending.has(key)) flush(key); else if(!Sync.pending.size&&!Sync.busy.size&&Sync.mode==="cloud") syncLabel("☁️ ซิงก์แล้ว"); }
 }
 const clone=o=>JSON.parse(JSON.stringify(o));
-function saveRec(r,{keepTime=false}={}){ if(!keepTime) r.updatedAt=Date.now(); recs[r.id]=r; saveLocal(); queueWrite("p:"+r.id,()=>stateDoc().collection("projects").doc(r.id),()=>recs[r.id]?clone(recs[r.id]):null); renderLibrary(); renderResume(); }
-function deleteRec(id){ delete recs[id]; tomb.add(id); if(openRecId===id){ openRecId=null; store.set("openRec",null); } saveLocal(); queueWrite("p:"+id,()=>stateDoc().collection("projects").doc(id),()=>null); renderLibrary(); renderResume(); }
+function saveRec(r,{keepTime=false}={}){ if(jobRec?.id===r.id) jobRec=r;  if(!keepTime) r.updatedAt=Date.now(); recs[r.id]=r; saveLocal(); queueWrite("p:"+r.id,()=>stateDoc().collection("projects").doc(r.id),()=>recs[r.id]?clone(recs[r.id]):null); renderLibrary(); renderResume(); renderJob(); }
+function deleteRec(id){ if(jobRec?.id===id) jobRec=null; delete recs[id]; tomb.add(id); if(openRecId===id){ openRecId=null; store.set("openRec",null); } saveLocal(); queueWrite("p:"+id,()=>stateDoc().collection("projects").doc(id),()=>null); renderLibrary(); renderResume(); }
 function writeState(){ saveLocal(); queueWrite("stats",()=>stateDoc(),()=>({stats:clone(stats),plan:clone(plan),planAt})); }
 function saveStats(){ writeState(); renderLevel(); renderLibrary(); }
 function saveChats(id){ chats[id]=chats[id].slice(-60); chatsAt[id]=Date.now(); store.set("chats",chats); store.set("chatsAt",chatsAt); queueWrite("c:"+id,()=>stateDoc().collection("chats").doc(id),()=>({messages:clone(chats[id]),updatedAt:chatsAt[id]})); }
@@ -1501,7 +1582,7 @@ function renderLibrary(){
   if(!arr.length){ list.innerHTML=`<div class="empty">ยังไม่มีคลิปในคลัง พิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" คลิปจะถูกบันทึกที่นี่อัตโนมัติ</div>`; }
   arr.forEach(r=>{ const st=recState(r); const d=document.createElement("div"); d.className="rec"+(r.id===openRecId?" open":"");
     d.innerHTML=`<div class="top"><b></b><span class="pill ${st.k==="done"?"done":st.k==="stuck"?"error":"working"}"></span></div><div class="meta"></div><div class="dots"></div><div class="tools"></div>`;
-    d.querySelector("b").textContent=r.title||r.topic||"คลิป"; d.querySelector(".pill").textContent=st.k==="done"?"เสร็จแล้ว":st.k==="stuck"?"ค้าง":st.k==="ask"?"รอคำตอบ":"กำลังทำ"; if(r.out?.review) d.querySelector(".pill").textContent+=` · ${r.out.review.score}/10`;
+    d.querySelector("b").textContent=r.title||r.topic||"คลิปใหม่ (กำลังเลือกหัวข้อ)"; d.querySelector(".pill").textContent=st.k==="done"?"เสร็จแล้ว":st.k==="stuck"?"ค้าง":st.k==="ask"?"รอคำตอบ":"กำลังทำ"; if(r.out?.review) d.querySelector(".pill").textContent+=` · ${r.out.review.score}/10`;
     d.querySelector(".meta").textContent=`${r.topic&&r.topic!==r.title?"หัวข้อ: "+r.topic+" · ":""}${r.aspect||""} · แก้ล่าสุด ${fmtDate(r.updatedAt)}`+(st.k!=="done"?" · "+st.t:"");
     const dots=d.querySelector(".dots"); if(!r.manual) stepsOf(r).forEach((s,i)=>{ const sp=document.createElement("span"); sp.textContent=`${i+1} ${STEP_NAME[s]}`; if(r.out?.[s]!=null) sp.className="ok"; else if(r.error?.stage===s) sp.className="bad"; dots.appendChild(sp); });
     const tools=d.querySelector(".tools"); const btn=(label,fn,cls="btn small")=>{ const b=document.createElement("button"); b.className=cls; b.textContent=label; b.onclick=fn; tools.appendChild(b); return b; };
@@ -1516,17 +1597,80 @@ function renderLibrary(){
     :(inViewer?"ตอนนี้บันทึกในเครื่องนี้เท่านั้น (เชื่อมระบบซิงก์ไม่ได้ ลองโหลดหน้าใหม่)":"เวอร์ชันไฟล์นี้บันทึกในเบราว์เซอร์เครื่องนี้ ถ้าอยากใช้หลายเครื่อง ให้เปิดผ่านลิงก์ claude.ai");
 }
 function renderResume(){ const stuck=Object.values(recs).filter(r=>recState(r).k==="stuck"||recState(r).k==="maybe").sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
-  const row=$("resumeRow"); if(!stuck||runningRec){ row.hidden=true; return; } row.hidden=false; $("resumeInfo").textContent=`"${stuck.title||stuck.topic}" ${recState(stuck).t}`; $("resumeBtn").onclick=()=>runPipeline(stuck); }
-function showSteps(r){ const S=stepsOf(r); ALL_STEPS.forEach(s=>stepState(s, !S.includes(s)?"":r.out?.[s]!=null?"done":(r.error?.stage===s?"error":(r.waiting&&s==="brief"?"waiting":"")))); }
+  const row=$("resumeRow"); if(!stuck||runningRec){ row.hidden=true; return; } row.hidden=false; $("resumeInfo").textContent=`"${stuck.title||stuck.topic||"คลิปใหม่"}" ${recState(stuck).t}`; $("resumeBtn").onclick=()=>runPipeline(stuck); }
+function showSteps(r){ jobRec=r; stepUI={}; renderJob(); }
 function openRec(id,{switchTab=false}={}){ const r=recs[id]; if(!r?.project) return; if(loadProject(r.project,{switchTab})){ openRecId=id; store.set("openRec",id); renderLibrary(); renderReview(); } }
-function renderReview(){ const box=$("reviewCard"), rv=openRecId&&recs[openRecId]?.out?.review; if(!rv){ box.hidden=true; return; } box.hidden=false; const stars="★".repeat(Math.round(rv.score/2))+"☆".repeat(5-Math.round(rv.score/2));
-  box.innerHTML=`<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><span class="score"></span><span style="color:var(--warn);letter-spacing:2px">${stars}</span><span style="font-size:13px;color:var(--muted)"></span></div><div class="sum"></div><ul></ul>`;
-  box.querySelector(".score").textContent=`📝 พี่มายตรวจแล้ว ${rv.score}/10`; box.querySelector("span:nth-child(3)").textContent=rv.applied?`แก้ให้แล้ว ${rv.applied} จุด`:"ไม่ต้องแก้"; box.querySelector(".sum").textContent=rv.summary||""; const ul=box.querySelector("ul"); (rv.notes||[]).forEach(n=>{ const li=document.createElement("li"); li.textContent=n; ul.appendChild(li); }); }
+function renderReview(){ const box=$("reviewCard"), r=openRecId&&recs[openRecId], qa=r?.out?.qa, ap=r?.out?.approve, rv=qa||r?.out?.review; if(!rv&&!ap){ box.hidden=true; return; } box.hidden=false; box.innerHTML="";
+  const add=(html)=>{ const d=document.createElement("div"); d.innerHTML=html; box.appendChild(d); return d; };
+  if(rv){ const st=Math.round(rv.score/2), d=add(`<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><span class="score"></span><span style="color:var(--warn);letter-spacing:2px">${"★".repeat(st)+"☆".repeat(5-st)}</span><span class="m" style="font-size:13px;color:var(--muted)"></span></div><div class="sum"></div><ul></ul>`);
+    d.querySelector(".score").textContent=qa?`🔍 น้องเช็คตรวจแล้ว ${rv.score}/10`:`📝 พี่มายตรวจแล้ว ${rv.score}/10`;
+    d.querySelector(".m").textContent=[rv.applied?`แก้ข้อความ ${rv.applied} จุด`:"",qa&&qa.rounds>1?`ส่งกลับแก้ ${qa.rounds-1} รอบ`:""].filter(Boolean).join(" · ")||(qa?.pass===false?"ผ่านแบบมีหมายเหตุ":"ผ่าน");
+    d.querySelector(".sum").textContent=rv.summary||""; const ul=d.querySelector("ul"); (rv.notes||[]).concat((rv.issues||[]).map(x=>`ฉาก ${x.scene||"-"}: ${x.problem}`)).slice(0,8).forEach(n=>{ const li=document.createElement("li"); li.textContent=n; ul.appendChild(li); }); }
+  if(ap){ const d=add(`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><b></b><button class="btn small">📋 คัดลอกแคปชัน</button></div><div class="post"></div>`);
+    d.querySelector("b").textContent=(ap.approved?"✅ พี่มายอนุมัติแล้ว":"⚠️ พี่มายมีข้อสังเกต")+(ap.note?` · ${ap.note}`:""); d.querySelector(".post").textContent=ap.post||"(ไม่มีแคปชัน)"; d.querySelector("button").onclick=()=>copyText(ap.post||""); if(!ap.post) d.querySelector("button").hidden=true; } }
 function newRecFromProject(pj){ const id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); const p=clone(pj); delete p._total; p.example=false; const r={id,topic:"",title:p.title||"คลิปจากแชต",aspect:p.aspect||"9:16",createdAt:Date.now(),out:{},manual:true,project:p}; saveRec(r); return r; }
 
 /* Resumable whole-team pipeline */
-function stepState(id,s){ if(!id) return; document.querySelector(`.step[data-s="${id}"]`).className="step "+s; }
+function stepState(id,s){ if(!id) return; stepUI[id]=s; renderJob(); }
+const note=(r,who)=>r.out?.plan?.notes?.[who]?`\nหมายเหตุจากน้องโฟลว์ (ฝ่ายประสานงาน): ${r.out.plan.notes[who]}`:"";
+const stripP=p=>{ const c=clone(p); delete c._total; delete c.example; return c; };
+function applyTextEdits(p,j){ let applied=0; if(!j) return 0;
+  if(typeof j.title==="string"&&j.title.trim()&&j.title.trim()!==p.title){ p.title=str(j.title,80); applied++; }
+  (Array.isArray(j.edits)?j.edits:[]).forEach(e=>{ const x=p.scenes[(Number(e?.scene)||0)-1]; if(!x) return;
+    if(typeof e.caption==="string"&&e.caption.trim()&&e.caption.trim()!==x.caption){ x.caption=str(e.caption,40); applied++; }
+    if(typeof e.narration==="string"&&e.narration.trim()&&e.narration.trim()!==x.narration){ x.narration=str(e.narration,220); x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); applied++; } });
+  return applied; }
+function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
+  if(total<20) out.push(`คลิปสั้นไป (${total.toFixed(0)} วินาที)`); if(total>65) out.push(`คลิปยาวไป (${total.toFixed(0)} วินาที)`);
+  if(p.scenes.length<3) out.push("มีน้อยกว่า 3 ฉาก");
+  if((p.scenes[0]?.duration||0)>4.2) out.push(`ฉากแรก (hook) ยาว ${p.scenes[0].duration.toFixed(1)} วินาที ควรไม่เกิน 3.5`);
+  p.scenes.forEach((x,i)=>{ if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(!/\*[^*]+\*/.test(x.narration)) out.push(`ฉาก ${i+1} ไม่มี *คำเน้น*`);
+    if(x.caption.length>18) out.push(`ฉาก ${i+1} ข้อความบนจอยาว ${x.caption.length} ตัวอักษร (ควรไม่เกิน 18)`);
+    if(x.elements.length<2) out.push(`ฉาก ${i+1} มีองค์ประกอบภาพน้อย (${x.elements.length})`);
+    if(x.elements.some(e=>e.enter==="none"&&e.motion!=="move"&&e.motion!=="walk"&&(e.x<0.04||e.x>0.96))) out.push(`ฉาก ${i+1} มีของหลุดขอบจอ`); });
+  if(p.scenes.length>3&&new Set(p.scenes.slice(1).map(x=>x.transition)).size<2) out.push("ใช้ทรานซิชันแบบเดียวทั้งคลิป");
+  return [...new Set(out)].slice(0,12); }
+function teamContext(){ const arr=Object.values(recs).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,10);
+  const lines=arr.map(r=>{ const st=recState(r); return `- ${r.title||r.topic||"(ยังไม่มีหัวข้อ)"} · ${st.k==="done"?"เสร็จ":st.t}${r.out?.qa?` · QA ${r.out.qa.score}/10`:""}`; });
+  return `[ข้อมูลล่าสุดของทีม]\nเลเวลออฟฟิศ ${levelOf(stats.xp)} · คลิปเสร็จ ${stats.clips} · ไฟล์วิดีโอ ${stats.exports}\nคลิปล่าสุด:\n${lines.join("\n")||"- ยังไม่มี"}\nแผนคอนเทนต์ที่ยังไม่ได้ทำ: ${plan.filter(x=>!x.recId).map(x=>x.topic).join(", ")||"ไม่มี"}`; }
 const STEP_FN={
+  async plan(r){
+    const past=Object.values(recs).filter(x=>x.id!==r.id&&(x.title||x.topic)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20).map(x=>"- "+(x.title||x.topic)).join("\n")||"- (ยังไม่มี)";
+    const todo=plan.filter(it=>!it.recId||!recs[it.recId]).slice(0,6).map(it=>`- ${it.topic}${it.hook?` (hook: ${it.hook})`:""}`).join("\n");
+    const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว What if / ความรู้สนุกๆ ที่คนไทยอยากดู";
+    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
+    const topic=r.topic||str(j?.topic,140); if(!topic) throw new Error("น้องโฟลว์ยังเลือกหัวข้อไม่ได้ ลองกดทำต่ออีกครั้ง");
+    r.topic=topic; if(!r.title) r.title=topic;
+    const notes={}; ["creative","animator","editor","voice"].forEach(k=>{ const v=str(j?.notes?.[k],300); if(v) notes[k]=v; });
+    r.out.plan={topic,why:str(j?.why,200),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
+    r.out.brief={text:r.out.plan.brief,music:r.out.plan.music};
+    const it=plan.find(x=>!x.recId&&x.topic===topic); if(it){ it.recId=r.id; savePlan(); }
+    return `เลือกหัวข้อ "${topic}"${r.out.plan.why?` (${r.out.plan.why})`:""} และแจกงานให้ทีมแล้ว`;
+  },
+  async qa(r){
+    let rounds=0, last=null;
+    for(;;){
+      const p=r.project, auto=qaAuto(p), total=p.scenes.reduce((a,x)=>a+x.duration,0);
+      const summary=p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}, ${x.transition}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
+      const j=extractJSON(await ask("qa",`ตรวจคลิป "${p.title}" รอบที่ ${rounds+1} (ยาว ${total.toFixed(0)} วินาที, เพลง ${p.music}, ซับ ${p.subStyle})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\nผลตรวจอัตโนมัติจากระบบ:\n${auto.length?auto.map(x=>"- "+x).join("\n"):"- ไม่พบปัญหา"}\n\n${summary}\n\nแก้ข้อความเล็กๆ ได้เองผ่าน edits (คงเครื่องหมาย *คำเน้น*) ปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ใส่ใน issues และตั้ง pass เป็น false ${rounds?"(นี่เป็นรอบตรวจซ้ำ ถ้าแก้ดีขึ้นแล้วให้ผ่าน)":""}\nตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"pass":true,"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น"],"issues":[{"scene":2,"problem":"ปัญหาและวิธีแก้","owner":"editor"}],"title":"","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
+      const applied=applyTextEdits(p,j);
+      const issues=(Array.isArray(j?.issues)?j.issues:[]).slice(0,8).map(x=>({scene:Number(x?.scene)||0,problem:str(x?.problem,220)})).filter(x=>x.problem);
+      last={score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
+      if(last.pass||!issues.length||rounds>=1) break;
+      rounds++; logAct(r,"qa",`พบ ${issues.length} จุดที่ต้องแก้ ส่งกลับให้น้องคัท`); handoff("qa","editor");
+      const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nแก้แล้วส่ง JSON ฉบับเต็มกลับมา (คงจำนวนฉากและ *คำเน้น* ไว้):\n\`\`\`json\n${JSON.stringify(stripP(p))}\n\`\`\``));
+      try{ r.project=normalizeProject({...cut,aspect:r.aspect}); logAct(r,"editor","แก้ตามที่ฝ่ายตรวจสอบแจ้งแล้ว ส่งตรวจใหม่"); handoff("editor","qa"); }
+      catch{ logAct(r,"editor","แก้ไม่สำเร็จ ใช้ฉบับเดิมไปก่อน"); break; }
+    }
+    r.out.qa=last; r.title=r.project.title;
+    return `ตรวจแล้ว ${last.score}/10 ${last.pass?"ผ่าน":"ผ่านแบบมีหมายเหตุ"}${last.applied?` · แก้ข้อความ ${last.applied} จุด`:""}`;
+  },
+  async approve(r){
+    const p=r.project, total=p.scenes.reduce((a,x)=>a+x.duration,0);
+    const j=extractJSON(await ask("manager",`ขออนุมัติคลิป "${p.title}" (ยาว ${total.toFixed(0)} วินาที)\nผลตรวจจากน้องเช็ค: ${r.out.qa?`${r.out.qa.score}/10 ${r.out.qa.summary}`:"-"}\nบทพูด:\n${p.scenes.map((x,i)=>`${i+1}. ${x.narration.replace(/\*/g,"")}`).join("\n")}\n\nอนุมัติหรือไม่ และเขียนแคปชันโพสต์ TikTok ที่ชวนดูและชวนคอมเมนต์ พร้อมแฮชแท็ก 3-6 อัน ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"approved":true,"note":"ความเห็น 1 ประโยค","post":"แคปชันโพสต์ #แฮชแท็ก"}\n\`\`\``));
+    r.out.approve={approved:j?.approved!==false,note:str(j?.note,200),post:str(j?.post,700)};
+    return r.out.approve.approved?`อนุมัติแล้ว 🎉 ${r.out.approve.note}`:`อนุมัติแบบมีข้อสังเกต: ${r.out.approve.note}`;
+  },
   async brief(r){
     if(!r.questions){
       const j=extractJSON(await ask("manager",`เจ้านายสั่งทำคลิปหัวข้อ: "${r.topic}" (วิดีโอ ${r.aspect})\nก่อนส่งงานให้ทีม ถ้ามีสิ่งที่จำเป็นต้องรู้ ถามได้ไม่เกิน 3 ข้อ แต่ละข้อมีตัวเลือกสั้นๆ 2-4 ตัว (เช่น กลุ่มคนดู โทน ความยาว มุมเล่า) ถ้าข้อมูลพอแล้วให้ส่ง questions เป็นรายการว่าง\nตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"questions":[{"q":"คำถาม","options":["ตัวเลือก 1","ตัวเลือก 2"]}]}\n\`\`\``));
@@ -1549,41 +1693,73 @@ const STEP_FN={
         if(typeof e.narration==="string"&&e.narration.trim()&&e.narration.trim()!==x.narration){ x.narration=str(e.narration,220); x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); applied++; } }); }
     r.out.review={score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,6).map(x=>str(String(x),160)).filter(Boolean),applied}; r.title=p.title;
   },
-  async creative(r){ r.out.creative=await ask("creative",`${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก`); },
-  async animator(r){ let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก:\n\n${r.out.creative}`);
+  async creative(r){ r.out.creative=await ask("creative",`${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก${note(r,"creative")}`); return "ส่งบทให้น้องพิกเซลแล้ว"; },
+  async animator(r){ let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}:\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
-    r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; },
-  async editor(r){ const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
+    r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
+  async editor(r){ const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา${note(r,"editor")}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
     let f; try{ f=normalizeProject({...cut,aspect:r.aspect}); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
-    r.out.editor=f; r.project=clone(f); r.title=f.title; },
+    r.out.editor=f; r.project=clone(f); r.title=f.title; return `ตัดต่อเสร็จ ยาว ${f.scenes.reduce((a,x)=>a+x.duration,0).toFixed(0)} วินาที`; },
   async voice(r){ const lines=r.project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
-    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก:\n\n${lines}`));
-    r.out.voice=vj?.lines?{lines:vj.lines}:{lines:[]}; r.project=applyVoiceTo(r.project,r.out.voice); },
+    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก${note(r,"voice")}:\n\n${lines}`));
+    r.out.voice=vj?.lines?{lines:vj.lines}:{lines:[]}; r.project=applyVoiceTo(r.project,r.out.voice); return "ปรับบทพากย์และอารมณ์เสียงแล้ว"; },
 };
+const STOP={stop:true};
+let autoLabel="";
+let stopReq=false, jobRec=null, stepUI={};
+function logAct(r,who,text){ r.log ||= []; r.log.push({t:Date.now(),who,text:str(String(text),220)}); r.log=r.log.slice(-40); if(jobRec?.id===r.id) renderJob(); }
 async function runPipeline(r){
   if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(EMPLOYEES.some(e=>status[e.id]==="working")){ notice("มีพนักงานกำลังทำงานอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(!inViewer&&!settings().key){ openSettings(); return; }
-  AU.ensure(); runningRec=r.id; r.out ||= {}; r.error=null; r.waiting=false; r.runningAt=Date.now(); $("askBox").hidden=true; saveRec(r); showSteps(r);
-  $("makeBtn").disabled=true; let stage=null;
+  AU.ensure(); runningRec=r.id; stopReq=false; r.out ||= {}; r.error=null; r.waiting=false; r.runningAt=Date.now(); $("askBox").hidden=true; jobRec=r; stepUI={};
+  logAct(r,stepsOf(r)[0]==="plan"?"coord":"manager",r.log?.length?"กลับมาทำงานต่อจากขั้นที่ค้างไว้":"รับงานคลิปใหม่ เริ่มประสานงาน"); saveRec(r);
+  $("makeBtn").disabled=true; $("stopBtn").hidden=false; $("stopBtn").disabled=false; $("stopBtn").textContent="⏸ หยุดหลังจบขั้นนี้"; let stage=null;
   try{
     const S=stepsOf(r);
-    for(const st of S){ if(r.out[st]!=null) continue; stage=st; stepState(st,"working"); select(STEP_WHO[st]); showTab("chat");
-      await STEP_FN[st](r); r.runningAt=Date.now(); saveRec(r); stepState(st,"done");
-      const nx=S[S.indexOf(st)+1]; if(nx&&r.out[nx]==null&&STEP_WHO[nx]!==STEP_WHO[st]) handoff(STEP_WHO[st],STEP_WHO[nx]); }
-    r.runningAt=0; r.finishedAt=Date.now(); runningRec=null; saveRec(r); stats.clips++; addXP(50);
+    for(const st of S){ if(r.out[st]!=null) continue; if(stopReq) throw STOP;
+      stage=st; const who=STEP_WHO[st]; r.stepAt=Date.now(); autoLabel=`📋 งาน "${STEP_NAME[st]}" จากน้องโฟลว์`; stepState(st,"working"); select(who);
+      if(st!=="plan"&&who!=="coord"&&r.out.plan) trip("coord",deskFront(who,SEATS.coord.x),{bubble:"📋",stay:1.4});
+      logAct(r,who,`เริ่ม${STEP_VERB[st]||STEP_NAME[st]}`);
+      const msg=await STEP_FN[st](r); r.runningAt=Date.now(); logAct(r,who,msg||`${STEP_NAME[st]}เสร็จแล้ว`); saveRec(r); stepState(st,"done");
+      const nx=S[S.indexOf(st)+1]; if(nx&&r.out[nx]==null&&STEP_WHO[nx]!==who) handoff(who,STEP_WHO[nx]); }
+    r.runningAt=0; r.finishedAt=Date.now(); runningRec=null; logAct(r,"coord","ปิดงาน คลิปพร้อมโพสต์แล้ว 🎉"); saveRec(r); stats.clips++; addXP(50);
     openRec(r.id,{switchTab:true}); planLink(r);
-    notice(`ทีมทำคลิปเสร็จแล้ว!${r.out.review?` พี่มายให้ ${r.out.review.score}/10`:""} บันทึกลงคลังแล้ว กด ▶ เล่น เพื่อดู แล้วกด 🎬 สร้างไฟล์วิดีโอ`,9000);
+    notice(`คลิป "${r.title}" เสร็จแล้ว!${r.out.qa?` ผ่านการตรวจ ${r.out.qa.score}/10`:""}${r.out.approve?.approved?" พี่มายอนุมัติแล้ว":""} กด ▶ เล่น แล้วกด 🎬 สร้างไฟล์วิดีโอ`,9000);
   }catch(err){
-    if(err===WAIT){ r.runningAt=0; r.waiting=true; runningRec=null; saveRec(r); showSteps(r); showAsk(r); notice("พี่มายมีคำถามก่อนเริ่มงาน ตอบในกล่องใต้ช่องสั่งงานได้เลย",7000,"info"); return; } r.runningAt=0; r.error={stage,msg:friendlyError(err)}; runningRec=null; saveRec(r); stepState(stage,"error"); notice(`งานสะดุดที่ขั้น "${STEP_NAME[stage]||"?"}": ${friendlyError(err)} ความคืบหน้าบันทึกไว้แล้ว กด "▶ ทำต่อ" ได้เลย`,10000); }
-  finally{ runningRec=null; $("makeBtn").disabled=false; renderLibrary(); renderResume(); }
+    if(err===WAIT){ r.runningAt=0; r.waiting=true; runningRec=null; saveRec(r); showSteps(r); showAsk(r); notice("พี่มายมีคำถามก่อนเริ่มงาน ตอบในกล่องได้เลย",7000,"info"); return; }
+    if(err===STOP){ r.runningAt=0; r.error={stage:S_next(r),msg:"หยุดโดยคุณ"}; runningRec=null; logAct(r,"coord","หยุดงานไว้ตามที่สั่ง กด ▶ ทำต่อ เมื่อพร้อม"); saveRec(r); notice("หยุดงานแล้ว กด ▶ ทำต่อ เมื่อพร้อม",6000,"info"); return; }
+    r.runningAt=0; r.error={stage,msg:friendlyError(err)}; runningRec=null; logAct(r,STEP_WHO[stage]||"coord",`งานสะดุด: ${friendlyError(err)}`); saveRec(r); stepState(stage,"error"); notice(`งานสะดุดที่ขั้น "${STEP_NAME[stage]||"?"}": ${friendlyError(err)} ความคืบหน้าบันทึกไว้แล้ว กด "▶ ทำต่อ" ได้เลย`,10000); }
+  finally{ runningRec=null; autoLabel=""; $("makeBtn").disabled=false; $("stopBtn").hidden=true; renderLibrary(); renderResume(); renderJob(); }
 }
-$("makeBtn").onclick=()=>{
-  const topic=$("topic").value.trim(); if(!topic){ $("topic").focus(); notice("พิมพ์หัวข้อคลิปก่อนนะ",3000); return; }
-  if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; }
-  const r=newRec(topic,$("aspect").value); $("topic").value=""; runPipeline(r);
-};
-function newRec(topic,aspect){ const r={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),topic,title:topic,aspect,createdAt:Date.now(),out:{},steps:NEW_STEPS}; saveRec(r); return r; }
+const S_next=r=>stepsOf(r).find(s=>r.out?.[s]==null)||null;
+$("stopBtn").onclick=()=>{ stopReq=true; $("stopBtn").disabled=true; $("stopBtn").textContent="จะหยุดหลังจบขั้นนี้..."; };
+$("makeBtn").onclick=()=>{ if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; } runPipeline(newRec("",$("aspect").value)); };
+function newRec(topic,aspect){ const r={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),topic,title:topic,aspect,createdAt:Date.now(),out:{},steps:AUTO_STEPS,log:[]}; saveRec(r); return r; }
+
+/* Mission control: current job, timeline, live feed */
+const fmtAgo=t=>{ const d=(Date.now()-t)/1000; return d<45?"เมื่อกี้":d<3600?`${Math.round(d/60)} นาทีที่แล้ว`:d<86400?`${Math.round(d/3600)} ชม.ที่แล้ว`:fmtDate(t); };
+function latestJob(){ if(runningRec&&recs[runningRec]) return recs[runningRec]; return Object.values(recs).filter(r=>!r.manual).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0]||null; }
+function miniAvatar(id,cls=""){ const cv=document.createElement("canvas"); cv.width=16; cv.height=18; if(cls) cv.className=cls; const e=byId[id]; if(e) avatar(cv,e); cv.setAttribute("aria-hidden","true"); return cv; }
+function renderJob(){
+  const r=(jobRec&&recs[jobRec.id])||latestJob(); if(r&&!jobRec) jobRec=r;
+  const box=$("jobBox"), feed=$("feed"); if(!box) return;
+  if(!r){ box.hidden=true; feed.innerHTML=`<li class="hint">ยังไม่มีกิจกรรม กด "ให้ทีมทำคลิปใหม่" แล้วดูทีมทำงานกันได้ที่นี่</li>`; return; }
+  box.hidden=false; const S=stepsOf(r), running=runningRec===r.id, done=S.filter(s=>r.out?.[s]!=null).length;
+  const curStep=running?S.find(s=>r.out?.[s]==null):null;
+  let pct=r.manual?100:(done/S.length)*100; if(curStep&&r.stepAt){ const exp={plan:25,creative:35,animator:60,editor:60,voice:30,qa:45,approve:25,brief:25,review:35}[curStep]||40; pct+=Math.min(0.9,(Date.now()-r.stepAt)/1000/exp)*(100/S.length); }
+  $("jobTitle").textContent=r.title||r.topic||"น้องโฟลว์กำลังเลือกหัวข้อ..."; $("jobPct").textContent=Math.floor(pct)+"%"; $("jobBar").style.width=pct.toFixed(1)+"%";
+  const now=$("jobNow"); now.innerHTML="";
+  if(curStep){ const who=STEP_WHO[curStep]; now.appendChild(miniAvatar(who)); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${byId[who].name} กำลัง${STEP_VERB[curStep]}...`; now.appendChild(t); const el=document.createElement("span"); el.className="el"; el.textContent=r.stepAt?fmt((Date.now()-r.stepAt)/1000):""; now.appendChild(el); }
+  else { const st=recState(r); const t=document.createElement("span"); t.textContent=st.k==="done"?`✅ เสร็จแล้ว${r.out?.qa?` · ตรวจผ่าน ${r.out.qa.score}/10`:""}`:st.k==="ask"?"💬 รอคุณตอบคำถาม":`⏸ ${st.t}`; now.appendChild(t); }
+  const ol=$("steps"); ol.innerHTML=""; ol.style.setProperty("--n",S.length); ol.style.setProperty("--nm",Math.ceil(S.length/2));
+  S.forEach((st,i)=>{ const li=document.createElement("li"); const state=r.out?.[st]!=null?"done":(running&&st===curStep)?"working":(stepUI[st]==="error"||r.error?.stage===st)?"error":(r.waiting&&st==="brief")?"waiting":""; li.className="tl "+state; li.dataset.s=st;
+    li.appendChild(miniAvatar(STEP_WHO[st])); const b=document.createElement("b"); b.textContent=`${i+1}. ${STEP_NAME[st]}`; li.appendChild(b); const sp=document.createElement("span"); sp.textContent=byId[STEP_WHO[st]]?.name||""; li.appendChild(sp); ol.appendChild(li); });
+  feed.innerHTML=""; const logs=(r.log||[]).slice(-12).reverse();
+  if(!logs.length) feed.innerHTML=`<li class="hint">ยังไม่มีกิจกรรมของงานนี้</li>`;
+  logs.forEach(l=>{ const li=document.createElement("li"); li.appendChild(miniAvatar(l.who)); const d=document.createElement("div"); d.className="ft"; const b=document.createElement("b"); b.textContent=byId[l.who]?.name||""; d.appendChild(b); d.appendChild(document.createTextNode(l.text)); li.appendChild(d); const tm=document.createElement("time"); tm.textContent=fmtAgo(l.t); li.appendChild(tm); feed.appendChild(li); });
+}
+setInterval(()=>{ if(runningRec) renderJob(); },1000);
 
 /* Manager's questions before work */
 let askRec=null;
@@ -1646,7 +1822,7 @@ async function initCloud(){
     }
     if(ch){ saveLocal(); renderLibrary(); renderResume(); }
   }, fail);
-  stateDoc().collection("chats").onSnapshot(qs=>{ let ch=false; qs.docs.forEach(d=>{ const r=d.data(); if(!byId[d.id]||!Array.isArray(r.messages)) return; if((r.updatedAt||0)>(chatsAt[d.id]||0)&&status[d.id]!=="working"){ chats[d.id]=r.messages.filter(m=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string"); chatsAt[d.id]=r.updatedAt; ch=true; } });
+  stateDoc().collection("chats").onSnapshot(qs=>{ let ch=false; qs.docs.forEach(d=>{ const r=d.data(); if(!byId[d.id]||!Array.isArray(r.messages)) return; if((r.updatedAt||0)>(chatsAt[d.id]||0)&&status[d.id]!=="working"){ chats[d.id]=r.messages.filter(m=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string").map(m=>m.label?{role:m.role,content:m.content,label:String(m.label).slice(0,80)}:{role:m.role,content:m.content}); chatsAt[d.id]=r.updatedAt; ch=true; } });
     if(ch){ store.set("chats",chats); store.set("chatsAt",chatsAt); renderChat(); } }, ()=>{});
   renderLibrary();
 }
@@ -1666,7 +1842,7 @@ renderTeam(); renderTasks(); renderChat(); requestAnimationFrame(officeLoop);
 renderLevel();
 if(openRecId&&recs[openRecId]?.project) loadProject(recs[openRecId].project); else { openRecId=null; loadProject(DEMO); }
 Object.values(recs).forEach(r=>{ if(r.runningAt&&Date.now()-r.runningAt>6*60e3){ r.runningAt=0; } });
-renderLibrary(); renderResume(); renderPlan(); renderReview(); requestAnimationFrame(moveInd);
+renderLibrary(); renderResume(); renderPlan(); renderReview(); renderJob(); requestAnimationFrame(moveInd);
 { const w=Object.values(recs).filter(r=>r.waiting).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0]; if(w){ showSteps(w); showAsk(w); } }
 initCloud();
 fontsReady().then(()=>{ if(project){ R.layout(); project._total=R.total; drawAt(playT); } });
