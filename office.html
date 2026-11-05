@@ -283,6 +283,8 @@ header .btn,header .lvl{color:var(--ink)}
 .scene.now{background:var(--me)}
 .scene .no{font-family:var(--display);font-weight:800;font-size:20px;line-height:1.1;cursor:pointer}
 .scene .no small{display:block;font-family:var(--ui);font-weight:400;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.flab{font-size:12px;color:var(--muted);margin-top:2px}
+.chip.toggle[aria-pressed="true"]{background:var(--ok);color:#fff}
 .scene input,.scene textarea{width:100%;border:2px solid var(--panel2);background:var(--bg);border-radius:6px;padding:3px 6px;font-size:14px}
 .scene textarea{resize:vertical;min-height:40px}
 .tag{font-size:12px;color:var(--muted)}
@@ -461,7 +463,7 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
           <div class="opt" style="grid-column:1/-1">
             <label>💬 สไตล์ซับ</label>
             <div class="chips" id="subStyles" role="radiogroup" aria-label="สไตล์ซับ"></div>
-            <small>ใส่ <b>*คำ*</b> ในบทพูดเพื่อเน้นคำนั้น ซับจะเปลี่ยนสี กล้องซูมกระแทก และมีเสียงประกอบ</small>
+            <small>คำเน้นของแต่ละฉากตั้งได้ในช่อง "คำเน้น" ใต้บทพูด ซับจะเปลี่ยนสี กล้องซูมกระแทก และมีเสียงประกอบ ถ้าไม่ต้องการ กดปิด "เน้นคำสำคัญ"</small>
           </div>
         </div>
         <div class="export">
@@ -571,10 +573,20 @@ const CAT = {
 };
 const pick=(v,list,d)=>list.includes(v)?v:d;
 const num=(v,a,b,d)=>{ v=Number(v); return Number.isFinite(v)?clamp(v,a,b):d; };
-const str=(v,n)=>typeof v==="string"?v.trim().slice(0,n):"";
+const cleanStar=t=>String(t??"").replace(/\*+/g,"").replace(/\s{2,}/g," ").trim();
+const str=(v,n)=>typeof v==="string"?cleanStar(v).slice(0,n):"";
+/* Narration may arrive with *emphasis* marks (from the AI or old clips). Keep the text clean and store the
+   emphasised phrases separately, so no asterisk ever reaches the screen or the edit fields. */
+function parseEmph(raw,keep=[]){
+  const src=typeof raw==="string"?raw:""; const found=[]; let m; const re=/\*{1,2}([^*]+?)\*{1,2}/g;
+  while((m=re.exec(src))) { const ph=cleanStar(m[1]); if(ph) found.push(ph); }
+  const text=cleanStar(src).slice(0,220);
+  const emph=[...new Set([...found,...(Array.isArray(keep)?keep:[]).map(x=>cleanStar(x))])].filter(x=>x&&x.length<=40&&text.includes(x)).slice(0,4);
+  return {text,emph};
+}
 
 // Thai speaking speed for timing (characters excluding combining marks per second)
-function speakSeconds(text){ const base=(text||"").replace(/\*/g,"").replace(/[ัิ-ฺ็-๎\s]/g,"").length; return base/11.5; }
+function speakSeconds(text){ const base=String(text||"").replace(/\*/g,"").replace(/[ัิ-ฺ็-๎\s]/g,"").length; return base/11.5; }
 
 function normalizeProject(p){
   if(!p||typeof p!=="object") throw new Error("ไม่ใช่ JSON ของโปรเจกต์");
@@ -592,13 +604,13 @@ function normalizeProject(p){
       else { o.text=str(e.text,30)||"!"; o.color=/^#[0-9a-f]{3,8}$/i.test(e.color||"")?e.color:"#ffffff"; }
       return o;
     });
-    const narration=str(s.narration,220);
+    const {text:narration,emph}=parseEmph(s.narration,s.emph);
     const minDur=speakSeconds(narration)+0.6;
     return {
       bg:pick(s.bg,CAT.backgrounds,"sky"), time:pick(s.time,CAT.times,"day"),
       camera:pick(s.camera,CAT.cameras,"static"), effect:pick(s.effect,CAT.effects,"none"),
       transition:pick(s.transition,CAT.transitions,"fade"), sfx:pick(s.sfx,CAT.sfx,"none"),
-      caption:str(s.caption,40), narration, subPos:pick(s.subPos,CAT.subPos,"auto"),
+      caption:str(s.caption,40), narration, emph, subPos:pick(s.subPos,CAT.subPos,"auto"),
       duration:clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15),
       voice:{ emotion:str(s.voice?.emotion,20), rate:num(s.voice?.rate,0.6,1.6,1), pitch:num(s.voice?.pitch,0.5,1.8,1) },
       elements:els,
@@ -609,6 +621,7 @@ function normalizeProject(p){
     aspect:p.aspect==="16:9"?"16:9":"9:16",
     music:pick(p.music,CAT.music,"upbeat"),
     subStyle:pick(p.subStyle,CAT.subStyles,"pop"),
+    emphOn:p.emphOn!==false,
     endCard:{ text:str(p.endCard?.text,40)||"กดติดตามไว้นะ!", sub:str(p.endCard?.sub,60) },
     scenes,
     example:!!p.example,
@@ -784,14 +797,18 @@ class Renderer{
   rc(s){ let o=this._rc.get(s); if(!o){ o={}; this._rc.set(s,o); } return o; }
   layout(){ this._rc=new WeakMap(); const P=this.project; let t=0; this.starts=P.scenes.map(s=>{ const st=t; t+=s.duration; return st; }); this.endStart=t; this.total=t+2.6; this.subs=P.scenes.map((s,i)=>this.buildSubs(s,i)); }
   buildSubs(s,i){
-    const toks=[]; let emph=false;
-    (s.narration||"").split(/(\*)/).forEach(part=>{ if(part==="*"){ emph=!emph; return; } if(part) for(const w of wordsOf(part)) toks.push({w,emph}); });
-    const words=[]; toks.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } words.push({text:t.w.trim(),emph:t.emph,sp:/\s$/.test(t.w)}); });
+    const text=s.narration||"", ranges=[];
+    if(this.project.emphOn!==false) (s.emph||[]).forEach(ph=>{ let k=text.indexOf(ph); while(ph&&k>=0){ ranges.push([k,k+ph.length]); k=text.indexOf(ph,k+ph.length); } });
+    const segs=segmenter?[...segmenter.segment(text)].map(x=>({w:x.segment,at:x.index})):(()=>{ const out=[]; let at=0; text.split(/(\s+)/).forEach(w=>{ if(w) out.push({w,at}); at+=w.length; }); return out; })();
+    const words=[]; segs.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } const end=t.at+t.w.length; words.push({text:t.w.trim(),emph:ranges.some(([a,b])=>t.at<b&&end>a),sp:/\s$/.test(t.w)}); });
     const t0=0.15, t1=Math.max(t0+0.6,s.duration-0.35), lens=words.map(w=>Math.max(1,w.text.replace(/[ัิ-ฺ็-๎]/g,"").length)+(w.sp?2:0)), tot=lens.reduce((a,b)=>a+b,0)||1; let acc=0;
     words.forEach((w,k)=>{ w.from=t0+(acc/tot)*(t1-t0); acc+=lens[k]; w.to=t0+(acc/tot)*(t1-t0); });
     const chunks=[]; let cur=[], len=0;
     words.forEach((w,k)=>{ const L=lens[k], prev=cur[cur.length-1]; if(cur.length&&(len+L>15||(w.emph!==prev.emph&&len>5))){ chunks.push(cur); cur=[]; len=0; } cur.push(w); len+=L; if((w.sp||/[,.!?…]$/.test(w.text))&&len>7){ chunks.push(cur); cur=[]; len=0; } });
     if(cur.length) chunks.push(cur);
+    // Never leave a tiny fragment (e.g. "ออก" from "ส่งออก") on its own: merge it into a neighbour.
+    const base=c=>c.reduce((n,w)=>n+w.text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g,"").length,0);
+    for(let k=chunks.length-1;k>=0&&chunks.length>1;k--){ if(base(chunks[k])<5){ if(k>0){ chunks[k-1]=chunks[k-1].concat(chunks[k]); chunks.splice(k,1); } else { chunks[1]=chunks[0].concat(chunks[1]); chunks.splice(0,1); } } }
     const ch=chunks.map(c=>({words:c,from:c[0].from}));
     return {scene:s,i,bands:{},words,chunks:ch,emphStarts:words.filter((w,k)=>w.emph&&!(words[k-1]?.emph)).map(w=>w.from)};
   }
@@ -838,7 +855,7 @@ class Renderer{
   }
   punch(idx,lt){ const S=this.subs[idx]; if(!S) return 0; let v=0; for(const f of S.emphStarts){ const x=lt-f; if(x>=0&&x<0.42) v=Math.max(v,Math.sin(Math.PI*x/0.42)*0.065); } return v; }
   beatPulse(t){ const m=this.project.music; if(m==="none"||m==="calm"||reduceMotion) return 0; const bps=(MOODS[m]||MOODS.upbeat).bpm/60; return 0.012*Math.exp(-((t*bps)%1)*7); }
-  emphTimes(){ const out=[]; this.subs.forEach((S,i)=>S.emphStarts.forEach(f=>out.push(this.starts[i]+f))); return out; }
+  emphTimes(){ if(this.project.emphOn===false) return []; const out=[]; this.subs.forEach((S,i)=>S.emphStarts.forEach(f=>out.push(this.starts[i]+f))); return out; }
   pages(c,S,fs,maxW,weight){ const key=fs+"|"+maxW; if(S._pk===key) return S._pages; const lines=[]; let line=[],lw=0;
     S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*1.15:fs}px Kanit, sans-serif`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
     if(line.length) lines.push({items:line,w:lw}); const pages=[]; for(let k=0;k<lines.length;k+=2){ const ls=lines.slice(k,k+2); pages.push({lines:ls,from:ls[0].items[0].w.from}); }
@@ -1090,7 +1107,7 @@ function loadProject(p, {switchTab=false}={}){
   if(switchTab) showTab("studio");
   return true;
 }
-function relayout(){ R.layout(); project._total=R.total; persistOpen(); drawAt(Math.min(playT,R.total)); }
+function relayout(){ R.layout(); project._total=R.total; persistOpen(); if(!playing) drawAt(Math.min(playT,R.total-0.01)); }
 async function fontsReady(){ try{ await Promise.all([document.fonts.load("800 40px Kanit"),document.fonts.load("600 40px Kanit")]); }catch{} }
 function drawAt(t){ playT=t; R.drawFrame(t); $("scrub").value=Math.round(t/R.total*1000); $("timeLbl").textContent=fmt(t)+" / "+fmt(R.total); highlightScene(t); }
 function highlightScene(t){ const i=t>=R.endStart?-1:R.sceneAt(t); document.querySelectorAll(".scene").forEach((el,k)=>el.classList.toggle("now",k===i)); }
@@ -1124,24 +1141,38 @@ $("voiceFile").onchange=async e=>{
 };
 
 const SUB_STYLES=[["pop","🔥 เด้งทีละคำ (TikTok)"],["karaoke","🎤 คาราโอเกะ"],["bounce","⬇️ หล่นทีละคำ"],["classic","▭ กล่องคลาสสิก"]];
-function renderSubStyles(){ const box=$("subStyles"); box.innerHTML=""; SUB_STYLES.forEach(([k,l])=>{ const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=l; b.setAttribute("role","radio"); b.setAttribute("aria-pressed",String(project?.subStyle===k)); b.setAttribute("aria-checked",String(project?.subStyle===k));
-  b.onclick=()=>{ project.subStyle=k; renderSubStyles(); persistOpen(); if(!playing){ const i=R.sceneAt(playT); drawAt(playT>=R.endStart?0.9:Math.max(playT,R.starts[i]+0.9)); } }; box.appendChild(b); }); }
+function renderSubStyles(){ const box=$("subStyles"); box.innerHTML="";
+  const tg=document.createElement("button"); tg.type="button"; tg.className="chip toggle"; tg.textContent=project?.emphOn!==false?"✨ เน้นคำสำคัญ: เปิด":"✨ เน้นคำสำคัญ: ปิด"; tg.setAttribute("aria-pressed",String(project?.emphOn!==false));
+  tg.onclick=()=>{ project.emphOn=project.emphOn===false; renderSubStyles(); relayout(); };  SUB_STYLES.forEach(([k,l])=>{ const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=l; b.setAttribute("role","radio"); b.setAttribute("aria-pressed",String(project?.subStyle===k)); b.setAttribute("aria-checked",String(project?.subStyle===k));
+  b.onclick=()=>{ project.subStyle=k; renderSubStyles(); persistOpen(); if(!playing){ const i=R.sceneAt(playT); drawAt(playT>=R.endStart?0.9:Math.max(playT,R.starts[i]+0.9)); } }; box.appendChild(b); }); box.appendChild(tg); }
 function renderSceneList(){ renderSubStyles();
   const box=$("sceneList"); box.innerHTML="";
   project.scenes.forEach((s,i)=>{
     const d=document.createElement("div"); d.className="scene";
     d.innerHTML=`<div class="no" title="ไปที่ฉากนี้">${i+1}<small>${s.duration.toFixed(1)} วิ</small></div>
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <span class="flab">ข้อความตัวใหญ่บนจอ</span>
         <input data-k="caption" aria-label="ข้อความบนจอ ฉาก ${i+1}" placeholder="ข้อความตัวใหญ่บนจอ">
-        <textarea data-k="narration" aria-label="บทพูด ฉาก ${i+1}" placeholder="บทพูด / ซับ (ใส่ *คำ* เพื่อเน้น)"></textarea>
+        <span class="flab">บทพูด / ซับ (แก้แล้วคลิปเปลี่ยนทันที)</span>
+        <textarea data-k="narration" aria-label="บทพูด ฉาก ${i+1}" placeholder="บทพูด / ซับ"></textarea>
+        <span class="flab">คำเน้น</span>
+        <input data-k="emph" aria-label="คำเน้น ฉาก ${i+1}" placeholder="คำเน้น (คั่นด้วย , ต้องเป็นคำที่อยู่ในบทพูด) เว้นว่างได้">
         <label class="tag" style="display:flex;gap:6px;align-items:center">ตำแหน่งซับ <select data-pos aria-label="ตำแหน่งซับ ฉาก ${i+1}" style="border:2px solid var(--panel2);background:var(--bg);border-radius:6px;font-size:13px"><option value="auto">อัตโนมัติ (หลบตัวละคร)</option><option value="top">บน</option><option value="middle">กลาง</option><option value="bottom">ล่าง</option></select></label>
         <span class="tag sinfo"></span>
       </div>`;
-    d.querySelector('[data-k=caption]').value=s.caption; d.querySelector('[data-k=narration]').value=s.narration;
+    d.querySelector('[data-k=caption]').value=s.caption; d.querySelector('[data-k=narration]').value=s.narration; d.querySelector('[data-k=emph]').value=(s.emph||[]).join(", ");
     d.querySelector(".sinfo").textContent=`ฉาก: ${s.bg} · กล้อง: ${s.camera} · เอฟเฟกต์: ${s.effect} · เสียง: ${s.sfx} · ทรานซิชัน: ${s.transition}${s.voice.emotion?" · อารมณ์เสียง: "+s.voice.emotion:""}`;
     const pos=d.querySelector("[data-pos]"); pos.value=s.subPos||"auto"; pos.onchange=()=>{ s.subPos=pos.value; relayout(); drawAt(R.starts[i]+Math.min(1.2,s.duration/2)); };
     d.querySelector(".no").onclick=()=>{ const was=playing; stopPlay(); drawAt(R.starts[i]+0.5); if(was) play(); };
-    d.querySelectorAll("[data-k]").forEach(inp=>inp.onchange=()=>{ s[inp.dataset.k]=inp.value.slice(0,inp.dataset.k==="caption"?40:220); if(inp.dataset.k==="narration") s.duration=clamp(Math.max(s.duration,speakSeconds(s.narration)+0.6),1.5,15); relayout(); d.querySelector(".no small").textContent=s.duration.toFixed(1)+" วิ"; });
+    let tmr=0;
+    const apply=(inp,final)=>{ const k=inp.dataset.k, v=inp.value;
+      if(k==="caption") s.caption=cleanStar(v).slice(0,40);
+      else if(k==="narration"){ const r=parseEmph(v,s.emph); s.narration=r.text; s.emph=r.emph; s.duration=clamp(Math.max(2.2,speakSeconds(s.narration)+0.6),1.5,15); }
+      else if(k==="emph"){ s.emph=[...new Set(v.split(/[,，]/).map(x=>cleanStar(x)).filter(x=>x&&s.narration.includes(x)))].slice(0,4); }
+      if(final){ if(k==="caption") inp.value=s.caption; else if(k==="narration") inp.value=s.narration; d.querySelector('[data-k=emph]').value=(s.emph||[]).join(", "); }
+      relayout(); if(!playing) drawAt(Math.min(R.starts[i]+Math.max(0.4,s.duration*0.45),R.total-0.01));
+      d.querySelector(".no small").textContent=s.duration.toFixed(1)+" วิ"; };
+    d.querySelectorAll("[data-k]").forEach(inp=>{ inp.oninput=()=>{ clearTimeout(tmr); tmr=setTimeout(()=>apply(inp,false),220); }; inp.onchange=()=>{ clearTimeout(tmr); apply(inp,true); }; if(inp.tagName==="INPUT") inp.onkeydown=ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); clearTimeout(tmr); apply(inp,true); } }; });
     box.appendChild(d);
   });
 }
@@ -1193,7 +1224,8 @@ const SCHEMA=`{
     "transition": "${CAT.transitions.join("|")}  (วิธีเข้าฉากนี้จากฉากก่อน)",
     "sfx": "${CAT.sfx.join("|")}  (เสียงเอฟเฟกต์ตอนเริ่มฉาก)",
     "caption": "ข้อความตัวใหญ่บนจอ ไม่เกิน 18 ตัวอักษร",
-    "narration": "บทพูดของฉากนี้ (กลายเป็นซับ) ครอบคำสำคัญด้วย *ดอกจัน* เช่น โลกหมุนเร็ว *1,670 กม./ชม.*",
+    "narration": "บทพูดของฉากนี้ (กลายเป็นซับ) เป็นข้อความธรรมดา ห้ามใส่เครื่องหมาย * หรือ markdown",
+    "emph": ["คำสำคัญ 1-2 คำที่ปรากฏในบทพูดตรงตัว เช่น 1,670 กม./ชม."],
     "subPos": "${CAT.subPos.join("|")}  (ตำแหน่งซับ auto = หลบตัวละครให้อัตโนมัติ)",
     "duration": 3.5,
     "elements": [
@@ -1211,7 +1243,7 @@ const LAYOUT_RULES=`กฎการจัดภาพ:
 - ทุกฉากควรมีอย่างน้อย 2 องค์ประกอบ ให้มีการเคลื่อนไหว (motion/enter/at ต่างกัน) เพื่อให้ภาพมีชีวิต
 - เลือกอารมณ์ตัวละครให้ตรงเนื้อเรื่อง ใช้ "say" เพื่อให้ตัวละครพูดคำสั้นๆ ตลกๆ
 - ใช้ "motion":"move" หรือ "walk" คู่กับ toX/toY เพื่อเคลื่อนที่ ใช้ "flip": true ให้ตัวละครหันซ้าย
-- ใส่ *ดอกจัน* ครอบคำสำคัญ 1-2 คำต่อฉาก (ตัวเลข คำช็อก คำตอบ) ซับจะเด้งเน้นคำนั้นและกล้องซูมกระแทกตามจังหวะ อย่าครอบทั้งประโยค
+- ใส่คำสำคัญ 1-2 คำต่อฉาก (ตัวเลข คำช็อก คำตอบ) ใน "emph" โดยต้องเป็นคำที่อยู่ในบทพูดตรงตัว ซับจะเด้งเน้นคำนั้นและกล้องซูมกระแทกตามจังหวะ ห้ามใส่ * ในข้อความใดๆ (บทพูด caption say text title)
 - ใช้ emoji เป็นสติกเกอร์เสริมอารมณ์ได้ฉากละไม่เกิน 2 ตัว
 - ห้ามใช้ชื่อที่ไม่อยู่ในรายการ`;
 
@@ -1239,7 +1271,7 @@ ${STYLE}` },
 2) hook 3 วินาทีแรกแรงพอให้หยุดเลื่อน
 3) ความยาวรวม 25-60 วินาที จังหวะไม่ยืด
 4) ภาษาไทยถูกต้อง อ่านง่าย ข้อความบนจอสั้น (ไม่เกิน 18 ตัวอักษร)
-5) ทุกฉากมี *คำเน้น* และภาพสื่อตรงกับบท
+5) ทุกฉากมีคำเน้น (emph) และภาพสื่อตรงกับบท ข้อความทุกช่องต้องไม่มีเครื่องหมาย *
 6) ความเหมาะสม: ไม่ทำให้เข้าใจผิด ไม่ใช้ของที่มีลิขสิทธิ์ ไม่มีเนื้อหาอันตราย
 เข้มงวดแต่ยุติธรรม แก้ข้อความเล็กๆ ได้เอง ส่วนปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ส่งกลับให้ทีมแก้
 ${STYLE}` },
@@ -1271,7 +1303,7 @@ ${STYLE}` },
 - ตั้ง duration ให้พอดีบทพูด (ภาษาไทยประมาณ 11 ตัวอักษรต่อวินาที บวกเผื่อ 0.5 วินาที) ไม่ยืดยาด
 - เลือก transition ให้เข้ากับจังหวะ (cut สำหรับเร็ว/ช็อก, whip = แพนเร็วแบบสายฟ้า, glitch = ภาพกระตุกตอนหักมุม, slide/zoom ช่วงเปลี่ยนเรื่อง, fade ช่วงอารมณ์) อย่าใช้แบบเดียวทั้งคลิป
 - เลือก subStyle ให้เข้ากับคลิป (ส่วนใหญ่ pop ดูว้าวสุดบน TikTok) ตั้ง subPos ให้ซับไม่ทับตัวละคร และสลับตำแหน่งบ้างเพื่อให้มีจังหวะ
-- ตรวจว่าทุกฉากมี *คำเน้น* 1-2 คำ เพราะเป็นจุดที่ซับเด้ง กล้องซูมกระแทก และมีเสียงประกอบ
+- ตรวจว่าทุกฉากมีคำเน้นใน "emph" 1-2 คำ (ต้องอยู่ในบทพูดตรงตัว) เพราะเป็นจุดที่ซับเด้ง กล้องซูมกระแทก และมีเสียงประกอบ ห้ามมีเครื่องหมาย * ในข้อความ
 - ใส่ sfx ตรงจังหวะสำคัญ (boom ตอนช็อก, whoosh ตอนเปลี่ยนเร็ว, ding ตอนเฉลย, pop ตอนของโผล่) ไม่ต้องใส่ทุกฉาก
 - เลือก music ให้ตรงอารมณ์คลิป ปรับ caption ให้สั้น แรง อ่านทันใน 1 วินาที
 - ตั้ง title ที่ดึงคนดู และ endCard ที่ชวนคอมเมนต์/ติดตาม
@@ -1286,7 +1318,7 @@ ${STYLE}` },
     system:`คุณคือ "น้องเสียง" นักพากย์และผู้กำกับเสียงของออฟฟิศ AI ส่วนตัว หน้าที่: ปรับบทพูดให้พูดลื่นปาก เป็นธรรมชาติ มีจังหวะ ตัดคำยากหรือคำยาวที่สะดุด และกำกับอารมณ์เสียงทีละฉาก
 เมื่อได้รับรายการบทพูดเป็นฉาก ให้ตอบด้วยคำแนะนำการพากย์สั้นๆ (โทน ความเร็ว คำที่ต้องเน้น เทคนิคอัดเสียงด้วยมือถือ) แล้วตามด้วย JSON ในบล็อก \`\`\`json รูปแบบ:
 {"lines":[{"scene":1,"text":"บทพูดที่ปรับแล้ว","emotion":"ตื่นเต้น","rate":1.05,"pitch":1.1}]}
-(rate 0.8-1.3 คือความเร็ว, pitch 0.8-1.3 คือระดับเสียง ใช้กับเสียงพรีวิว) ให้มีทุกฉากตามลำดับ คงเครื่องหมาย *คำเน้น* ไว้ในตำแหน่งที่ควรเน้นเสียง และอย่าให้บทยาวขึ้นจากเดิมเกิน 10%
+(rate 0.8-1.3 คือความเร็ว, pitch 0.8-1.3 คือระดับเสียง ใช้กับเสียงพรีวิว) ให้มีทุกฉากตามลำดับ "text" เป็นข้อความธรรมดาห้ามมีเครื่องหมาย * ถ้าจะบอกคำที่ควรเน้นเสียงให้ใส่ "emph":["คำ"] และอย่าให้บทยาวขึ้นจากเดิมเกิน 10%
 ถ้าเจ้านายถามเรื่องอื่นเกี่ยวกับเสียง ตอบเป็นข้อความได้ตามปกติ
 ${STYLE}` },
 ];
@@ -1554,7 +1586,8 @@ const clearBtn=$("clearBtn");
 clearBtn.onclick=()=>{ if(status[current]==="working") return; if(clearBtn.dataset.armed!=="1"){ clearBtn.dataset.armed="1"; clearBtn.textContent="กดอีกครั้งเพื่อยืนยัน"; setTimeout(()=>{ clearBtn.dataset.armed=""; clearBtn.textContent="🧹 ล้างแชต"; },3000); return; }
   clearBtn.dataset.armed=""; clearBtn.textContent="🧹 ล้างแชต"; chats[current]=[]; saveChats(current); setStatus(current,"idle"); renderChat(); };
 
-function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return; if(typeof l.text==="string"&&l.text.trim()){ s.narration=l.text.trim().slice(0,220); s.duration=clamp(Math.max(s.duration,speakSeconds(s.narration)+0.6),1.5,15); }
+function setNarration(x,raw,extraEmph=[]){ const old=x.emph||[]; const r=parseEmph(raw,[...(Array.isArray(extraEmph)?extraEmph:[]),...old]); x.narration=r.text; x.emph=r.emph; x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); }
+function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return; if(typeof l.text==="string"&&cleanStar(l.text)) setNarration(s,l.text,l.emph);
   s.voice={emotion:str(l.emotion,20),rate:num(l.rate,0.6,1.6,1),pitch:num(l.pitch,0.5,1.8,1)}; }); return p; }
 function applyVoice(j){ if(!project) return; applyVoiceTo(project,j); relayout(); renderSceneList(); notice("ใส่บทพากย์ใหม่ลงคลิปแล้ว",3000); }
 
@@ -1593,7 +1626,8 @@ function writeState(){ saveLocal(); queueWrite("stats",()=>stateDoc(),()=>({stat
 function saveStats(){ writeState(); renderLevel(); renderLibrary(); }
 function saveChats(id){ chats[id]=chats[id].slice(-60); chatsAt[id]=Date.now(); store.set("chats",chats); store.set("chatsAt",chatsAt); queueWrite("c:"+id,()=>stateDoc().collection("chats").doc(id),()=>({messages:clone(chats[id]),updatedAt:chatsAt[id]})); }
 let persistT=0;
-function persistOpen(){ if(!project||!openRecId||!recs[openRecId]) return; clearTimeout(persistT); persistT=setTimeout(()=>{ const r=recs[openRecId]; if(!r) return; const p=clone(project); delete p._total; r.project=p; r.title=p.title; saveRec(r); },600); }
+function persistOpen(){ if(!project) return;
+  if(!openRecId||!recs[openRecId]){ const r=newRecFromProject(project); r.title=project.title; openRecId=r.id; store.set("openRec",r.id); project.example=false; $("projExample").hidden=true; notice("บันทึกการแก้ไขเป็นคลิปใหม่ในคลังแล้ว",4000,"ok"); renderLibrary(); return; } clearTimeout(persistT); persistT=setTimeout(()=>{ const r=recs[openRecId]; if(!r) return; const p=clone(project); delete p._total; r.project=p; r.title=p.title; saveRec(r); },600); }
 
 /* Levels */
 const LEVELS=[0,100,250,450,700,1000,1400,1900,2500,3200];
@@ -1655,13 +1689,13 @@ function applyTextEdits(p,j){ let applied=0; if(!j) return 0;
   if(typeof j.title==="string"&&j.title.trim()&&j.title.trim()!==p.title){ p.title=str(j.title,80); applied++; }
   (Array.isArray(j.edits)?j.edits:[]).forEach(e=>{ const x=p.scenes[(Number(e?.scene)||0)-1]; if(!x) return;
     if(typeof e.caption==="string"&&e.caption.trim()&&e.caption.trim()!==x.caption){ x.caption=str(e.caption,40); applied++; }
-    if(typeof e.narration==="string"&&e.narration.trim()&&e.narration.trim()!==x.narration){ x.narration=str(e.narration,220); x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); applied++; } });
+    if(typeof e.narration==="string"&&cleanStar(e.narration)&&cleanStar(e.narration)!==x.narration){ setNarration(x,e.narration,e.emph); applied++; } });
   return applied; }
 function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
   if(total<20) out.push(`คลิปสั้นไป (${total.toFixed(0)} วินาที)`); if(total>65) out.push(`คลิปยาวไป (${total.toFixed(0)} วินาที)`);
   if(p.scenes.length<3) out.push("มีน้อยกว่า 3 ฉาก");
   if((p.scenes[0]?.duration||0)>4.2) out.push(`ฉากแรก (hook) ยาว ${p.scenes[0].duration.toFixed(1)} วินาที ควรไม่เกิน 3.5`);
-  p.scenes.forEach((x,i)=>{ if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(!/\*[^*]+\*/.test(x.narration)) out.push(`ฉาก ${i+1} ไม่มี *คำเน้น*`);
+  p.scenes.forEach((x,i)=>{ if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(p.emphOn!==false&&!(x.emph||[]).length) out.push(`ฉาก ${i+1} ไม่มีคำเน้น (emph)`);
     if(x.caption.length>18) out.push(`ฉาก ${i+1} ข้อความบนจอยาว ${x.caption.length} ตัวอักษร (ควรไม่เกิน 18)`);
     if(x.elements.length<2) out.push(`ฉาก ${i+1} มีองค์ประกอบภาพน้อย (${x.elements.length})`);
     if(x.elements.some(e=>e.enter==="none"&&e.motion!=="move"&&e.motion!=="walk"&&(e.x<0.04||e.x>0.96))) out.push(`ฉาก ${i+1} มีของหลุดขอบจอ`); });
@@ -1688,14 +1722,14 @@ const STEP_FN={
     let rounds=0, last=null;
     for(;;){
       const p=r.project, auto=qaAuto(p), total=p.scenes.reduce((a,x)=>a+x.duration,0);
-      const summary=p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}, ${x.transition}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
-      const j=extractJSON(await ask("qa",`ตรวจคลิป "${p.title}" รอบที่ ${rounds+1} (ยาว ${total.toFixed(0)} วินาที, เพลง ${p.music}, ซับ ${p.subStyle})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\nผลตรวจอัตโนมัติจากระบบ:\n${auto.length?auto.map(x=>"- "+x).join("\n"):"- ไม่พบปัญหา"}\n\n${summary}\n\nแก้ข้อความเล็กๆ ได้เองผ่าน edits (คงเครื่องหมาย *คำเน้น*) ปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ใส่ใน issues และตั้ง pass เป็น false ${rounds?"(นี่เป็นรอบตรวจซ้ำ ถ้าแก้ดีขึ้นแล้วให้ผ่าน)":""}\nตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"pass":true,"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น"],"issues":[{"scene":2,"problem":"ปัญหาและวิธีแก้","owner":"editor"}],"title":"","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
+      const summary=p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}, ${x.transition}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
+      const j=extractJSON(await ask("qa",`ตรวจคลิป "${p.title}" รอบที่ ${rounds+1} (ยาว ${total.toFixed(0)} วินาที, เพลง ${p.music}, ซับ ${p.subStyle})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\nผลตรวจอัตโนมัติจากระบบ:\n${auto.length?auto.map(x=>"- "+x).join("\n"):"- ไม่พบปัญหา"}\n\n${summary}\n\nแก้ข้อความเล็กๆ ได้เองผ่าน edits (ข้อความธรรมดา ห้ามใส่ *) ปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ใส่ใน issues และตั้ง pass เป็น false ${rounds?"(นี่เป็นรอบตรวจซ้ำ ถ้าแก้ดีขึ้นแล้วให้ผ่าน)":""}\nตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"pass":true,"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น"],"issues":[{"scene":2,"problem":"ปัญหาและวิธีแก้","owner":"editor"}],"title":"","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
       const applied=applyTextEdits(p,j);
       const issues=(Array.isArray(j?.issues)?j.issues:[]).slice(0,8).map(x=>({scene:Number(x?.scene)||0,problem:str(x?.problem,220)})).filter(x=>x.problem);
       last={auto,score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
       if(last.pass||!issues.length||rounds>=1) break;
       rounds++; logAct(r,"qa",`พบ ${issues.length} จุดที่ต้องแก้ ส่งกลับให้น้องคัท`); handoff("qa","editor");
-      const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nแก้แล้วส่ง JSON ฉบับเต็มกลับมา (คงจำนวนฉากและ *คำเน้น* ไว้):\n\`\`\`json\n${JSON.stringify(stripP(p))}\n\`\`\``));
+      const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nแก้แล้วส่ง JSON ฉบับเต็มกลับมา (คงจำนวนฉากและ emph ไว้ ห้ามใส่ * ในข้อความ):\n\`\`\`json\n${JSON.stringify(stripP(p))}\n\`\`\``));
       try{ r.project=normalizeProject({...cut,aspect:r.aspect}); logAct(r,"editor","แก้ตามที่ฝ่ายตรวจสอบแจ้งแล้ว ส่งตรวจใหม่"); handoff("editor","qa"); }
       catch{ logAct(r,"editor","แก้ไม่สำเร็จ ใช้ฉบับเดิมไปก่อน"); break; }
     }
@@ -1722,12 +1756,12 @@ const STEP_FN={
   async review(r){
     const p=r.project, total=p.scenes.reduce((a,x)=>a+x.duration,0);
     const summary=p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration}`).join("\n");
-    const j=extractJSON(await ask("manager",`ตรวจคลิป "${p.title}" ก่อนส่งเจ้านาย (ยาวรวม ${total.toFixed(0)} วินาที, เพลง ${p.music})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\n${summary}\n\nให้คะแนน 1-10 สรุปสั้นๆ และแก้ได้เลยถ้าจำเป็น (แก้ได้เฉพาะ title, caption, narration ห้ามเปลี่ยนจำนวนฉาก และคงเครื่องหมาย *คำเน้น* ไว้) ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น/สิ่งที่แก้"],"title":"ชื่อใหม่ถ้าจะแก้","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
+    const j=extractJSON(await ask("manager",`ตรวจคลิป "${p.title}" ก่อนส่งเจ้านาย (ยาวรวม ${total.toFixed(0)} วินาที, เพลง ${p.music})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\n${summary}\n\nให้คะแนน 1-10 สรุปสั้นๆ และแก้ได้เลยถ้าจำเป็น (แก้ได้เฉพาะ title, caption, narration ห้ามเปลี่ยนจำนวนฉาก ห้ามใส่ * ในข้อความ) ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น/สิ่งที่แก้"],"title":"ชื่อใหม่ถ้าจะแก้","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
     let applied=0;
     if(j){ if(typeof j.title==="string"&&j.title.trim()&&j.title.trim()!==p.title){ p.title=str(j.title,80); applied++; }
       (Array.isArray(j.edits)?j.edits:[]).forEach(e=>{ const x=p.scenes[(Number(e?.scene)||0)-1]; if(!x) return;
         if(typeof e.caption==="string"&&e.caption.trim()!==x.caption){ x.caption=str(e.caption,40); applied++; }
-        if(typeof e.narration==="string"&&e.narration.trim()&&e.narration.trim()!==x.narration){ x.narration=str(e.narration,220); x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); applied++; } }); }
+        if(typeof e.narration==="string"&&cleanStar(e.narration)&&cleanStar(e.narration)!==x.narration){ setNarration(x,e.narration,e.emph); applied++; } }); }
     r.out.review={score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,6).map(x=>str(String(x),160)).filter(Boolean),applied}; r.title=p.title;
   },
   async creative(r){ r.out.creative=await ask("creative",`${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก${note(r,"creative")}`); return "ส่งบทให้น้องพิกเซลแล้ว"; },
