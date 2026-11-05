@@ -273,6 +273,7 @@ header .btn,header .lvl{color:var(--ink)}
 @media (max-width:560px){.opts{grid-template-columns:minmax(0,1fr)}}
 .opt{border:3px solid var(--line);border-radius:8px;padding:8px;background:var(--panel2);font-size:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .opt label{font-weight:bold}
+.opt .btn{align-self:flex-start}
 .opt select,.opt input[type=file]{max-width:100%;border:2px solid var(--line);background:var(--bg);border-radius:6px;padding:3px}
 .opt small{color:var(--muted)}
 .export{border:3px solid var(--line);border-radius:8px;padding:10px;background:var(--me);display:flex;flex-direction:column;gap:6px}
@@ -441,7 +442,9 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
           <div class="opt">
             <label for="ttsToggle">🗣️ เสียงพากย์ตอนพรีวิว</label>
             <select id="ttsToggle"><option value="on">เปิด (เสียงสังเคราะห์)</option><option value="off">ปิด</option></select>
-            <small>เสียงสังเคราะห์ของเบราว์เซอร์ใช้ฟังตอนพรีวิวเท่านั้น ฝังลงไฟล์วิดีโอไม่ได้</small>
+            <select id="voicePick" aria-label="เลือกเสียง"></select>
+            <button class="btn small" id="ttsTest" type="button">🔊 ทดสอบเสียงพากย์</button>
+            <small>ใช้ฟังตอนพรีวิวเท่านั้น ฝังลงไฟล์วิดีโอไม่ได้ ถ้าไม่ได้ยิน: เปิดเสียงเครื่องและปิดโหมดเงียบ</small>
           </div>
           <div class="opt">
             <label for="voiceFile">🎙️ เสียงพากย์จริงของคุณ</label>
@@ -1119,33 +1122,56 @@ function relayout(){ R.layout(); project._total=R.total; persistOpen(); if(!play
 const THAI_SAMPLE="กขคงจฉชซญดตถทนบปผพฟมยรลวศสหอฮะาำิีึืุูเแโใไ่้๊๋็์ 0123456789 ABCabc!?";
 async function fontsReady(){ try{ await Promise.race([Promise.all(["800","700","600","400"].map(w=>document.fonts.load(`${w} 40px Kanit`,THAI_SAMPLE)).concat(document.fonts.load("40px Itim",THAI_SAMPLE))),new Promise(r=>setTimeout(r,6000))]); }catch{} }
 let fontEpoch=0;
-function onFontsChanged(){ fontEpoch++; if(typeof R!=="undefined"&&R.project){ R.layout(); if(project) project._total=R.total; if(!exporting) drawAt(Math.min(playT,R.total-0.01)); } if(typeof outKey!=="undefined") outKey=""; }
+function onFontsChanged(){ fontEpoch++; try{ if(R.project){ R.layout(); if(project) project._total=R.total; if(!exporting) drawAt(Math.min(playT,R.total-0.01)); } outKey=""; }catch{} }
 try{ document.fonts.addEventListener("loadingdone",onFontsChanged); }catch{}
 function drawAt(t){ playT=t; R.drawFrame(t); $("scrub").value=Math.round(t/R.total*1000); $("timeLbl").textContent=fmt(t)+" / "+fmt(R.total); highlightScene(t); }
 function highlightScene(t){ const i=t>=R.endStart?-1:R.sceneAt(t); document.querySelectorAll(".scene").forEach((el,k)=>el.classList.toggle("now",k===i)); }
 
+/* Preview voice (browser text-to-speech). iOS/iPadOS Safari only lets a page speak if the first utterance
+   starts inside a tap, drops an utterance spoken right after cancel(), and can garbage-collect utterances
+   mid-sentence, so all three are handled here. */
+const TTS={ ok:"speechSynthesis" in window, voices:[], keep:null, warned:false };
+function loadVoices(){ if(!TTS.ok) return; try{ TTS.voices=speechSynthesis.getVoices()||[]; }catch{ TTS.voices=[]; } renderVoicePick(); }
+const thaiVoices=()=>TTS.voices.filter(v=>v.lang&&v.lang.toLowerCase().replace("_","-").startsWith("th"));
+function pickVoice(){ const th=thaiVoices(), want=store.get("voiceName",""); return th.find(v=>v.name===want)||th.find(v=>/premium|enhanced|natural|neural|google/i.test(v.name))||th[0]||null; }
+function renderVoicePick(){ const sel=$("voicePick"); if(!sel) return; const th=thaiVoices(), cur=pickVoice();
+  sel.innerHTML=""; if(!th.length){ const o=document.createElement("option"); o.textContent=TTS.ok?"ไม่พบเสียงภาษาไทยในเครื่องนี้ (ใช้เสียงเริ่มต้น)":"เบราว์เซอร์นี้ไม่รองรับเสียงพากย์"; sel.appendChild(o); sel.disabled=true; return; }
+  sel.disabled=false; th.forEach(v=>{ const o=document.createElement("option"); o.value=v.name; o.textContent=v.name+(v.localService?"":" (ออนไลน์)"); if(cur&&v.name===cur.name) o.selected=true; sel.appendChild(o); }); }
+if(TTS.ok){ loadVoices(); try{ speechSynthesis.addEventListener("voiceschanged",loadVoices); }catch{ speechSynthesis.onvoiceschanged=loadVoices; } setTimeout(loadVoices,800); setTimeout(loadVoices,2500); }
+function speakText(text,{rate=1,pitch=1}={}){
+  if(!TTS.ok) return false; const t=cleanStar(text); if(!t) return false;
+  let busy=false; try{ busy=speechSynthesis.speaking||speechSynthesis.pending; if(busy) speechSynthesis.cancel(); if(speechSynthesis.paused) speechSynthesis.resume(); }catch{}
+  const u=new SpeechSynthesisUtterance(t); u.lang="th-TH"; u.rate=clamp(rate,0.6,1.6); u.pitch=clamp(pitch,0.5,1.8); u.volume=1; const v=pickVoice(); if(v) u.voice=v;
+  TTS.keep=u; u.onend=u.onerror=()=>{ if(TTS.keep===u) TTS.keep=null; };
+  // Safari drops an utterance queued right after cancel(): wait a moment in that case (the first, unlocking utterance is never delayed)
+  const go=()=>{ try{ speechSynthesis.speak(u); }catch{} }; if(busy) setTimeout(go,120); else go();
+  if(!thaiVoices().length&&!TTS.warned){ TTS.warned=true; notice("เครื่องนี้ยังไม่มีเสียงภาษาไทย บน iPad/iPhone: ตั้งค่า > การช่วยการเข้าถึง > เนื้อหาที่พูด > เสียง > ไทย แล้วดาวน์โหลดเสียง จากนั้นโหลดหน้านี้ใหม่",12000,"info"); }
+  return true;
+}
 function speakScene(i){
-  if($("ttsToggle").value!=="on"||voiceBuf||!("speechSynthesis" in window)) return;
+  if($("ttsToggle").value!=="on"||voiceBuf||!TTS.ok) return;
   const s=project.scenes[i]; if(!s?.narration) return;
-  speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(s.narration.replace(/\*/g,"")); u.lang="th-TH"; u.rate=clamp(s.voice.rate*1.05,0.6,1.6); u.pitch=s.voice.pitch;
-  const th=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith("th")); const best=th.find(v=>/natural|neural|premium|google/i.test(v.name))||th[0]; if(best) u.voice=best; speechSynthesis.speak(u);
+  speakText(s.narration,{rate:(s.voice?.rate||1)*1.05,pitch:s.voice?.pitch||1});
 }
 function play(){
   if(!project) return; if(playT>=R.total-0.05) playT=0; playing=true; $("playBtn").textContent="⏸ หยุด";
   AU.start(project, playT, {voice:voiceBuf, accents:R.emphTimes(), musicVol:$("ttsToggle").value==="on"&&!voiceBuf?0.3:0.55});
   lastSpokenScene=-1;
+  if(playT<R.endStart){ const i0=R.sceneAt(playT); if(playT-R.starts[i0]<0.6){ lastSpokenScene=i0; speakScene(i0); } else lastSpokenScene=i0; }
   const loop=()=>{ if(!playing) return; const t=AU.now(); if(t>=R.total){ stopPlay(); drawAt(R.total-0.01); return; }
     const i=R.sceneAt(t); if(t<R.endStart && i!==lastSpokenScene){ lastSpokenScene=i; speakScene(i); }
     drawAt(Math.max(0,t)); rafId=requestAnimationFrame(loop); };
   rafId=requestAnimationFrame(loop);
 }
-function stopPlay(){ playing=false; cancelAnimationFrame(rafId); AU.stop(); if("speechSynthesis" in window) speechSynthesis.cancel(); $("playBtn").textContent="▶ เล่น"; }
+function stopPlay(){ playing=false; cancelAnimationFrame(rafId); AU.stop(); if(TTS.ok&&(speechSynthesis.speaking||speechSynthesis.pending)) speechSynthesis.cancel(); $("playBtn").textContent="▶ เล่น"; }
 $("playBtn").onclick=()=>playing?stopPlay():play();
 $("restartBtn").onclick=()=>{ const was=playing; stopPlay(); drawAt(0); if(was) play(); };
 $("scrub").oninput=e=>{ const was=playing; stopPlay(); drawAt(e.target.value/1000*R.total); if(was) play(); };
 $("musicSel").onchange=e=>{ project.music=e.target.value; persistOpen(); if(playing){ stopPlay(); play(); } };
 $("aspectStudio").onchange=e=>{ project.aspect=e.target.value; stopPlay(); R.load(project); relayout(); };
 $("ttsToggle").onchange=()=>{ if(playing){ stopPlay(); play(); } };
+$("voicePick").onchange=e=>{ store.set("voiceName",e.target.value); speakText("ทดสอบเสียงพากย์ภาษาไทย"); };
+$("ttsTest").onclick=()=>{ if(!TTS.ok){ notice("เบราว์เซอร์นี้ไม่รองรับเสียงพากย์ ลองใช้ Safari หรือ Chrome",6000,"err"); return; } const i=project?R.sceneAt(Math.min(playT,R.endStart-0.01)):0; const ok=speakText(project?.scenes[i]?.narration||"สวัสดีครับ ทดสอบเสียงพากย์ภาษาไทย"); if(ok) notice(`กำลังพูดด้วยเสียง: ${pickVoice()?.name||"เสียงเริ่มต้นของเครื่อง"}`,4000,"info"); };
 $("voiceFile").onchange=async e=>{
   const f=e.target.files[0]; if(!f) return; const ac=AU.ensure();
   try{ voiceBuf=await ac.decodeAudioData(await f.arrayBuffer()); $("voiceInfo").textContent=`ใส่เสียง "${f.name}" แล้ว (${voiceBuf.duration.toFixed(1)} วินาที, คลิปยาว ${R.total.toFixed(1)} วินาที) ตอนพรีวิวจะปิดเสียงสังเคราะห์ให้อัตโนมัติ`; }
@@ -1193,7 +1219,8 @@ function renderSceneList(){ renderSubStyles();
 function pickMime(){ const c=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"]; return c.find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||""; }
 $("exportBtn").onclick=async()=>{
   if(!project) return; if(!window.MediaRecorder||!videoCv.captureStream){ notice("เบราว์เซอร์นี้สร้างไฟล์วิดีโอไม่ได้ ลองใช้ Chrome หรือ Edge บนคอมพิวเตอร์"); return; }
-  stopPlay(); await fontsReady(); onFontsChanged(); exporting=true; const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
+  stopPlay(); if(!voiceBuf) notice("ไฟล์วิดีโอนี้จะมีเพลงและเสียงเอฟเฟกต์ แต่ยังไม่มีเสียงพากย์ ถ้าต้องการ อัดเสียงอ่านตามซับ (เช่นแอปอัดเสียงของ iPad) แล้วอัปโหลดในช่อง \"เสียงพากย์จริงของคุณ\" ก่อนสร้างไฟล์",9000,"info");
+  await fontsReady(); onFontsChanged(); exporting=true; const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
   const msg=$("exportMsg"), bar=$("exportBar"); msg.textContent="กำลังเรนเดอร์... อย่าสลับแท็บหรือย่อหน้าต่าง";
   const vstream=videoCv.captureStream(30); const astream=AU.start(project,0,{record:true, voice:voiceBuf, accents:R.emphTimes()});
   const stream=new MediaStream([...vstream.getVideoTracks(),...astream.getAudioTracks()]);
@@ -1987,7 +2014,6 @@ const savedTheme=store.get("theme",null); if(savedTheme) document.documentElemen
 $("themeBtn").onclick=()=>{ const cur=document.documentElement.dataset.theme; const dark=cur?cur==="dark":matchMedia("(prefers-color-scheme: dark)").matches; const next=dark?"light":"dark"; document.documentElement.dataset.theme=next; store.set("theme",next); };
 
 /* Boot */
-if("speechSynthesis" in window) speechSynthesis.getVoices();
 renderTeam(); renderTasks(); renderChat(); requestAnimationFrame(officeLoop);
 renderLevel();
 if(openRecId&&recs[openRecId]?.project) loadProject(recs[openRecId].project); else { openRecId=null; loadProject(DEMO); }
