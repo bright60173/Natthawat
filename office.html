@@ -29,6 +29,7 @@
   --bubble:#30283c; --me:#4f2a40; --code:rgba(255,255,255,.07);
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:17px;line-height:1.5}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -88,6 +89,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;pad
 .tabs button{flex:1;border:0;background:var(--panel2);padding:10px;cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px}
 .tabs button[aria-selected="true"]{background:var(--panel)}
 .tabs button + button{border-left:4px solid var(--line)}
+@media (max-width:560px){.tabs button{font-size:14px;padding:8px 4px}}
 .pane{display:flex;flex-direction:column;flex:1;min-height:0}
 .pane[hidden]{display:none}
 
@@ -137,6 +139,27 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;pad
 .scene input,.scene textarea{width:100%;border:2px solid var(--panel2);background:var(--bg);border-radius:6px;padding:3px 6px;font-size:14px}
 .scene textarea{resize:vertical;min-height:40px}
 .tag{font-size:12px;color:var(--muted)}
+.lvl{display:flex;align-items:center;gap:6px;border:3px solid var(--line);border-radius:999px;padding:2px 10px 2px 4px;background:var(--panel2);font-size:14px;box-shadow:2px 2px 0 var(--line)}
+.lvl b{background:var(--accent2);color:#fff;border-radius:999px;padding:0 8px;font-family:var(--display)}
+.lvl .xp{width:70px;height:8px;border:2px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel)}
+.lvl .xp i{display:block;height:100%;background:var(--ok)}
+.sync{font-size:13px;color:var(--muted);white-space:nowrap}
+.statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border:3px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--panel2);min-width:0}
+.stat b{display:block;font-family:var(--display);font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+.unlocks{font-size:14px;color:var(--muted)}
+.rec{border:3px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel);display:flex;flex-direction:column;gap:6px}
+.rec.open{background:var(--me)}
+.rec .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rec .top b{font-family:var(--display);font-size:16px;flex:1;min-width:0;overflow-wrap:anywhere}
+.rec .meta{font-size:13px;color:var(--muted)}
+.dots{display:flex;gap:4px;flex-wrap:wrap}
+.dots span{font-size:12px;border:2px solid var(--line);border-radius:999px;padding:0 6px;background:var(--panel2)}
+.dots span.ok{background:var(--ok);color:#fff}
+.dots span.bad{background:var(--err);color:#fff}
+.empty{border:3px dashed var(--muted);border-radius:8px;padding:14px;color:var(--muted);text-align:center}
 .example{font-size:13px;background:var(--warn);color:#1b1622;border-radius:999px;padding:0 8px;border:2px solid var(--line)}
 
 dialog{border:4px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:8px 8px 0 var(--line);max-width:520px;width:calc(100% - 32px);padding:16px;border-radius:10px}
@@ -151,6 +174,8 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 <body>
 <header>
   <h1>ออฟฟิศ AI ส่วนตัว <small>ทีมงาน AI 4 คน ช่วยทำคลิปสั้นตั้งแต่คิดไอเดียจนได้ไฟล์วิดีโอ</small></h1>
+  <span class="lvl" id="lvl" title="เลเวลออฟฟิศ"></span>
+  <span class="sync" id="syncLbl">💾 บันทึกในเครื่องนี้</span>
   <button class="btn small" id="themeBtn" title="สลับโหมดมืด/สว่าง" aria-label="สลับโหมดมืด/สว่าง">🌓</button>
   <button class="btn" id="settingsBtn">⚙️ ตั้งค่า</button>
 </header>
@@ -171,6 +196,10 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
         </select>
         <button class="btn primary" id="makeBtn">สั่งทั้งทีม</button>
       </div>
+      <div class="row" style="margin-top:8px" id="resumeRow" hidden>
+        <button class="btn" id="resumeBtn">▶ ทำต่อ</button>
+        <span id="resumeInfo" style="font-size:14px;color:var(--muted);align-self:center;flex:1;min-width:0"></span>
+      </div>
       <div class="steps" id="steps">
         <span class="step" data-s="creative">1 เขียนบท</span>
         <span class="step" data-s="animator">2 สตอรี่บอร์ด</span>
@@ -189,6 +218,7 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
     <div class="tabs" role="tablist">
       <button role="tab" id="tabChat" aria-selected="true" aria-controls="paneChat">💬 คุยกับทีม</button>
       <button role="tab" id="tabStudio" aria-selected="false" aria-controls="paneStudio">🎞️ ห้องตัดต่อ</button>
+      <button role="tab" id="tabLib" aria-selected="false" aria-controls="paneLib">📚 คลังคลิป</button>
     </div>
 
     <div class="pane" id="paneChat" role="tabpanel">
@@ -202,6 +232,19 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
       <div class="composer">
         <textarea id="input" placeholder="พิมพ์สั่งงาน... (Enter ส่ง, Shift+Enter ขึ้นบรรทัดใหม่)" aria-label="ข้อความ"></textarea>
         <button class="btn primary" id="sendBtn">ส่ง</button>
+      </div>
+    </div>
+
+    <div class="pane" id="paneLib" role="tabpanel" hidden>
+      <div class="studio">
+        <div class="statgrid" id="statGrid"></div>
+        <div class="unlocks" id="unlocks"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <b style="font-family:var(--display);font-size:18px;flex:1">คลิปทั้งหมด</b>
+          <button class="btn small" id="demoBtn">ดูคลิปตัวอย่าง</button>
+        </div>
+        <div class="scenes" id="libList"></div>
+        <p class="unlocks" id="syncNote"></p>
       </div>
     </div>
 
@@ -714,6 +757,7 @@ const DEMO={ example:true, title:"What if โลกหยุดหมุน 1 �
     {bg:"sky",time:"day",camera:"zoom-out",effect:"confetti",transition:"zoom",sfx:"magic",caption:"โลกยังหมุนปกติ!",narration:"เพราะโลกหนักมาก ไม่มีแรงไหนหยุดมันได้ในพริบตา สบายใจได้",duration:3.8,
      elements:[{type:"character",look:"girl",emotion:"excited",x:0.35,y:0.8,scale:1.1,enter:"bottom",motion:"jump"},{type:"character",look:"robot",emotion:"happy",x:0.68,y:0.8,scale:1.1,enter:"bottom",at:0.3,motion:"wave",flip:true},{type:"prop",name:"sun",x:0.8,y:0.22,scale:1,enter:"fade",motion:"none"}]},
   ]};
+let openRecId=store.get("openRec",null);
 let project=null, playing=false, playT=0, rafId=0, voiceBuf=null, lastSpokenScene=-1, exported=null;
 
 function loadProject(p, {switchTab=false}={}){
@@ -721,11 +765,11 @@ function loadProject(p, {switchTab=false}={}){
   stopPlay(); R.load(project); project._total=R.total; playT=0; exported=null; $("saveVideoBtn").hidden=true; $("exportBar").style.width="0";
   $("projTitle").textContent=project.title; $("projExample").hidden=!project.example;
   $("musicSel").value=project.music; $("aspectStudio").value=project.aspect;
-  store.set("project",project); renderSceneList(); drawAt(0);
+  renderSceneList(); drawAt(0);
   if(switchTab) showTab("studio");
   return true;
 }
-function relayout(){ R.layout(); project._total=R.total; store.set("project",project); drawAt(Math.min(playT,R.total)); }
+function relayout(){ R.layout(); project._total=R.total; persistOpen(); drawAt(Math.min(playT,R.total)); }
 async function fontsReady(){ try{ await Promise.all([document.fonts.load("800 40px Kanit"),document.fonts.load("600 40px Kanit")]); }catch{} }
 function drawAt(t){ playT=t; R.drawFrame(t); $("scrub").value=Math.round(t/R.total*1000); $("timeLbl").textContent=fmt(t)+" / "+fmt(R.total); highlightScene(t); }
 function highlightScene(t){ const i=t>=R.endStart?-1:R.sceneAt(t); document.querySelectorAll(".scene").forEach((el,k)=>el.classList.toggle("now",k===i)); }
@@ -749,7 +793,7 @@ function stopPlay(){ playing=false; cancelAnimationFrame(rafId); AU.stop(); if("
 $("playBtn").onclick=()=>playing?stopPlay():play();
 $("restartBtn").onclick=()=>{ const was=playing; stopPlay(); drawAt(0); if(was) play(); };
 $("scrub").oninput=e=>{ const was=playing; stopPlay(); drawAt(e.target.value/1000*R.total); if(was) play(); };
-$("musicSel").onchange=e=>{ project.music=e.target.value; store.set("project",project); if(playing){ stopPlay(); play(); } };
+$("musicSel").onchange=e=>{ project.music=e.target.value; persistOpen(); if(playing){ stopPlay(); play(); } };
 $("aspectStudio").onchange=e=>{ project.aspect=e.target.value; stopPlay(); R.load(project); relayout(); };
 $("ttsToggle").onchange=()=>{ if(playing){ stopPlay(); play(); } };
 $("voiceFile").onchange=async e=>{
@@ -771,7 +815,7 @@ function renderSceneList(){
     d.querySelector('[data-k=caption]').value=s.caption; d.querySelector('[data-k=narration]').value=s.narration;
     d.querySelector(".tag").textContent=`ฉาก: ${s.bg} · กล้อง: ${s.camera} · เอฟเฟกต์: ${s.effect} · เสียง: ${s.sfx} · ทรานซิชัน: ${s.transition}${s.voice.emotion?" · อารมณ์เสียง: "+s.voice.emotion:""}`;
     d.querySelector(".no").onclick=()=>{ const was=playing; stopPlay(); drawAt(R.starts[i]+0.5); if(was) play(); };
-    d.querySelectorAll("[data-k]").forEach(inp=>inp.onchange=()=>{ s[inp.dataset.k]=inp.value.slice(inp.dataset.k==="caption"?40:220); if(inp.dataset.k==="narration") s.duration=clamp(Math.max(s.duration,speakSeconds(s.narration)+0.6),1.5,15); relayout(); d.querySelector(".no small").textContent=s.duration.toFixed(1)+" วิ"; });
+    d.querySelectorAll("[data-k]").forEach(inp=>inp.onchange=()=>{ s[inp.dataset.k]=inp.value.slice(0,inp.dataset.k==="caption"?40:220); if(inp.dataset.k==="narration") s.duration=clamp(Math.max(s.duration,speakSeconds(s.narration)+0.6),1.5,15); relayout(); d.querySelector(".no small").textContent=s.duration.toFixed(1)+" วิ"; });
     box.appendChild(d);
   });
 }
@@ -780,7 +824,7 @@ function renderSceneList(){
 function pickMime(){ const c=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"]; return c.find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||""; }
 $("exportBtn").onclick=async()=>{
   if(!project) return; if(!window.MediaRecorder||!videoCv.captureStream){ notice("เบราว์เซอร์นี้สร้างไฟล์วิดีโอไม่ได้ ลองใช้ Chrome หรือ Edge บนคอมพิวเตอร์"); return; }
-  stopPlay(); await fontsReady(); const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
+  stopPlay(); exporting=true; await fontsReady(); const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
   const msg=$("exportMsg"), bar=$("exportBar"); msg.textContent="กำลังเรนเดอร์... อย่าสลับแท็บหรือย่อหน้าต่าง";
   const vstream=videoCv.captureStream(30); const astream=AU.start(project,0,{record:true, voice:voiceBuf});
   const stream=new MediaStream([...vstream.getVideoTracks(),...astream.getAudioTracks()]);
@@ -792,7 +836,7 @@ $("exportBtn").onclick=async()=>{
   R.drawFrame(R.total-0.01); await new Promise(r=>setTimeout(r,300)); rec.stop(); await done; AU.stop(); vstream.getTracks().forEach(t=>t.stop());
   const type=(rec.mimeType||mime||"video/webm").split(";")[0]; const ext=type.includes("mp4")?"mp4":"webm";
   exported={blob:new Blob(parts,{type}), name:(project.title.replace(/[\\/:*?"<>|]+/g,"").slice(0,40)||"clip")+"."+ext};
-  bar.style.width="100%"; btn.disabled=false; $("saveVideoBtn").hidden=false;
+  bar.style.width="100%"; btn.disabled=false; $("saveVideoBtn").hidden=false; exporting=false; stats.exports++; addXP(30);
   msg.textContent=`เสร็จแล้ว! ไฟล์ ${ext.toUpperCase()} ขนาด ${(exported.blob.size/1048576).toFixed(1)} MB`+(ext==="webm"?" (ถ้าแอปไหนไม่รับ .webm ให้เปิดใน CapCut แล้ว export เป็น MP4)":"");
   drawAt(0);
 };
@@ -908,7 +952,7 @@ function drawPixelPerson(c,x,y,P,{pose="sit",t=0,carry=false,dir=1}={}){
     if(carry){ px(c,x+(dir>0?11:-5),y+8,6,7,"#ffffff"); px(c,x+(dir>0?12:-4),y+10,4,1,"#9aa"); px(c,x+(dir>0?12:-4),y+12,4,1,"#9aa"); } }
 }
 function drawOffice(now){
-  const c=ox, t=(now-officeT0)/1000, hr=new Date().getHours(); const night=hr<6||hr>=19, dusk=hr>=17&&hr<19;
+  const c=ox, t=(now-officeT0)/1000, hr=new Date().getHours(), LV=levelOf(stats.xp); const night=hr<6||hr>=19, dusk=hr>=17&&hr<19;
   // wall
   px(c,0,0,320,70,"#ffd9a8"); for(let x=0;x<320;x+=16) px(c,x,0,1,70,"#f5c992"); px(c,0,66,320,4,"#c98f5a");
   // windows
@@ -920,12 +964,20 @@ function drawOffice(now){
   px(c,160,12,22,22,"#2b2140"); px(c,162,14,18,18,"#ffffff"); const m=new Date().getMinutes(), hh=(hr%12+m/60)/12*Math.PI*2, mm=m/60*Math.PI*2;
   c.strokeStyle="#2b2140"; c.lineWidth=1; c.beginPath(); c.moveTo(171,23); c.lineTo(171+Math.sin(hh)*5,23-Math.cos(hh)*5); c.moveTo(171,23); c.lineTo(171+Math.sin(mm)*7,23-Math.cos(mm)*7); c.stroke();
   // floor
-  for(let y=70;y<180;y+=10) for(let x=0;x<320;x+=10) px(c,x,y,10,10,((x+y)/10)%2?"#e8b98a":"#dfa977");
+  for(let y=70;y<180;y+=10) for(let x=0;x<320;x+=10) px(c,x,y,10,10,LV>=10?(((x+y)/10)%2?"#f3cf6b":"#e6b94a"):(((x+y)/10)%2?"#e8b98a":"#dfa977"));
   px(c,0,70,320,2,"#b9875a");
   // decor: plants, coffee machine, rug
   [[2,150],[306,150]].forEach(([x,y])=>{ px(c,x+2,y+14,10,10,"#c0634a"); px(c,x,y+4,4,10,"#3fa860"); px(c,x+5,y,4,14,"#4fbe6c"); px(c,x+10,y+5,4,10,"#3fa860"); });
   px(c,140,44,20,26,"#5b5b70"); px(c,143,47,14,8,"#2b2140"); px(c,145,49,4,2,Math.floor(t*2)%2?"#5fd38d":"#2fa866"); px(c,146,60,8,6,"#ffffff"); if(!reduceMotion){ const k=(t*1.2)%1; px(c,149,58-k*8,1,2,"rgba(255,255,255,"+(1-k)+")"); }
   px(c,60,160,200,16,"#c76b8f"); px(c,64,163,192,10,"#e08aa9");
+  // level unlocks
+  if(LV>=2){ px(c,188,36,26,34,"#7a5236"); [40,51,62].forEach((y,r)=>{ px(c,190,y-3,22,1,"#5a3a24"); for(let k=0;k<5;k++) px(c,191+k*4,y-2-((k+r)%3?6:7),3,(k+r)%3?6:7,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d","#b48cff"][(k+r)%5]); }); }
+  if(LV>=3){ px(c,70,14,20,26,"#ffffff"); px(c,71,15,18,24,"#ff5d8f"); px(c,77,22,2,10,"#fff"); px(c,79,23,2,8,"#fff"); px(c,81,25,2,4,"#fff"); }
+  if(LV>=4){ const on=reduceMotion||Math.floor(t*1.5)%4!==0; px(c,188,8,26,11,"#2b2140"); c.fillStyle=on?"#ff4d6d":"#6b2737"; c.font="6px monospace"; c.fillText("ON AIR",189,16); }
+  if(LV>=5){ px(c,24,160,10,3,"#7a5236"); px(c,26,150,6,10,"#ffd23f"); px(c,23,146,12,5,"#ffd23f"); px(c,22,147,2,3,"#e6a817"); px(c,34,147,2,3,"#e6a817"); px(c,28,152,2,2,"#fff7b0"); }
+  if(LV>=6){ px(c,268,148,30,22,"#2b2140"); px(c,270,150,26,18,"#6bc7ff"); px(c,270,164,26,4,"#e8d18a"); const fx=270+((t*8)%22); px(c,fx,156,4,3,"#ff8a4d"); px(c,fx-1,157,1,1,"#ff8a4d"); px(c,284-((t*5)%12),160,3,2,"#ffd23f"); if(!reduceMotion) px(c,276,150+((t*6)%14),1,1,"#e6f7ff"); }
+  if(LV>=8){ const cx=((t*10)%380)-30; px(c,cx,170,10,6,"#ffb347"); px(c,cx+8,167,5,5,"#ffb347"); px(c,cx+8,166,1,2,"#ffb347"); px(c,cx+12,166,1,2,"#ffb347"); px(c,cx-2,168+(Math.floor(t*4)%2),3,2,"#ffb347"); px(c,cx+10,169,1,1,"#2b2140"); }
+  if(LV>=9){ px(c,272,8,44,6,"#6bf2ff"); if(!reduceMotion){ const k=Math.floor(t*4)%44; px(c,272+k,7,2,8,"#ffffff"); } }
   // desks + people
   const walkingIds=new Set(walkers.map(w=>w.who));
   EMPLOYEES.forEach((e,i)=>{ const d=DESKS[i], st=status[e.id];
@@ -935,6 +987,7 @@ function drawOffice(now){
     px(c,-24,0,48,6,"#8b5a2b"); px(c,-24,6,48,2,"#6d4421"); px(c,-22,8,3,10,"#6d4421"); px(c,19,8,3,10,"#6d4421");
     px(c,-10,-11,20,11,"#2d2d3a"); px(c,-9,-10,18,9,st==="working"?(Math.floor(t*4)%2?"#8ff0ff":"#bff7ff"):"#3b4a6b"); px(c,-2,-1,4,1,"#555");
     px(c,13,-4,4,4,"#ffffff"); px(c,17,-3,1,2,"#ffffff"); px(c,-21,-3,8,3,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d"][i]);
+    if(LV>=7){ px(c,-21,-14,1,11,"#c9a227"); px(c,-23,-16,6,3,"#ffd23f"); c.fillStyle="rgba(255,230,120,.25)"; c.fillRect(-26,-13,12,10); }
     if(st==="working"){ px(c,4,-34,22,11,"#ffffff"); px(c,6,-23,3,2,"#ffffff"); const k=Math.floor(t*3)%4; for(let j=0;j<3;j++) px(c,8+j*6,-30,3,3,j<k?"#2b2140":"#d8d0dc"); }
     else if(st==="done"){ px(c,4,-34,12,11,"#2fa866"); px(c,7,-29,2,2,"#fff"); px(c,9,-28,2,2,"#fff"); px(c,11,-31,2,3,"#fff"); }
     else if(st==="error"){ px(c,4,-34,12,11,"#d9434a"); px(c,9,-32,2,5,"#fff"); px(c,9,-26,2,2,"#fff"); }
@@ -982,7 +1035,7 @@ async function copyText(text){ try{ await navigator.clipboard.writeText(text); n
 const msgsEl=$("msgs"), input=$("input"), sendBtn=$("sendBtn");
 function addTools(div,text,who){ const tools=document.createElement("div"); tools.className="tools"; const btn=(label,fn)=>{ const b=document.createElement("button"); b.className="btn small"; b.textContent=label; b.onclick=fn; tools.appendChild(b); };
   const j=extractJSON(text);
-  if(j&&Array.isArray(j.scenes)) btn("🎞️ เปิดในห้องตัดต่อ",()=>{ j.example=false; loadProject(j,{switchTab:true}); });
+  if(j&&Array.isArray(j.scenes)) btn("🎞️ เปิดในห้องตัดต่อ (บันทึกลงคลัง)",()=>{ let p; try{ p=normalizeProject(j); }catch(e){ notice("เปิดไม่ได้: "+e.message); return; } const r=newRecFromProject(p); openRec(r.id,{switchTab:true}); });
   if(j&&Array.isArray(j.lines)&&project) btn("🎙️ ใช้บทพากย์นี้กับคลิป",()=>{ applyVoice(j); showTab("studio"); });
   btn("📋 คัดลอก",()=>copyText(text));
   EMPLOYEES.filter(x=>x.id!==who).forEach(o=>btn(`➡️ ส่งให้${o.name}`,()=>{ select(o.id); input.value=`งานจาก${byId[who].name}:\n\n${text}\n\nช่วยต่องานนี้ตามหน้าที่ของเธอหน่อย`; input.focus(); }));
@@ -995,8 +1048,8 @@ function renderChat(){ const e=byId[current]; avatar($("chatAvatar"),e); $("chat
   const q=$("quick"); q.innerHTML=""; e.quick.forEach(s=>{ const b=document.createElement("button"); b.className="btn small"; b.textContent=s; b.onclick=()=>{ input.value=s; input.focus(); }; q.appendChild(b); });
   sendBtn.disabled=status[e.id]==="working"; }
 function select(id){ current=id; store.set("current",id); renderTeam(); renderChat(); }
-function showTab(which){ const chat=which==="chat"; $("tabChat").setAttribute("aria-selected",String(chat)); $("tabStudio").setAttribute("aria-selected",String(!chat)); $("paneChat").hidden=!chat; $("paneStudio").hidden=chat; if(!chat&&project) drawAt(playT); }
-$("tabChat").onclick=()=>showTab("chat"); $("tabStudio").onclick=()=>showTab("studio");
+function showTab(which){ [["chat","tabChat","paneChat"],["studio","tabStudio","paneStudio"],["lib","tabLib","paneLib"]].forEach(([k,t,pn])=>{ $(t).setAttribute("aria-selected",String(k===which)); $(pn).hidden=k!==which; }); if(which==="studio"&&project) drawAt(playT); if(which==="lib") renderLibrary(); }
+$("tabChat").onclick=()=>showTab("chat"); $("tabStudio").onclick=()=>showTab("studio"); $("tabLib").onclick=()=>showTab("lib");
 
 /* =========================================================
    AI layer: Claude in the viewer, or the Claude API with a key
@@ -1039,7 +1092,7 @@ function friendlyError(err){
   return err?.message||String(err);
 }
 async function ask(id,userText){
-  const e=byId[id]; chats[id].push({role:"user",content:userText}); store.set("chats",chats);
+  const e=byId[id]; chats[id].push({role:"user",content:userText}); saveChats(id);
   const task=addTask(id,userText); setStatus(id,"working"); if(current===id) renderChat();
   let live=null; const ensureLive=()=>{ if(current!==id) return null; if(!live||!live.isConnected){ live=document.createElement("div"); live.className="msg ai"; msgsEl.appendChild(live); } return live; };
   const l0=ensureLive(); if(l0) l0.innerHTML=`<span class="thinking">${esc(e.name)} กำลังคิด</span>`;
@@ -1047,49 +1100,161 @@ async function ask(id,userText){
     let hist=chats[id].slice(-13); if(hist[0].role!=="user") hist=hist.slice(1);
     let text=await callClaude(e,hist,t=>{ const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(t)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; } });
     if(!text.trim()) text="(ไม่มีข้อความตอบกลับ)";
-    chats[id].push({role:"assistant",content:text}); store.set("chats",chats); finishTask(task,"done"); setStatus(id,"done"); if(current===id) renderChat(); return text;
-  }catch(err){ chats[id].pop(); store.set("chats",chats); finishTask(task,"error"); setStatus(id,"error"); if(current===id){ renderChat(); bubble("sys","⚠️ "+friendlyError(err)); input.value=userText; } throw err; }
+    chats[id].push({role:"assistant",content:text}); saveChats(id); finishTask(task,"done"); setStatus(id,"done"); stats.done[id]=(stats.done[id]||0)+1; addXP(10); if(current===id) renderChat(); return text;
+  }catch(err){ chats[id].pop(); saveChats(id); finishTask(task,"error"); setStatus(id,"error"); if(current===id){ renderChat(); bubble("sys","⚠️ "+friendlyError(err)); input.value=userText; } throw err; }
 }
 async function send(){ const text=input.value.trim(); if(!text||status[current]==="working") return; input.value=""; try{ await ask(current,text); }catch{} }
 sendBtn.onclick=send;
 input.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&!ev.shiftKey&&!ev.isComposing){ ev.preventDefault(); send(); } });
 const clearBtn=$("clearBtn");
 clearBtn.onclick=()=>{ if(status[current]==="working") return; if(clearBtn.dataset.armed!=="1"){ clearBtn.dataset.armed="1"; clearBtn.textContent="กดอีกครั้งเพื่อยืนยัน"; setTimeout(()=>{ clearBtn.dataset.armed=""; clearBtn.textContent="🧹 ล้างแชต"; },3000); return; }
-  clearBtn.dataset.armed=""; clearBtn.textContent="🧹 ล้างแชต"; chats[current]=[]; store.set("chats",chats); setStatus(current,"idle"); renderChat(); };
+  clearBtn.dataset.armed=""; clearBtn.textContent="🧹 ล้างแชต"; chats[current]=[]; saveChats(current); setStatus(current,"idle"); renderChat(); };
 
-function applyVoice(j){ if(!project) return; (j.lines||[]).forEach(l=>{ const s=project.scenes[(Number(l.scene)||0)-1]; if(!s) return; if(typeof l.text==="string"&&l.text.trim()){ s.narration=l.text.trim().slice(0,220); s.duration=clamp(Math.max(s.duration,speakSeconds(s.narration)+0.6),1.5,15); }
-  s.voice={emotion:str(l.emotion,20),rate:num(l.rate,0.6,1.6,1),pitch:num(l.pitch,0.5,1.8,1)}; }); relayout(); renderSceneList(); notice("ใส่บทพากย์ใหม่ลงคลิปแล้ว",3000); }
+function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return; if(typeof l.text==="string"&&l.text.trim()){ s.narration=l.text.trim().slice(0,220); s.duration=clamp(Math.max(s.duration,speakSeconds(s.narration)+0.6),1.5,15); }
+  s.voice={emotion:str(l.emotion,20),rate:num(l.rate,0.6,1.6,1),pitch:num(l.pitch,0.5,1.8,1)}; }); return p; }
+function applyVoice(j){ if(!project) return; applyVoiceTo(project,j); relayout(); renderSceneList(); notice("ใส่บทพากย์ใหม่ลงคลิปแล้ว",3000); }
 
-/* Whole-team pipeline */
-function stepState(id,s){ document.querySelector(`.step[data-s="${id}"]`).className="step "+s; }
-$("makeBtn").onclick=async()=>{
-  const topic=$("topic").value.trim(); if(!topic){ $("topic").focus(); notice("พิมพ์หัวข้อคลิปก่อนนะ",3000); return; }
+/* =========================================================
+   Progress: clip library, resumable pipeline, stats, sync
+   ========================================================= */
+const STEPS=["creative","animator","editor","voice"];
+const STEP_NAME={creative:"เขียนบท",animator:"สตอรี่บอร์ด",editor:"ตัดต่อ",voice:"กำกับเสียง"};
+let recs=store.get("recs",{});                 // clip records by id
+let tomb=new Set(store.get("tomb",[]));        // ids deleted on this device
+let stats=Object.assign({xp:0,clips:0,exports:0,done:{}},store.get("stats",{}));
+let chatsAt=store.get("chatsAt",{});
+let runningRec=null, exporting=false;
+const Sync={mode:"local",db:null,uid:null,pending:new Map(),busy:new Set(),timers:{}};
+function syncLabel(t){ $("syncLbl").textContent=t; }
+function saveLocal(){ store.set("recs",recs); store.set("stats",stats); store.set("tomb",[...tomb].slice(-200)); }
+const stateDoc=()=>Sync.db.doc(`data/users/${Sync.uid}/state`);
+function queueWrite(key,refFn,dataFn){ if(Sync.mode!=="cloud") return; Sync.pending.set(key,{refFn,dataFn}); clearTimeout(Sync.timers[key]); Sync.timers[key]=setTimeout(()=>flush(key),700); syncLabel("☁️ กำลังบันทึก..."); }
+async function flush(key,retried=false){
+  if(Sync.busy.has(key)) return; const job=Sync.pending.get(key); if(!job) return; Sync.pending.delete(key); Sync.busy.add(key);
+  try{ const d=job.dataFn(); if(d===null) await job.refFn().delete(); else await job.refFn().set(d); }
+  catch(e){ if(e?.code==="unavailable"&&!retried){ Sync.busy.delete(key); if(!Sync.pending.has(key)) Sync.pending.set(key,job); setTimeout(()=>flush(key,true),1200+Math.random()*1500); return; }
+    if(e?.code==="quota_exceeded") notice("พื้นที่บันทึกออนไลน์เต็มแล้ว ลบคลิปเก่าในคลังออกบ้างนะ",9000);
+    else if(e?.code==="revoked"){ Sync.mode="local"; syncLabel("💾 บันทึกในเครื่องนี้"); }
+    else syncLabel("⚠️ ซิงก์ไม่สำเร็จ (บันทึกในเครื่องแล้ว)"); }
+  finally{ Sync.busy.delete(key); if(Sync.pending.has(key)) flush(key); else if(!Sync.pending.size&&!Sync.busy.size&&Sync.mode==="cloud") syncLabel("☁️ ซิงก์แล้ว"); }
+}
+const clone=o=>JSON.parse(JSON.stringify(o));
+function saveRec(r,{keepTime=false}={}){ if(!keepTime) r.updatedAt=Date.now(); recs[r.id]=r; saveLocal(); queueWrite("p:"+r.id,()=>stateDoc().collection("projects").doc(r.id),()=>recs[r.id]?clone(recs[r.id]):null); renderLibrary(); renderResume(); }
+function deleteRec(id){ delete recs[id]; tomb.add(id); if(openRecId===id){ openRecId=null; store.set("openRec",null); } saveLocal(); queueWrite("p:"+id,()=>stateDoc().collection("projects").doc(id),()=>null); renderLibrary(); renderResume(); }
+function saveStats(){ saveLocal(); queueWrite("stats",()=>stateDoc(),()=>({stats:clone(stats)})); renderLevel(); renderLibrary(); }
+function saveChats(id){ chats[id]=chats[id].slice(-60); chatsAt[id]=Date.now(); store.set("chats",chats); store.set("chatsAt",chatsAt); queueWrite("c:"+id,()=>stateDoc().collection("chats").doc(id),()=>({messages:clone(chats[id]),updatedAt:chatsAt[id]})); }
+let persistT=0;
+function persistOpen(){ if(!project||!openRecId||!recs[openRecId]) return; clearTimeout(persistT); persistT=setTimeout(()=>{ const r=recs[openRecId]; if(!r) return; const p=clone(project); delete p._total; r.project=p; r.title=p.title; saveRec(r); },600); }
+
+/* Levels */
+const LEVELS=[0,100,250,450,700,1000,1400,1900,2500,3200];
+const UNLOCKS=["ออฟฟิศเริ่มต้น","ชั้นหนังสือ","โปสเตอร์ช่อง","ป้ายไฟ ON AIR","ถ้วยรางวัล","ตู้ปลา","โคมไฟตั้งโต๊ะสีทอง","แมวประจำออฟฟิศ","ป้ายเพชร","พื้นทองระดับตำนาน"];
+const levelOf=xp=>{ let l=1; LEVELS.forEach((v,i)=>{ if(xp>=v) l=i+1; }); return l; };
+function addXP(n){ const before=levelOf(stats.xp); stats.xp+=n; saveStats(); const after=levelOf(stats.xp); if(after>before) notice(`🎉 ออฟฟิศเลเวลอัปเป็น Lv.${after}! ปลดล็อก: ${UNLOCKS[after-1]}`,8000); }
+function renderLevel(){ const l=levelOf(stats.xp), lo=LEVELS[l-1], hi=LEVELS[l]??null; const pct=hi?((stats.xp-lo)/(hi-lo))*100:100;
+  const el=$("lvl"); el.innerHTML=`<b>Lv.${l}</b><span class="xp" aria-hidden="true"><i style="width:${pct.toFixed(0)}%"></i></span><span>${stats.xp} XP</span>`; el.title=hi?`อีก ${hi-stats.xp} XP ถึง Lv.${l+1} (${UNLOCKS[l]})`:"เลเวลสูงสุดแล้ว"; }
+
+/* Library */
+function recState(r){ const done=STEPS.filter(s=>r.out?.[s]!=null).length; if(r.manual||done===4) return {k:"done",t:"เสร็จแล้ว"};
+  if(runningRec===r.id) return {k:"run",t:"กำลังทำ"}; if(r.runningAt&&Date.now()-r.runningAt<6*60e3) return {k:"maybe",t:"อาจกำลังทำอยู่ในแท็บ/เครื่องอื่น"};
+  const nx=STEPS.find(s=>r.out?.[s]==null); return {k:"stuck",t:`ค้างที่ขั้น "${STEP_NAME[nx]}"`+(r.error?.msg?` (${r.error.msg})`:"")}; }
+const fmtDate=t=>t?new Date(t).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+function renderLibrary(){
+  const g=$("statGrid"); if(!g) return;
+  const l=levelOf(stats.xp);
+  g.innerHTML=""; [[`Lv.${l}`,"เลเวลออฟฟิศ"],[stats.clips,"คลิปที่ทีมทำเสร็จ"],[stats.exports,"ไฟล์วิดีโอที่สร้าง"],[Object.values(stats.done).reduce((a,b)=>a+b,0),"งานที่พนักงานส่ง"]].forEach(([v,lbl])=>{ const d=document.createElement("div"); d.className="stat"; d.innerHTML=`<b></b><span></span>`; d.querySelector("b").textContent=v; d.querySelector("span").textContent=lbl; g.appendChild(d); });
+  $("unlocks").textContent=`ปลดล็อกแล้ว: ${UNLOCKS.slice(1,l).join(", ")||"ยังไม่มี"}`+(LEVELS[l]!=null?` · ถัดไป (Lv.${l+1}): ${UNLOCKS[l]}`:"")+` · งานของแต่ละคน: `+EMPLOYEES.map(e=>`${e.name} ${stats.done[e.id]||0}`).join(", ");
+  const list=$("libList"); list.innerHTML="";
+  const arr=Object.values(recs).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  if(!arr.length){ list.innerHTML=`<div class="empty">ยังไม่มีคลิปในคลัง พิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" คลิปจะถูกบันทึกที่นี่อัตโนมัติ</div>`; }
+  arr.forEach(r=>{ const st=recState(r); const d=document.createElement("div"); d.className="rec"+(r.id===openRecId?" open":"");
+    d.innerHTML=`<div class="top"><b></b><span class="pill ${st.k==="done"?"done":st.k==="stuck"?"error":"working"}"></span></div><div class="meta"></div><div class="dots"></div><div class="tools"></div>`;
+    d.querySelector("b").textContent=r.title||r.topic||"คลิป"; d.querySelector(".pill").textContent=st.k==="done"?"เสร็จแล้ว":st.k==="stuck"?"ค้าง":"กำลังทำ";
+    d.querySelector(".meta").textContent=`${r.topic&&r.topic!==r.title?"หัวข้อ: "+r.topic+" · ":""}${r.aspect||""} · แก้ล่าสุด ${fmtDate(r.updatedAt)}`+(st.k!=="done"?" · "+st.t:"");
+    const dots=d.querySelector(".dots"); if(!r.manual) STEPS.forEach((s,i)=>{ const sp=document.createElement("span"); sp.textContent=`${i+1} ${STEP_NAME[s]}`; if(r.out?.[s]!=null) sp.className="ok"; else if(r.error?.stage===s) sp.className="bad"; dots.appendChild(sp); });
+    const tools=d.querySelector(".tools"); const btn=(label,fn,cls="btn small")=>{ const b=document.createElement("button"); b.className=cls; b.textContent=label; b.onclick=fn; tools.appendChild(b); return b; };
+    if(r.project) btn("🎞️ เปิด",()=>openRec(r.id,{switchTab:true}));
+    if(st.k!=="done") btn("▶ ทำต่อ",()=>runPipeline(r),"btn small primary").disabled=!!runningRec;
+    const del=btn("🗑️ ลบ",()=>{ if(del.dataset.armed!=="1"){ del.dataset.armed="1"; del.textContent="กดอีกครั้งเพื่อลบ"; setTimeout(()=>{ if(del.isConnected){ del.dataset.armed=""; del.textContent="🗑️ ลบ"; } },3000); return; } deleteRec(r.id); });
+    if(runningRec===r.id) del.disabled=true;
+    list.appendChild(d); });
+  $("syncNote").textContent=Sync.mode==="cloud"?"คลิป สถิติ และแชตซิงก์กับบัญชี claude.ai ของคุณ เปิดลิงก์นี้จากมือถือหรือคอมเครื่องอื่นก็เห็นงานเดียวกัน (ไฟล์วิดีโอและเสียงที่อัปโหลดไม่ซิงก์ ต้องสร้าง/อัปโหลดใหม่ในเครื่องนั้น)"
+    :(inViewer?"ตอนนี้บันทึกในเครื่องนี้เท่านั้น (เชื่อมระบบซิงก์ไม่ได้ ลองโหลดหน้าใหม่)":"เวอร์ชันไฟล์นี้บันทึกในเบราว์เซอร์เครื่องนี้ ถ้าอยากใช้หลายเครื่อง ให้เปิดผ่านลิงก์ claude.ai");
+}
+function renderResume(){ const stuck=Object.values(recs).filter(r=>recState(r).k==="stuck"||recState(r).k==="maybe").sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+  const row=$("resumeRow"); if(!stuck||runningRec){ row.hidden=true; return; } row.hidden=false; $("resumeInfo").textContent=`"${stuck.title||stuck.topic}" ${recState(stuck).t}`; $("resumeBtn").onclick=()=>runPipeline(stuck); }
+function showSteps(r){ STEPS.forEach(s=>stepState(s, r.out?.[s]!=null?"done":(r.error?.stage===s?"error":""))); }
+function openRec(id,{switchTab=false}={}){ const r=recs[id]; if(!r?.project) return; if(loadProject(r.project,{switchTab})){ openRecId=id; store.set("openRec",id); renderLibrary(); } }
+function newRecFromProject(pj){ const id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); const p=clone(pj); delete p._total; p.example=false; const r={id,topic:"",title:p.title||"คลิปจากแชต",aspect:p.aspect||"9:16",createdAt:Date.now(),out:{},manual:true,project:p}; saveRec(r); return r; }
+
+/* Resumable whole-team pipeline */
+function stepState(id,s){ if(!id) return; document.querySelector(`.step[data-s="${id}"]`).className="step "+s; }
+const STEP_FN={
+  async creative(r){ r.out.creative=await ask("creative",`เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก`); },
+  async animator(r){ let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก:\n\n${r.out.creative}`);
+    let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
+    r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; },
+  async editor(r){ const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
+    let f; try{ f=normalizeProject({...cut,aspect:r.aspect}); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
+    r.out.editor=f; r.project=clone(f); r.title=f.title; },
+  async voice(r){ const lines=r.project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
+    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก:\n\n${lines}`));
+    r.out.voice=vj?.lines?{lines:vj.lines}:{lines:[]}; r.project=applyVoiceTo(r.project,r.out.voice); },
+};
+async function runPipeline(r){
+  if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(EMPLOYEES.some(e=>status[e.id]==="working")){ notice("มีพนักงานกำลังทำงานอยู่ รอให้เสร็จก่อนนะ"); return; }
   if(!inViewer&&!settings().key){ openSettings(); return; }
-  AU.ensure();
-  const btn=$("makeBtn"); btn.disabled=true; ["creative","animator","editor","voice"].forEach(s=>stepState(s,""));
-  const aspect=$("aspect").value; let stage="creative";
+  AU.ensure(); runningRec=r.id; r.out ||= {}; r.error=null; r.runningAt=Date.now(); saveRec(r); showSteps(r);
+  $("makeBtn").disabled=true; let stage=null;
   try{
-    select("creative"); showTab("chat"); stepState("creative","working");
-    const script=await ask("creative",`เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${topic}" ความยาว 35-50 วินาที 5-7 ฉาก`);
-    stepState("creative","done"); handoff("creative","animator");
-    stage="animator"; stepState("animator","working"); select("animator");
-    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${aspect} ให้ครบทุกฉาก:\n\n${script}`);
-    let board=extractJSON(ans);
-    if(!board?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); board=extractJSON(ans); }
-    board=normalizeProject({...board,aspect}); stepState("animator","done"); handoff("animator","editor");
-    stage="editor"; stepState("editor","working"); select("editor");
-    let cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา:\n\n\`\`\`json\n${JSON.stringify(board)}\n\`\`\``));
-    let final; try{ final=normalizeProject({...cut,aspect}); }catch{ final=board; notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
-    stepState("editor","done"); loadProject(final); handoff("editor","voice");
-    stage="voice"; stepState("voice","working"); select("voice");
-    const lines=project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
-    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก:\n\n${lines}`));
-    if(vj?.lines) applyVoice(vj); stepState("voice","done");
-    showTab("studio"); notice("ทีมทำคลิปเสร็จแล้ว! กด ▶ เล่น เพื่อดู แล้วกด 🎬 สร้างไฟล์วิดีโอ",8000);
-  }catch(err){ stepState(stage,"error"); notice("งานสะดุดตรงขั้นตอนของ"+byId[stage].name+": "+friendlyError(err),9000); }
-  finally{ btn.disabled=false; }
+    for(const st of STEPS){ if(r.out[st]!=null) continue; stage=st; stepState(st,"working"); select(st); showTab("chat");
+      await STEP_FN[st](r); r.runningAt=Date.now(); saveRec(r); stepState(st,"done");
+      const nx=STEPS[STEPS.indexOf(st)+1]; if(nx&&r.out[nx]==null) handoff(st,nx); }
+    r.runningAt=0; r.finishedAt=Date.now(); runningRec=null; saveRec(r); stats.clips++; addXP(50);
+    openRec(r.id,{switchTab:true}); notice("ทีมทำคลิปเสร็จแล้ว! บันทึกลงคลังคลิปแล้ว กด ▶ เล่น เพื่อดู แล้วกด 🎬 สร้างไฟล์วิดีโอ",8000);
+  }catch(err){ r.runningAt=0; r.error={stage,msg:friendlyError(err)}; runningRec=null; saveRec(r); stepState(stage,"error"); notice(`งานสะดุดที่ขั้น "${STEP_NAME[stage]||"?"}": ${friendlyError(err)} ความคืบหน้าบันทึกไว้แล้ว กด "▶ ทำต่อ" ได้เลย`,10000); }
+  finally{ runningRec=null; $("makeBtn").disabled=false; renderLibrary(); renderResume(); }
+}
+$("makeBtn").onclick=()=>{
+  const topic=$("topic").value.trim(); if(!topic){ $("topic").focus(); notice("พิมพ์หัวข้อคลิปก่อนนะ",3000); return; }
+  if(runningRec){ notice("ทีมกำลังทำคลิปอื่นอยู่ รอให้เสร็จก่อนนะ"); return; }
+  const r={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),topic,title:topic,aspect:$("aspect").value,createdAt:Date.now(),out:{}};
+  saveRec(r); $("topic").value=""; runPipeline(r);
 };
+$("demoBtn").onclick=()=>{ openRecId=null; store.set("openRec",null); loadProject(DEMO,{switchTab:true}); renderLibrary(); };
+
+/* Cloud sync through the claude.ai viewer */
+async function initCloud(){
+  if(!inViewer){ syncLabel("💾 บันทึกในเครื่องนี้"); return; }
+  syncLabel("☁️ กำลังเชื่อม...");
+  let db=null,user=null,uid=null;
+  try{ [db,user]=await Promise.all([claude.use("db"),claude.use("user")]); uid=user?await user.id():null; }catch{}
+  if(!db||!uid){ syncLabel("💾 บันทึกในเครื่องนี้"); renderLibrary(); return; }
+  Sync.db=db; Sync.uid=uid; Sync.mode="cloud";
+  const timer=setTimeout(()=>{ if(!gotProjects) syncLabel("💾 ออฟไลน์ (บันทึกในเครื่องแล้ว)"); },10000);
+  let gotProjects=false, firstConfirmed=true;
+  const fail=e=>{ clearTimeout(timer); if(e?.code==="revoked"||e?.code==="not_granted"){ Sync.mode="local"; } syncLabel("💾 บันทึกในเครื่องนี้ (ซิงก์ไม่ได้)"); renderLibrary(); };
+  stateDoc().onSnapshot(snap=>{ const d=snap.data(); const r=d?.stats; if(!r) { if(!snap.metadata.fromCache&&stats.xp>0) saveStats(); return; }
+    let ch=false, mine=false; for(const k of ["xp","clips","exports"]){ if((r[k]||0)>(stats[k]||0)){ stats[k]=r[k]; ch=true; } else if((stats[k]||0)>(r[k]||0)) mine=true; }
+    for(const k of Object.keys(r.done||{})) if((r.done[k]||0)>(stats.done[k]||0)){ stats.done[k]=r.done[k]; ch=true; }
+    for(const k of Object.keys(stats.done)) if((stats.done[k]||0)>(r.done?.[k]||0)) mine=true;
+    if(ch){ saveLocal(); renderLevel(); renderLibrary(); } if(mine&&!snap.metadata.fromCache) saveStats(); }, fail);
+  stateDoc().collection("projects").onSnapshot(qs=>{
+    clearTimeout(timer); gotProjects=true; let ch=false; const seen=new Set();
+    qs.docs.forEach(d=>{ seen.add(d.id); if(tomb.has(d.id)) return; const r=d.data(), l=recs[d.id];
+      if(!l||(r.updatedAt||0)>(l.updatedAt||0)){ recs[d.id]=clone(r); ch=true; if(d.id===openRecId&&!playing&&!exporting&&r.project) loadProject(r.project); } });
+    if(!qs.metadata.fromCache){
+      if(firstConfirmed){ firstConfirmed=false; Object.keys(recs).forEach(id=>{ if(!seen.has(id)) saveRec(recs[id],{keepTime:true}); }); tomb.forEach(id=>{ if(seen.has(id)) queueWrite("p:"+id,()=>stateDoc().collection("projects").doc(id),()=>null); }); }
+      else qs.docChanges().forEach(c=>{ if(c.type==="removed"&&!Sync.pending.has("p:"+c.doc.id)&&!Sync.busy.has("p:"+c.doc.id)&&recs[c.doc.id]&&runningRec!==c.doc.id){ delete recs[c.doc.id]; ch=true; } });
+      if(!Sync.pending.size&&!Sync.busy.size) syncLabel("☁️ ซิงก์แล้ว");
+    }
+    if(ch){ saveLocal(); renderLibrary(); renderResume(); }
+  }, fail);
+  stateDoc().collection("chats").onSnapshot(qs=>{ let ch=false; qs.docs.forEach(d=>{ const r=d.data(); if(!byId[d.id]||!Array.isArray(r.messages)) return; if((r.updatedAt||0)>(chatsAt[d.id]||0)&&status[d.id]!=="working"){ chats[d.id]=r.messages.filter(m=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string"); chatsAt[d.id]=r.updatedAt; ch=true; } });
+    if(ch){ store.set("chats",chats); store.set("chatsAt",chatsAt); renderChat(); } }, ()=>{});
+  renderLibrary();
+}
 
 /* Settings & theme */
 const dlg=$("settings");
@@ -1103,7 +1268,10 @@ $("themeBtn").onclick=()=>{ const cur=document.documentElement.dataset.theme; co
 /* Boot */
 if("speechSynthesis" in window) speechSynthesis.getVoices();
 renderTeam(); renderTasks(); renderChat(); requestAnimationFrame(officeLoop);
-loadProject(store.get("project",null)||DEMO);
+renderLevel();
+if(openRecId&&recs[openRecId]?.project) loadProject(recs[openRecId].project); else { openRecId=null; loadProject(DEMO); }
+Object.values(recs).forEach(r=>{ if(r.runningAt&&Date.now()-r.runningAt>6*60e3){ r.runningAt=0; } });
+renderLibrary(); renderResume(); initCloud();
 fontsReady().then(()=>{ if(project){ R.layout(); project._total=R.total; drawAt(playT); } });
 </script>
 </body>
