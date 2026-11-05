@@ -312,6 +312,16 @@ header .btn,header .lvl{color:var(--ink)}
 .empty{border:3px dashed var(--muted);border-radius:8px;padding:14px;color:var(--muted);text-align:center}
 .example{font-size:13px;background:var(--warn);color:#1b1622;border-radius:999px;padding:0 8px;border:2px solid var(--line)}
 
+.recov{position:fixed;inset:0;z-index:90;background:#000;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+.recov[hidden]{display:none!important}
+#recCv{display:block}
+.recui,.recend{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;background:var(--panel);color:var(--ink);border:4px solid var(--line);border-radius:16px;box-shadow:8px 8px 0 var(--line);padding:16px 18px;font-size:15px}
+.recui h2{margin:0 0 6px;font-family:var(--display)}
+.recui ol{padding-left:20px;margin:8px 0}
+.recui li{margin:4px 0}
+.recui .row,.recend .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.recend{text-align:center;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:10px 14px}
+.recx{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));right:calc(8px + env(safe-area-inset-right,0px));width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:rgba(255,255,255,.55);font-size:22px;cursor:pointer}
 dialog{border:4px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:8px 8px 0 var(--line);max-width:520px;width:calc(100% - 32px);padding:16px;border-radius:10px}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog label{display:block;margin:10px 0 4px;font-weight:bold}
@@ -473,8 +483,10 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <button class="btn primary" id="exportBtn">🎬 สร้างไฟล์วิดีโอ</button>
             <button class="btn" id="saveVideoBtn" hidden>⬇️ บันทึกวิดีโอ</button>
+            <button class="btn" id="recModeBtn">📱 โหมดอัดหน้าจอ (มีเสียงพากย์)</button>
             <span id="exportMsg" style="font-size:14px">เรนเดอร์ตามเวลาจริง: คลิป 40 วินาทีใช้เวลาประมาณ 40 วินาที อย่าสลับแท็บระหว่างเรนเดอร์</span>
           </div>
+          <small class="hint">ไฟล์จาก "สร้างไฟล์วิดีโอ" มีเพลงและเสียงเอฟเฟกต์ แต่เสียงพากย์สังเคราะห์ใส่ลงไฟล์ไม่ได้ (เบราว์เซอร์ไม่อนุญาต) ถ้าอยากได้เสียงพากย์ไปลง IG/TikTok ใช้ "โหมดอัดหน้าจอ" หรืออัปโหลดเสียงที่อัดเองด้านบน</small>
           <div class="bar" aria-hidden="true"><i id="exportBar"></i></div>
         </div>
         <div class="scenes" id="sceneList"></div>
@@ -483,6 +495,22 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
   </section>
 </main>
 
+<div class="recov" id="recOv" hidden role="dialog" aria-label="โหมดอัดหน้าจอ">
+  <canvas id="recCv" width="720" height="1280"></canvas>
+  <div class="recui" id="recUi">
+    <h2>📱 โหมดอัดหน้าจอ</h2>
+    <p>คลิปจะเล่นเต็มจอพร้อมเสียงพากย์ เพลง และเสียงเอฟเฟกต์ ภาพจะรอให้เสียงพากย์พูดจบก่อนค่อยไปฉากถัดไป</p>
+    <ol>
+      <li><b>iPad/iPhone:</b> ปัดเปิดศูนย์ควบคุม แล้วกดปุ่ม ⏺ บันทึกหน้าจอ (รอนับถอยหลัง 3 วินาที) <b>คอม:</b> Windows กด Win+Alt+R, Mac กด Cmd+Shift+5</li>
+      <li>กลับมาแตะ "▶ เริ่มเล่น"</li>
+      <li>จบคลิปแล้วหยุดอัด เปิดแอปรูปภาพ > แก้ไข > ครอบตัด ให้เหลือแค่ภาพคลิป แล้วโพสต์ลง IG/TikTok ได้เลย</li>
+    </ol>
+    <p class="hint">เปิดเสียงเครื่อง และปิดโหมดเงียบก่อน ถ้าไม่อยากให้เสียงรอบข้างติดมา ให้ปิดไมโครโฟนในปุ่มบันทึกหน้าจอ (กดค้างที่ปุ่ม)</p>
+    <div class="row"><button class="btn primary big" id="recGo">▶ เริ่มเล่น</button><button class="btn" id="recClose">ปิด</button></div>
+  </div>
+  <div class="recend" id="recEnd" hidden><b>✅ จบคลิปแล้ว หยุดอัดหน้าจอได้เลย</b><div class="row"><button class="btn primary" id="recAgain">▶ เล่นอีกครั้ง</button><button class="btn" id="recDone">ปิด</button></div></div>
+  <button class="recx" id="recX" aria-label="ปิดโหมดอัดหน้าจอ" hidden>×</button>
+</div>
 <dialog id="settings">
   <h2 style="margin-top:0;font-family:var(--display)">⚙️ ตั้งค่าออฟฟิศ</h2>
   <div id="keyBox">
@@ -1039,15 +1067,15 @@ class AudioEngine{
   constructor(){ this.ac=null; }
   ensure(){ if(!this.ac){ const AC=window.AudioContext||window.webkitAudioContext; this.ac=new AC(); this.noise=this.makeNoise(); } if(this.ac.state==="suspended") this.ac.resume(); return this.ac; }
   makeNoise(){ const ac=this.ac, b=ac.createBuffer(1,ac.sampleRate,ac.sampleRate), d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; return b; }
-  start(project, fromT, {record=false, voice=null, musicVol=0.55, accents=[]}={}){
+  start(project, fromT, {record=false, voice=null, musicVol=0.55, accents=[], noSfx=false, length=null}={}){
     this.stop(); const ac=this.ensure();
     this.master=ac.createGain(); this.master.gain.value=0.9; this.master.connect(ac.destination);
     if(record){ this.dest=ac.createMediaStreamDestination(); this.master.connect(this.dest); }
     this.musicBus=ac.createGain(); this.musicBus.gain.value=musicVol; this.musicBus.connect(this.master);
     this.t0=ac.currentTime+0.08 - fromT; this.nodes=[];
-    const total=project._total||60;
+    const total=length||project._total||60;
     if(project.music!=="none") this.scheduleMusic(project.music, fromT, total);
-    let st=0; project.scenes.forEach(s=>{ if(s.sfx!=="none" && st>=fromT-0.01) this.sfx(s.sfx,this.t0+st); st+=s.duration; });
+    let st=0; if(!noSfx) project.scenes.forEach(s=>{ if(s.sfx!=="none" && st>=fromT-0.01) this.sfx(s.sfx,this.t0+st); st+=s.duration; });
     accents.forEach(a=>{ if(a>=fromT) this.osc("sine",900,this.t0+a,0.09,0.12,this.master,{glideTo:1500}); });
     if(voice){ const src=ac.createBufferSource(); src.buffer=voice; const g=ac.createGain(); g.gain.value=1.0; src.connect(g).connect(this.master); if(fromT<voice.duration) src.start(this.t0+fromT, fromT); this.nodes.push(src); }
     return this.dest?this.dest.stream:null;
@@ -1138,11 +1166,11 @@ function renderVoicePick(){ const sel=$("voicePick"); if(!sel) return; const th=
   sel.innerHTML=""; if(!th.length){ const o=document.createElement("option"); o.textContent=TTS.ok?"ไม่พบเสียงภาษาไทยในเครื่องนี้ (ใช้เสียงเริ่มต้น)":"เบราว์เซอร์นี้ไม่รองรับเสียงพากย์"; sel.appendChild(o); sel.disabled=true; return; }
   sel.disabled=false; th.forEach(v=>{ const o=document.createElement("option"); o.value=v.name; o.textContent=v.name+(v.localService?"":" (ออนไลน์)"); if(cur&&v.name===cur.name) o.selected=true; sel.appendChild(o); }); }
 if(TTS.ok){ loadVoices(); try{ speechSynthesis.addEventListener("voiceschanged",loadVoices); }catch{ speechSynthesis.onvoiceschanged=loadVoices; } setTimeout(loadVoices,800); setTimeout(loadVoices,2500); }
-function speakText(text,{rate=1,pitch=1}={}){
+function speakText(text,{rate=1,pitch=1,onEnd=null}={}){
   if(!TTS.ok) return false; const t=cleanStar(text); if(!t) return false;
   let busy=false; try{ busy=speechSynthesis.speaking||speechSynthesis.pending; if(busy) speechSynthesis.cancel(); if(speechSynthesis.paused) speechSynthesis.resume(); }catch{}
   const u=new SpeechSynthesisUtterance(t); u.lang="th-TH"; u.rate=clamp(rate,0.6,1.6); u.pitch=clamp(pitch,0.5,1.8); u.volume=1; const v=pickVoice(); if(v) u.voice=v;
-  TTS.keep=u; u.onend=u.onerror=()=>{ if(TTS.keep===u) TTS.keep=null; };
+  let fired=false; TTS.keep=u; u.onend=u.onerror=()=>{ if(TTS.keep===u) TTS.keep=null; if(!fired){ fired=true; onEnd&&onEnd(); } };
   // Safari drops an utterance queued right after cancel(): wait a moment in that case (the first, unlocking utterance is never delayed)
   const go=()=>{ try{ speechSynthesis.speak(u); }catch{} }; if(busy) setTimeout(go,120); else go();
   if(!thaiVoices().length&&!TTS.warned){ TTS.warned=true; notice("เครื่องนี้ยังไม่มีเสียงภาษาไทย บน iPad/iPhone: ตั้งค่า > การช่วยการเข้าถึง > เนื้อหาที่พูด > เสียง > ไทย แล้วดาวน์โหลดเสียง จากนั้นโหลดหน้านี้ใหม่",12000,"info"); }
@@ -1219,7 +1247,7 @@ function renderSceneList(){ renderSubStyles();
 function pickMime(){ const c=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"]; return c.find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||""; }
 $("exportBtn").onclick=async()=>{
   if(!project) return; if(!window.MediaRecorder||!videoCv.captureStream){ notice("เบราว์เซอร์นี้สร้างไฟล์วิดีโอไม่ได้ ลองใช้ Chrome หรือ Edge บนคอมพิวเตอร์"); return; }
-  stopPlay(); if(!voiceBuf) notice("ไฟล์วิดีโอนี้จะมีเพลงและเสียงเอฟเฟกต์ แต่ยังไม่มีเสียงพากย์ ถ้าต้องการ อัดเสียงอ่านตามซับ (เช่นแอปอัดเสียงของ iPad) แล้วอัปโหลดในช่อง \"เสียงพากย์จริงของคุณ\" ก่อนสร้างไฟล์",9000,"info");
+  stopPlay(); if(!voiceBuf) notice("ไฟล์วิดีโอนี้จะมีเพลงและเสียงเอฟเฟกต์ แต่ยังไม่มีเสียงพากย์ ถ้าต้องการเสียงพากย์ ใช้ \"📱 โหมดอัดหน้าจอ\" หรืออัดเสียงอ่านตามซับแล้วอัปโหลดในช่อง \"เสียงพากย์จริงของคุณ\"",9000,"info");
   await fontsReady(); onFontsChanged(); exporting=true; const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
   const msg=$("exportMsg"), bar=$("exportBar"); msg.textContent="กำลังเรนเดอร์... อย่าสลับแท็บหรือย่อหน้าต่าง";
   const vstream=videoCv.captureStream(30); const astream=AU.start(project,0,{record:true, voice:voiceBuf, accents:R.emphTimes()});
@@ -1237,6 +1265,42 @@ $("exportBtn").onclick=async()=>{
   drawAt(0);
 };
 $("saveVideoBtn").onclick=()=>exported&&saveFile(exported.name, exported.blob);
+
+/* Screen-recording mode: full-screen playback paced by the spoken voice, so a screen recording
+   (iPad/iPhone Control Centre, Win+Alt+R, Cmd+Shift+5) captures picture, music and the Thai voice together. */
+const REC={on:false,raf:0};
+function recFit(){ const rc=$("recCv"), ov=$("recOv"); if(ov.hidden) return; const cs=getComputedStyle(ov); const aw=ov.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight), ah=ov.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+  const k=Math.min(aw/R.W,ah/R.H); rc.style.width=Math.floor(R.W*k)+"px"; rc.style.height=Math.floor(R.H*k)+"px"; }
+addEventListener("resize",recFit); document.addEventListener("fullscreenchange",recFit); document.addEventListener("webkitfullscreenchange",recFit);
+function recBlit(){ const rc=$("recCv"); if(rc.width!==R.W||rc.height!==R.H){ rc.width=R.W; rc.height=R.H; recFit(); } rc.getContext("2d").drawImage(videoCv,0,0); }
+function recOpen(){ if(!project) return; stopPlay(); $("recOv").hidden=false; recFit(); $("recUi").hidden=false; $("recEnd").hidden=true; $("recX").hidden=false; R.drawFrame(0.6); recBlit(); }
+function recStop(){ REC.on=false; cancelAnimationFrame(REC.raf); AU.stop(); try{ if(TTS.ok&&(speechSynthesis.speaking||speechSynthesis.pending)) speechSynthesis.cancel(); }catch{} }
+function recClose(){ recStop(); $("recOv").hidden=true; try{ if(document.fullscreenElement) document.exitFullscreen(); else if(document.webkitFullscreenElement) document.webkitExitFullscreen(); }catch{} drawAt(Math.min(playT,R.total-0.01)); }
+function recStart(){
+  const ov=$("recOv"); try{ const f=ov.requestFullscreen||ov.webkitRequestFullscreen; if(f){ const r=f.call(ov); if(r&&r.catch) r.catch(()=>{}); } }catch{}
+  $("recUi").hidden=true; $("recEnd").hidden=true; $("recX").hidden=true; REC.on=true;
+  const ac=AU.ensure(), useTTS=TTS.ok&&!voiceBuf, n=project.scenes.length;
+  AU.start(project,0,{noSfx:true,musicVol:useTTS?0.25:0.5,length:R.total*2+20,voice:voiceBuf});
+  let i=-1, t0=0, done=false, doneAt=0, endT0=0, phase="scene";
+  const begin=k=>{ i=k; t0=performance.now(); done=false; doneAt=0; const s=project.scenes[k];
+    if(s.sfx!=="none") AU.sfx(s.sfx,ac.currentTime+0.02);
+    if(project.emphOn!==false) (R.subs[k]?.emphStarts||[]).forEach(f=>AU.osc("sine",900,ac.currentTime+f,0.09,0.12,AU.master,{glideTo:1500}));
+    const ok=useTTS&&s.narration&&speakText(s.narration,{rate:(s.voice?.rate||1)*1.05,pitch:s.voice?.pitch||1,onEnd:()=>{ done=true; doneAt=(performance.now()-t0)/1000; }});
+    if(!ok){ done=true; doneAt=0; } };
+  begin(0);   // first sentence starts inside the tap (iOS requirement)
+  const loop=now=>{ if(!REC.on) return;
+    if(phase==="scene"){ const s=project.scenes[i], lt=(now-t0)/1000;
+      const guard=s.duration+speakSeconds(s.narration)*1.8+4;               // never wait forever if a voice never reports its end
+      R.drawFrame(R.starts[i]+Math.min(lt,s.duration-0.04));
+      if((done&&lt>=Math.max(s.duration,doneAt+0.35))||lt>guard){ if(i+1<n) begin(i+1); else { phase="end"; endT0=now; } } }
+    else { const lt=(now-endT0)/1000; R.drawFrame(R.endStart+Math.min(lt,2.55)); if(lt>=2.8){ recBlit(); recStop(); $("recEnd").hidden=false; $("recX").hidden=false; return; } }
+    recBlit(); REC.raf=requestAnimationFrame(loop); };
+  REC.raf=requestAnimationFrame(loop);
+}
+$("recModeBtn").onclick=recOpen; $("recGo").onclick=recStart; $("recAgain").onclick=recStart;
+$("recClose").onclick=recClose; $("recDone").onclick=recClose; $("recX").onclick=recClose;
+addEventListener("keydown",e=>{ if(e.key==="Escape"&&!$("recOv").hidden) recClose(); });
+$("recCv").addEventListener("click",()=>{ if(!REC.on) return; const x=$("recX"); x.hidden=false; clearTimeout(REC.xt); REC.xt=setTimeout(()=>{ if(REC.on) x.hidden=true; },3000); });
 
 let downloadsP=null;
 async function saveFile(name,data){
