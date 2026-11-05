@@ -511,6 +511,14 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 
 <script>
 "use strict";
+/* Align canvas text ourselves: measure, then draw left-aligned. Safari (iPad/iPhone) places centred or
+   right-aligned Thai text wrongly on canvas, which pushed captions off the right edge and made words overlap. */
+(function(){ const P=CanvasRenderingContext2D.prototype, F=P.fillText, S=P.strokeText;
+  const wrapDraw=orig=>function(text,x,y,maxW){ const a=this.textAlign; text=String(text);
+    if(a==="left"||a==="start") return maxW===undefined?orig.call(this,text,x,y):orig.call(this,text,x,y,maxW);
+    let w=this.measureText(text).width; if(maxW!==undefined&&w>maxW) w=maxW; const dx=a==="center"?w/2:w;
+    this.textAlign="left"; try{ return maxW===undefined?orig.call(this,text,x-dx,y):orig.call(this,text,x-dx,y,maxW); } finally{ this.textAlign=a; } };
+  P.fillText=wrapDraw(F); P.strokeText=wrapDraw(S); })();
 /* =========================================================
    Utilities
    ========================================================= */
@@ -828,7 +836,7 @@ class Renderer{
   }
   /* Pop style: fit a chunk on one line (shrinking up to 28%), wrap only if it still does not fit */
   popLayout(ch){
-    const W=this.W, m=Math.min(W,this.H), c=this.c, key=W+"x"+this.H; if(ch._k===key) return ch._L;
+    const W=this.W, m=Math.min(W,this.H), c=this.c, key=W+"x"+this.H+"f"+fontEpoch; if(ch._k===key) return ch._L;
     const maxW=W*0.88; let fs=Math.round(m*0.088);
     const measure=f=>ch.words.map(w=>{ const ff=w.emph?f*1.22:f; c.font=`800 ${ff}px Kanit, sans-serif`; return {w,f:ff,width:c.measureText(w.text).width+(w.sp?ff*0.28:0)}; });
     let items=measure(fs), total=items.reduce((a,x)=>a+x.width,0);
@@ -856,7 +864,7 @@ class Renderer{
   punch(idx,lt){ const S=this.subs[idx]; if(!S) return 0; let v=0; for(const f of S.emphStarts){ const x=lt-f; if(x>=0&&x<0.42) v=Math.max(v,Math.sin(Math.PI*x/0.42)*0.065); } return v; }
   beatPulse(t){ const m=this.project.music; if(m==="none"||m==="calm"||reduceMotion) return 0; const bps=(MOODS[m]||MOODS.upbeat).bpm/60; return 0.012*Math.exp(-((t*bps)%1)*7); }
   emphTimes(){ if(this.project.emphOn===false) return []; const out=[]; this.subs.forEach((S,i)=>S.emphStarts.forEach(f=>out.push(this.starts[i]+f))); return out; }
-  pages(c,S,fs,maxW,weight){ const key=fs+"|"+maxW; if(S._pk===key) return S._pages; const lines=[]; let line=[],lw=0;
+  pages(c,S,fs,maxW,weight){ const key=fs+"|"+maxW+"|"+weight+"|"+fontEpoch; if(S._pk===key) return S._pages; const lines=[]; let line=[],lw=0;
     S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*1.15:fs}px Kanit, sans-serif`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
     if(line.length) lines.push({items:line,w:lw}); const pages=[]; for(let k=0;k<lines.length;k+=2){ const ls=lines.slice(k,k+2); pages.push({lines:ls,from:ls[0].items[0].w.from}); }
     S._pk=key; S._pages=pages; return pages; }
@@ -961,10 +969,10 @@ class Renderer{
     const yc=this.bandY(S);
     c.save(); c.textBaseline="middle"; c.textAlign="center"; c.translate(W/2,yc); c.rotate(rot); c.scale(sc,sc);
     const top=-L.h/2+L.lh/2;
-    L.lines.forEach((ln,li)=>{ let x=-ln.w/2; const y=top+li*L.lh; ln.items.forEach(it=>{ const active=lt>=it.w.from&&lt<it.w.to+0.06, f=it.f*(active&&!reduceMotion?1.08:1); c.font=`800 ${f}px Kanit, sans-serif`;
+    L.lines.forEach((ln,li)=>{ let x=-ln.w/2; const y=top+li*L.lh; ln.items.forEach(it=>{ const active=lt>=it.w.from&&lt<it.w.to+0.06, f=it.f; c.font=`800 ${f}px Kanit, sans-serif`; const lift=active&&!reduceMotion?-f*0.06:0;
       const cx=x+(it.width-(it.w.sp?it.f*0.28:0))/2;
-      if(it.w.emph){ c.save(); c.translate(cx,y+(reduceMotion?0:Math.sin(lt*20)*m*0.003)); c.rotate(reduceMotion?0:Math.sin(lt*14)*0.035); this.outlined(c,it.w.text,0,0,f,active?"#ff5d8f":"#7dffb0"); c.restore(); }
-      else this.outlined(c,it.w.text,cx,y,f,active?"#ffd23f":"#ffffff");
+      if(it.w.emph){ c.save(); c.translate(cx,y+lift+(reduceMotion?0:Math.sin(lt*20)*m*0.003)); c.rotate(reduceMotion?0:Math.sin(lt*14)*0.02); this.outlined(c,it.w.text,0,0,f,active?"#ff5d8f":"#7dffb0"); c.restore(); }
+      else this.outlined(c,it.w.text,cx,y+lift,f,active?"#ffd23f":"#ffffff");
       x+=it.width; }); });
     c.restore(); }
   subKaraoke(c,S,lt){
@@ -1108,7 +1116,11 @@ function loadProject(p, {switchTab=false}={}){
   return true;
 }
 function relayout(){ R.layout(); project._total=R.total; persistOpen(); if(!playing) drawAt(Math.min(playT,R.total-0.01)); }
-async function fontsReady(){ try{ await Promise.all([document.fonts.load("800 40px Kanit"),document.fonts.load("600 40px Kanit")]); }catch{} }
+const THAI_SAMPLE="กขคงจฉชซญดตถทนบปผพฟมยรลวศสหอฮะาำิีึืุูเแโใไ่้๊๋็์ 0123456789 ABCabc!?";
+async function fontsReady(){ try{ await Promise.race([Promise.all(["800","700","600","400"].map(w=>document.fonts.load(`${w} 40px Kanit`,THAI_SAMPLE)).concat(document.fonts.load("40px Itim",THAI_SAMPLE))),new Promise(r=>setTimeout(r,6000))]); }catch{} }
+let fontEpoch=0;
+function onFontsChanged(){ fontEpoch++; if(typeof R!=="undefined"&&R.project){ R.layout(); if(project) project._total=R.total; if(!exporting) drawAt(Math.min(playT,R.total-0.01)); } if(typeof outKey!=="undefined") outKey=""; }
+try{ document.fonts.addEventListener("loadingdone",onFontsChanged); }catch{}
 function drawAt(t){ playT=t; R.drawFrame(t); $("scrub").value=Math.round(t/R.total*1000); $("timeLbl").textContent=fmt(t)+" / "+fmt(R.total); highlightScene(t); }
 function highlightScene(t){ const i=t>=R.endStart?-1:R.sceneAt(t); document.querySelectorAll(".scene").forEach((el,k)=>el.classList.toggle("now",k===i)); }
 
@@ -1181,7 +1193,7 @@ function renderSceneList(){ renderSubStyles();
 function pickMime(){ const c=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"]; return c.find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||""; }
 $("exportBtn").onclick=async()=>{
   if(!project) return; if(!window.MediaRecorder||!videoCv.captureStream){ notice("เบราว์เซอร์นี้สร้างไฟล์วิดีโอไม่ได้ ลองใช้ Chrome หรือ Edge บนคอมพิวเตอร์"); return; }
-  stopPlay(); exporting=true; await fontsReady(); const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
+  stopPlay(); await fontsReady(); onFontsChanged(); exporting=true; const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
   const msg=$("exportMsg"), bar=$("exportBar"); msg.textContent="กำลังเรนเดอร์... อย่าสลับแท็บหรือย่อหน้าต่าง";
   const vstream=videoCv.captureStream(30); const astream=AU.start(project,0,{record:true, voice:voiceBuf, accents:R.emphTimes()});
   const stream=new MediaStream([...vstream.getVideoTracks(),...astream.getAudioTracks()]);
@@ -1983,7 +1995,7 @@ Object.values(recs).forEach(r=>{ if(r.runningAt&&Date.now()-r.runningAt>6*60e3){
 renderLibrary(); renderResume(); renderPlan(); renderReview(); renderJob(); requestAnimationFrame(moveInd);
 { const w=Object.values(recs).filter(r=>r.waiting).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0]; if(w){ showSteps(w); showAsk(w); } }
 initCloud();
-fontsReady().then(()=>{ if(project){ R.layout(); project._total=R.total; drawAt(playT); } });
+fontsReady().then(onFontsChanged);
 </script>
 </body>
 </html>
