@@ -161,9 +161,17 @@ header .btn,header .lvl{color:var(--ink)}
 .post{white-space:pre-wrap;background:var(--panel);border:2px dashed var(--muted);border-radius:8px;padding:6px 8px;font-size:14px}
 /* Office */
 .office{overflow:hidden;padding:0;line-height:0}
-#officeCanvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;aspect-ratio:320/200}
-.team{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}
-.member.mgr{grid-column:span 2;background:linear-gradient(90deg,var(--panel),var(--soft))}
+#officeCanvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;aspect-ratio:400/280}
+.team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+details.subwork{border:2px solid var(--line);border-radius:8px;padding:4px 8px;margin:4px 0;background:var(--panel)}
+details.subwork summary{cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:600}
+details.subwork summary canvas{width:16px;height:18px;image-rendering:pixelated}
+.dept-h{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:6px;font-size:.86rem}
+.dept-h i{width:12px;height:12px;border-radius:3px;background:var(--dc);border:2px solid var(--line);flex:none}
+.dept-h span{color:var(--muted,#6b6480);font-size:.78rem}
+.member{border-left-color:var(--dc,var(--line))!important;border-left-width:6px!important}
+.member.staff{padding:4px 6px}
+.member.staff canvas{width:24px;height:27px}
 .member.mgr .mi{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:10px}
 .member.lead{background:linear-gradient(180deg,var(--panel),var(--soft))}
 @media (max-width:560px){.team{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -349,7 +357,7 @@ dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 
 <main class="wrap">
   <section>
-    <div class="card office"><canvas id="officeCanvas" width="320" height="200" aria-label="ภาพออฟฟิศพิกเซล คลิกที่ตัวละครเพื่อเลือกพนักงาน"></canvas></div>
+    <div class="card office"><canvas id="officeCanvas" width="400" height="280" aria-label="ภาพออฟฟิศพิกเซล คลิกที่ตัวละครเพื่อเลือกพนักงาน"></canvas></div>
 
     <div class="card mission">
       <div class="mhead">
@@ -1515,8 +1523,10 @@ class Renderer{
   bandY(S){
     const style=this.project.subStyle, key=style+this.W; if(S.bands[key]!=null) return S.bands[key];
     const W=this.W,H=this.H,s=S.scene, obs=this.obstacles(s), {w,h}=this.blockSize(S,style), x0=W/2-Math.min(w,W*0.96)/2, x1=W-x0;
-    const portrait=H>W, pref=s.subPos==="top"?0.3:s.subPos==="middle"?0.52:s.subPos==="bottom"?(portrait?0.76:0.82):(portrait?0.74:0.8), prefW=s.subPos==="auto"?2:12;
-    const lo=Math.max(H*0.07+h/2,0), hi=H*0.93-h/2; let best=pref*H, bc=1e18;
+    // vertical clips: IG Reels / TikTok cover the top ~9% (status bar) and everything below ~69% (caption, handle, buttons),
+    // so subtitles stay inside that safe band; landscape keeps the lower third
+    const portrait=H>W, pref=s.subPos==="top"?0.3:s.subPos==="middle"?0.5:s.subPos==="bottom"?(portrait?0.63:0.82):(portrait?0.61:0.8), prefW=s.subPos==="auto"?2:12;
+    const lo=Math.max(H*(portrait?0.09:0.07)+h/2,0), hi=Math.max(lo,H*(portrait?0.69:0.93)-h/2); let best=clamp(pref*H,lo,hi), bc=1e18;
     for(let y=lo;y<=hi;y+=H*0.01){ const y0=y-h/2,y1=y+h/2; let cost=0;
       for(const o of obs){ const ix=Math.max(0,Math.min(x1,o.x1)-Math.max(x0,o.x0)), iy=Math.max(0,Math.min(y1,o.y1)-Math.max(y0,o.y0)); if(ix>0&&iy>0) cost+=o.w*(ix*iy)/(w*h)*10+(o.w>=100?50:0); }
       cost+=prefW*Math.abs(y/H-pref); if(cost<bc){ bc=cost; best=y; } }
@@ -2166,15 +2176,76 @@ ${STYLE}` },
 ถ้าเจ้านายถามเรื่องอื่นเกี่ยวกับเสียง ตอบเป็นข้อความได้ตามปกติ
 ${STYLE}` },
 ];
+/* Departments: every department has a head (the original team member) and staff who do the
+   groundwork in parallel; the head merges their work and owns the step. */
+const DEPTS=[
+  {id:"mgmt",name:"ฝ่ายบริหาร",head:"manager",color:"#ff5d8f"},
+  {id:"coord",name:"ฝ่ายประสานงาน",head:"coord",color:"#7ee0c3"},
+  {id:"qa",name:"ฝ่ายตรวจสอบ",head:"qa",color:"#ff8ab0"},
+  {id:"creative",name:"ฝ่ายครีเอทีฟ",head:"creative",color:"#ff6b6b"},
+  {id:"anim",name:"ฝ่ายอนิเมชัน",head:"animator",color:"#6bc7ff"},
+  {id:"edit",name:"ฝ่ายตัดต่อ",head:"editor",color:"#ffd23f"},
+  {id:"voice",name:"ฝ่ายเสียง",head:"voice",color:"#5fd38d"},
+];
+const STAFF_STYLE=`ตอบสั้น กระชับ เป็นภาษาไทย ไม่ต้องทักทาย ไม่ใช้เครื่องหมาย * ในข้อความที่จะไปอยู่บนจอ ส่งงานให้หัวหน้าแผนกใช้ต่อได้ทันที`;
+const STAFF=[
+  { id:"post", dept:"mgmt", name:"น้องโพสต์", role:"แอดมินโซเชียล", task:"ร่างแคปชันโพสต์และแฮชแท็ก", px:{hair:"#b03a5b",shirt:"#ffb3c7",skin:"#ffd7b5"}, bubble:"📱",
+    quick:["เขียนแคปชันโพสต์ให้คลิปล่าสุด","แฮชแท็กไหนกำลังมาแรง","โพสต์เวลาไหนคนดูเยอะ"],
+    system:`คุณคือ "น้องโพสต์" แอดมินโซเชียลในฝ่ายบริหาร (หัวหน้าแผนก: พี่มาย) ร่างแคปชัน TikTok/Reels ที่ชวนดูจนจบและชวนคอมเมนต์ พร้อมแฮชแท็ก 3-6 อันที่เกี่ยวข้องจริง ส่งให้พี่มายอนุมัติ\n${STAFF_STYLE}` },
+  { id:"trend", dept:"coord", name:"น้องเทรนด์", role:"นักวิจัยเทรนด์", task:"หาเทรนด์และเสนอหัวข้อ", px:{hair:"#e0a030",shirt:"#3fc1a5",skin:"#f2c9a0",headset:true}, bubble:"📈",
+    quick:["หัวข้อแนว What if ที่กำลังมาแรง","คนไทยชอบดูคลิปความรู้แบบไหน","เสนอหัวข้อ 5 หัวข้อ"],
+    system:`คุณคือ "น้องเทรนด์" นักวิจัยเทรนด์ในฝ่ายประสานงาน (หัวหน้าแผนก: น้องโฟลว์) เสนอหัวข้อคลิปสั้นที่คนไทยน่าจะหยุดดู มี hook แรง ไม่ซ้ำของเดิม และมีข้อเท็จจริงจริงรองรับ\n${STAFF_STYLE}` },
+  { id:"fact", dept:"coord", name:"น้องข้อมูล", role:"นักค้นข้อมูล", task:"รวบรวมข้อเท็จจริงและตัวเลข", px:{hair:"#5a4636",shirt:"#a7e8d6",skin:"#e0ac80",glasses:true}, bubble:"📚",
+    quick:["ข้อเท็จจริงน่าทึ่งเกี่ยวกับอวกาศ","ตรวจตัวเลขนี้ให้หน่อย","สรุปข้อมูลเรื่องนี้แบบเข้าใจง่าย"],
+    system:`คุณคือ "น้องข้อมูล" นักค้นข้อมูลในฝ่ายประสานงาน (หัวหน้าแผนก: น้องโฟลว์) รวบรวมข้อเท็จจริงและตัวเลขที่ถูกต้องตามวิทยาศาสตร์สำหรับหัวข้อคลิป ระบุว่าข้อไหนเป็นการประมาณหรือสมมติ และเตือนเรื่องที่คนมักเข้าใจผิด ห้ามแต่งตัวเลขขึ้นเอง ถ้าไม่แน่ใจให้บอกว่าไม่แน่ใจ\n${STAFF_STYLE}` },
+  { id:"truth", dept:"qa", name:"น้องจริงไหม", role:"ตรวจข้อเท็จจริง", task:"ตรวจข้อเท็จจริงและตัวเลข", px:{hair:"#1f3b5a",shirt:"#ffc4d6",skin:"#ffd7b5",glasses:true}, bubble:"🧪",
+    quick:["ตรวจข้อเท็จจริงในบทนี้","ข้อมูลนี้จริงไหม","ตัวเลขนี้ถูกต้องหรือเปล่า"],
+    system:`คุณคือ "น้องจริงไหม" ผู้ตรวจข้อเท็จจริงในฝ่ายตรวจสอบ (หัวหน้าแผนก: น้องเช็ค) อ่านบทพูดและข้อความบนจอทีละฉาก ชี้เฉพาะจุดที่ผิด เกินจริง หรือทำให้เข้าใจผิด พร้อมข้อความที่ถูกต้อง ถ้าไม่มีปัญหาให้บอกว่าผ่าน\n${STAFF_STYLE}` },
+  { id:"eye", dept:"qa", name:"น้องตาไว", role:"ตรวจภาพและซับ", task:"ตรวจภาพ ซับ และจังหวะ", px:{hair:"#7a2f8a",shirt:"#ff9fb0",skin:"#f2c9a0"}, bubble:"👁️",
+    quick:["เช็กลิสต์ตรวจภาพก่อนโพสต์","ซับแบบไหนอ่านง่ายบนมือถือ","ตรวจจังหวะคลิปนี้"],
+    system:`คุณคือ "น้องตาไว" ผู้ตรวจภาพและซับในฝ่ายตรวจสอบ (หัวหน้าแผนก: น้องเช็ค) ตรวจว่าภาพสื่อตรงกับบท ข้อความบนจอสั้นอ่านทัน ซับไม่ยาวเกิน ฉากแรกเป็น hook จังหวะไม่ยืด และของสำคัญไม่อยู่ในโซนล่างของจอที่แอปโซเชียลบัง ชี้เป็นข้อๆ ระบุเลขฉาก\n${STAFF_STYLE}` },
+  { id:"hook", dept:"creative", name:"น้องฮุค", role:"นักเขียนฮุค", task:"คิดประโยคเปิดและปิดคลิป", px:{hair:"#ff8a3d",shirt:"#ffe27a",skin:"#ffd7b5"}, bubble:"🪝",
+    quick:["คิด hook 5 แบบให้หัวข้อนี้","ประโยคปิดคลิปที่ชวนคอมเมนต์","ทำให้ประโยคนี้ดึงดูดขึ้น"],
+    system:`คุณคือ "น้องฮุค" นักเขียนฮุคในฝ่ายครีเอทีฟ (หัวหน้าแผนก: น้องครีม) เขียนประโยคเปิดคลิป 3 วินาทีแรกที่ทำให้หยุดเลื่อน (คำถามช็อก ตัวเลขเกินคาด ภาพแปลก) และประโยคปิดที่ชวนคอมเมนต์ ต้องไม่หลอกหรือเกินจริง\n${STAFF_STYLE}` },
+  { id:"story", dept:"creative", name:"น้องสตอรี่", role:"นักวางโครงเรื่อง", task:"วางโครงเรื่องทีละจังหวะ", px:{hair:"#c2185b",shirt:"#fff1a8",skin:"#e0ac80"}, bubble:"🧩",
+    quick:["วางโครงเรื่อง 6 จังหวะ","ทำให้เรื่องนี้มีจุดหักมุม","เล่าเรื่องนี้ให้เข้าใจง่ายขึ้น"],
+    system:`คุณคือ "น้องสตอรี่" นักวางโครงเรื่องในฝ่ายครีเอทีฟ (หัวหน้าแผนก: น้องครีม) วางโครงคลิปสั้น 5-7 จังหวะ เรียงเหตุและผล มีจุดหักมุมหรือข้อเท็จจริงน่าทึ่ง และจบด้วยคำถาม แต่ละจังหวะเขียน 1 บรรทัด\n${STAFF_STYLE}` },
+  { id:"shot", dept:"anim", name:"น้องฉาก", role:"นักออกแบบฉากและมุมกล้อง", task:"ออกแบบฉากและมุมกล้อง", px:{hair:"#3949ab",shirt:"#8fe3d9",skin:"#ffd7b5"}, bubble:"🎬",
+    quick:["ออกแบบฉากให้บทนี้","มุมกล้องแบบไหนดูมีมิติ","ฉากเปิดแบบไหนว้าว"],
+    system:`คุณคือ "น้องฉาก" นักออกแบบฉากและมุมกล้องในฝ่ายอนิเมชัน (หัวหน้าแผนก: น้องพิกเซล) ทำ shot list ทีละฉาก: ฉากหลัง (${CAT.backgrounds.join(", ")}), เวลา (${CAT.times.join(", ")}), กล้อง (${CAT.cameras.join(", ")}), เอฟเฟกต์ (${CAT.effects.join(", ")}) ให้แต่ละฉากต่างกัน ภาพสื่อความหมาย ฉากหลังเป็น 3 มิติมุมกว้าง ใช้ drone/orbit/pan ให้รู้สึกมีมิติ\n${STAFF_STYLE}` },
+  { id:"acting", dept:"anim", name:"น้องแอคชัน", role:"นักกำกับท่าทางตัวละคร", task:"กำกับตัวละครและพร็อพ", px:{hair:"#00897b",shirt:"#b3e5fc",skin:"#e0ac80"}, bubble:"🤸",
+    quick:["ตัวละครควรทำท่าอะไรในฉากนี้","พร็อพอะไรช่วยเล่าเรื่องนี้","อารมณ์ตัวละครทีละฉาก"],
+    system:`คุณคือ "น้องแอคชัน" นักกำกับท่าทางตัวละครในฝ่ายอนิเมชัน (หัวหน้าแผนก: น้องพิกเซล) กำหนดทีละฉาก: ตัวละคร (${CAT.characters.join(", ")}), อารมณ์ (${CAT.emotions.join(", ")}), ท่าทาง (${CAT.motions.join(", ")}), พร็อพที่ช่วยเล่าเรื่อง (${CAT.props.join(", ")}) และคำพูดในบับเบิลสั้นๆ ถ้ามี\n${STAFF_STYLE}` },
+  { id:"pace", dept:"edit", name:"น้องจังหวะ", role:"ผู้คุมจังหวะคลิป", task:"วางจังหวะ ทรานซิชัน และเสียงประกอบ", px:{hair:"#6d4c41",shirt:"#ffb27a",skin:"#f2c9a0"}, bubble:"⏱️",
+    quick:["คลิปนี้ยืดตรงไหน","ทรานซิชันแบบไหนเข้ากับฉากนี้","วางเสียงประกอบให้หน่อย"],
+    system:`คุณคือ "น้องจังหวะ" ผู้คุมจังหวะในฝ่ายตัดต่อ (หัวหน้าแผนก: น้องคัท) วางแผนทีละฉาก: ความยาวที่พอดีบทพูด (ไทยประมาณ 11 ตัวอักษรต่อวินาที บวก 0.5 วินาที), transition (${CAT.transitions.join(", ")}), sfx (${CAT.sfx.join(", ")}) เฉพาะจังหวะสำคัญ ฉากแรกไม่เกิน 3.5 วินาที\n${STAFF_STYLE}` },
+  { id:"subs", dept:"edit", name:"น้องซับ", role:"ผู้ดูแลซับและข้อความบนจอ", task:"วางซับ คำเน้น และข้อความบนจอ", px:{hair:"#283593",shirt:"#ffe0a3",skin:"#ffd7b5"}, bubble:"🔤",
+    quick:["ซับสไตล์ไหนเหมาะกับคลิปนี้","ย่อข้อความบนจอให้สั้นลง","เลือกคำเน้นทีละฉาก"],
+    system:`คุณคือ "น้องซับ" ผู้ดูแลซับในฝ่ายตัดต่อ (หัวหน้าแผนก: น้องคัท) เลือกสไตล์ซับ (${CAT.subStyles.join(", ")}) เลือกคำเน้น 1-2 คำต่อฉากที่อยู่ในบทพูดตรงตัว ย่อข้อความบนจอให้ไม่เกิน 18 ตัวอักษร และเลือกตำแหน่งซับ (${CAT.subPos.join(", ")}) ไม่ให้ทับตัวละครและไม่ต่ำจนโดนแอปโซเชียลบัง\n${STAFF_STYLE}` },
+  { id:"music", dept:"voice", name:"น้องเพลง", role:"ผู้เลือกเพลงประกอบ", task:"เลือกเพลงและเสียงประกอบ", px:{hair:"#1b5e20",shirt:"#c5e1a5",skin:"#e0ac80",headset:true}, bubble:"🎵",
+    quick:["เพลงแนวไหนเข้ากับคลิปนี้","เสียงประกอบช่วยให้คลิปปังยังไง","อารมณ์เพลงทีละช่วง"],
+    system:`คุณคือ "น้องเพลง" ผู้เลือกเพลงประกอบในฝ่ายเสียง (หัวหน้าแผนก: น้องเสียง) เลือกแนวเพลง (${CAT.music.join(", ")}) ให้ตรงอารมณ์คลิป และปรับเสียงประกอบ (${CAT.sfx.join(", ")}) ทีละฉากเฉพาะที่ช่วยเล่าเรื่อง\n${STAFF_STYLE}` },
+  { id:"tone", dept:"voice", name:"น้องโทน", role:"โค้ชภาษาพูด", task:"ปรับภาษาพูดให้เป็นธรรมชาติ", px:{hair:"#4e342e",shirt:"#b2dfdb",skin:"#ffd7b5"}, bubble:"🗣️",
+    quick:["ประโยคนี้พูดแล้วสะดุดไหม","ทำให้บทนี้เป็นภาษาพูดมากขึ้น","คำไหนอ่านยาก"],
+    system:`คุณคือ "น้องโทน" โค้ชภาษาพูดในฝ่ายเสียง (หัวหน้าแผนก: น้องเสียง) อ่านบทพูดทีละฉาก ชี้คำหรือประโยคที่พูดแล้วสะดุด เป็นภาษาเขียนเกินไป หรือเสียงอ่านอัตโนมัติอาจอ่านผิด แล้วเสนอคำที่พูดง่ายกว่า สั้นกว่า และเป็นธรรมชาติ\n${STAFF_STYLE}` },
+];
+DEPTS.forEach(d=>{ const h=EMPLOYEES.find(e=>e.id===d.head); if(h){ h.dept=d.id; h.head=true; } });
+EMPLOYEES.push(...STAFF);
+const deptOf=id=>DEPTS.find(d=>d.id===(EMPLOYEES.find(e=>e.id===id)?.dept));
+function orgChart(){ return "[ผังองค์กร]\n"+DEPTS.map(d=>{ const h=EMPLOYEES.find(e=>e.id===d.head), st=STAFF.filter(x=>x.dept===d.id); return `- ${d.name}: หัวหน้า ${h.name} (${h.role})${st.length?` · ทีม: ${st.map(x=>`${x.name} (${x.role})`).join(", ")}`:""}`; }).join("\n"); }
 const byId=Object.fromEntries(EMPLOYEES.map(e=>[e.id,e]));
 
 /* =========================================================
    Pixel office (canvas): actors walk, chat, react; time-of-day lighting
    ========================================================= */
-const OW=320, OH=200, LANE=142;
+const OW=400, OH=280, LANE=130, LANES=[130,198,266], CORR=[160,240];
 const OC=$("officeCanvas"), ox=OC.getContext("2d"); ox.imageSmoothingEnabled=false;
-const SEATS={manager:{x:160,y:104,s:1.3,back:1,side:1},coord:{x:62,y:104,s:1.3,back:1,side:1},qa:{x:258,y:104,s:1.3,back:1,side:-1},creative:{x:40,y:170,s:1.5},animator:{x:118,y:170,s:1.5},editor:{x:202,y:170,s:1.5},voice:{x:280,y:170,s:1.5}};
-const COFFEE={x:106,y:96};
+// three rows of department pods (staff | head | staff), management in the middle column
+const SEATS=(()=>{ const S={}, L=[28,80,132], R=[268,320,372], put=(id,x,y,head)=>S[id]={x,y,s:head?1.2:1};
+  [[104,["trend","coord","fact"],["truth","qa","eye"]],[172,["hook","creative","story"],["shot","animator","acting"]],[240,["pace","editor","subs"],["music","voice","tone"]]].forEach(([y,l,r])=>{ l.forEach((id,k)=>put(id,L[k],y,k===1)); r.forEach((id,k)=>put(id,R[k],y,k===1)); });
+  S.manager={x:200,y:104,s:1.3}; S.post={x:200,y:172,s:1}; return S; })();
+const laneOf=id=>SEATS[id].y+26;
+const COFFEE={x:238,y:92};
 const status={}; EMPLOYEES.forEach(e=>status[e.id]="idle");
 let current=store.get("current","manager"); if(!byId[current]) current="manager";
 let officeT0=performance.now(), lastFrame=performance.now(), spawnT=0;
@@ -2195,18 +2266,21 @@ function drawPixelPerson(c,x,y,P,{pose="sit",t=0,carry=false,dir=1}={}){
     if(carry){ const ox2=dir>0?11:-5; px(c,x+ox2,y+8,6,7,"#ffffff"); px(c,x+ox2+1,y+10,4,1,"#9aa"); px(c,x+ox2+1,y+12,4,1,"#9aa"); } }
 }
 /* movement */
-function exitPts(id){ const s=SEATS[id]; return s.back?[{x:s.x+38*s.side,y:s.y-2},{x:s.x+38*s.side,y:LANE}]:[{x:s.x,y:LANE}]; }
-function standPt(id){ const s=SEATS[id]; return s.back?{x:s.x+12*s.side,y:s.y-2}:{x:s.x,y:LANE+2}; }
+function standPt(id){ return {x:SEATS[id].x,y:laneOf(id)}; }
+// walk along the own row's lane, use a corridor between the pods to change rows, then step to the target
+function route(from,target){ const la=from.y, lt=LANES.find(l=>l>=target.y-1)||LANES[LANES.length-1], pts=[];
+  if(la!==lt){ const cx=CORR.reduce((b,c)=>Math.abs(from.x-c)+Math.abs(target.x-c)<Math.abs(from.x-b)+Math.abs(target.x-b)?c:b); pts.push({x:cx,y:la},{x:cx,y:lt}); }
+  pts.push({x:target.x,y:lt}); if(Math.abs(target.y-lt)>0.5) pts.push({x:target.x,y:target.y}); return pts; }
 function say(id,text,sec=2){ actors[id].bubble={text,until:performance.now()+sec*1000}; }
 function trip(id,target,{bubble="",carry=false,stay=1.8,onArrive}={}){
   const a=actors[id]; if(!a||a.mode!=="sit"||reduceMotion) { if(bubble) say(id,bubble,stay); onArrive&&onArrive(); return false; }
-  const ex=exitPts(id), st=standPt(id);
-  Object.assign(a,{mode:"walk",x:st.x,y:st.y,carry,path:[...ex,{x:target.x,y:LANE},{x:target.x,y:target.y}]});
+  const st=standPt(id);
+  Object.assign(a,{mode:"walk",x:st.x,y:st.y,carry,path:route(st,target)});
   a.onArrive=()=>{ a.mode="stand"; a.carry=false; if(bubble) say(id,bubble,stay); onArrive&&onArrive();
-    setTimeout(()=>{ a.mode="walk"; a.path=[{x:target.x,y:LANE},...ex.slice().reverse(),st]; a.onArrive=()=>{ a.mode="sit"; a.dir=1; }; }, stay*1000); };
+    setTimeout(()=>{ a.mode="walk"; a.path=route({x:a.x,y:a.y},st); a.onArrive=()=>{ a.mode="sit"; a.dir=1; }; }, stay*1000); };
   return true;
 }
-function deskFront(id,fromX){ const s=SEATS[id]; if(s.back) return {x:s.x+(fromX<s.x?-40:40),y:s.y+14}; return {x:s.x+(fromX<s.x?-24:24),y:LANE}; }
+function deskFront(id,fromX){ const s=SEATS[id]; return {x:s.x+(fromX<s.x?-14:14)*s.s,y:laneOf(id)}; }
 function handoff(from,to){ trip(from,deskFront(to,SEATS[from].x),{bubble:"📄",carry:true,stay:1.4,onArrive:()=>setTimeout(()=>say(to,"👍",1.6),350)}); }
 function managerCheck(id){ if(id==="manager"||id==="coord"||status.manager==="working"||actors.manager.mode!=="sit"||Math.random()<0.7) return; trip("manager",deskFront(id,SEATS.manager.x),{bubble:["👀","💪","👍","✨"][Math.floor(Math.random()*4)],stay:2}); }
 function moveActors(dt){ for(const a of Object.values(actors)){ if(a.mode!=="walk") continue; const p=a.path[0]; if(!p){ const f=a.onArrive; a.onArrive=null; f?f():a.mode="stand"; continue; }
@@ -2231,7 +2305,7 @@ function spawnAmbient(night){
     if(e.id!=="manager"&&Math.random()<0.5) spawn(s.x+(14.5)*s.s,s.y-6*s.s,{kind:"steam",vy:-6,life:1.4,col:"#ffffff"});
     if(status[e.id]==="working") for(let k=0;k<2;k++) spawn(s.x+(Math.random()*16-8)*s.s,s.y-1*s.s,{kind:"spark",vx:(Math.random()-.5)*20,vy:-22-Math.random()*12,life:0.6,col:["#ffd23f","#6bf2ff","#ff8ab0","#a6ff9b"][(i+k)%4]}); });
   if(Math.random()<0.6) spawn(COFFEE.x+2+Math.random()*4,58,{kind:"steam",vy:-7,life:1.6});
-  if(!night&&Math.random()<0.5){ const w=[18,96,214][Math.floor(Math.random()*3)]; spawn(w+20+Math.random()*50,60+Math.random()*120,{kind:"dust",vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:2.5,col:"#fff8d0"}); }
+  if(!night&&Math.random()<0.5){ const w=[18,96,330][Math.floor(Math.random()*3)]; spawn(w+20+Math.random()*50,60+Math.random()*120,{kind:"dust",vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,life:2.5,col:"#fff8d0"}); }
 }
 /* bubbles */
 function bubbleAt(c,x,y,text){ c.font="8px sans-serif"; const w=Math.max(12,Math.ceil(c.measureText(text).width)+6); const bx=Math.round(clamp(x-w/2,1,OW-w-1)), by=Math.round(y-12);
@@ -2254,7 +2328,8 @@ function drawDesk(c,e,i,t,LV,now){
   if(e.id==="coord"){ px(c,14,-5,7,9,"#c69a6b"); px(c,15,-4,5,7,"#ffffff"); px(c,16,-2,3,1,"#9aa"); px(c,16,0,3,1,"#9aa"); }
   if(e.id==="qa"){ px(c,-21,-6,6,6,"#2b2140"); px(c,-20,-5,4,4,"#bfe9ff"); px(c,-16,-1,4,2,"#2b2140"); }
   if(mgr){ px(c,14,-3,8,3,"#ffffff"); px(c,15,-5,8,2,"#f1ead8"); px(c,-21,-2,6,2,"#222"); px(c,-20,-4,4,2,"#444"); if(LV>=5){ px(c,-19,-12,6,7,"#ffd23f"); px(c,-21,-14,10,3,"#ffd23f"); px(c,-17,-5,2,3,"#e6a817"); px(c,-19,-3,6,2,"#7a5236"); } }
-  else { px(c,13,-4,4,4,"#ffffff"); px(c,17,-3,1,2,"#ffffff"); px(c,-21,-3,8,3,({creative:"#ff6b6b",animator:"#6bc7ff",editor:"#ffd23f",voice:"#5fd38d",coord:"#7ee0c3",qa:"#ff8ab0"})[e.id]||"#ccc");
+  else { px(c,13,-4,4,4,"#ffffff"); px(c,17,-3,1,2,"#ffffff"); px(c,-21,-3,8,3,deptOf(e.id)?.color||"#ccc");
+    if(e.head){ px(c,-4,9,8,6,"#d9b44a"); px(c,-3,10,6,4,"#f3d77a"); px(c,-1,11,2,2,"#c0392b"); }
     if(LV>=7){ px(c,-21,-14,1,11,"#c9a227"); px(c,-23,-16,6,3,"#ffd23f"); c.fillStyle="rgba(255,230,120,.25)"; c.fillRect(-26,-13,12,10); } }
   c.restore();
 }
@@ -2268,20 +2343,27 @@ function drawOffice(now){
   const c=ox, t=(now-officeT0)/1000, hr=new Date().getHours(), LV=levelOf(stats.xp); const night=hr<6||hr>=19, dusk=(hr>=17&&hr<19)||hr===6;
   // wall
   px(c,0,0,OW,70,"#ffd9a8"); for(let x=0;x<OW;x+=16) px(c,x,0,1,70,"#f5c992"); px(c,0,62,OW,8,"#e9b47c"); px(c,0,66,OW,4,"#c98f5a");
-  [[18,10],[96,10],[214,10]].forEach(([wx,wy],i)=>{ px(c,wx-2,wy-2,52,38,"#7a5236"); px(c,wx,wy,48,34,night?"#1b2a55":dusk?"#ff9e7a":"#8fd8ff");
+  [[18,10],[96,10],[330,10]].forEach(([wx,wy],i)=>{ px(c,wx-2,wy-2,52,38,"#7a5236"); px(c,wx,wy,48,34,night?"#1b2a55":dusk?"#ff9e7a":"#8fd8ff");
     if(night){ for(let k=0;k<6;k++) px(c,wx+3+rnd(k+i*9)*42,wy+3+rnd(k+i)*26,1,1,(Math.floor(t*2)+k)%3?"#fff":"#ffe9a0"); if(i===2){ px(c,wx+34,wy+5,7,7,"#f6f0c4"); px(c,wx+36,wy+5,5,5,"#1b2a55"); } }
     else { const cx=((t*4+i*40)%80)-16; px(c,wx+cx,wy+8,12,4,"#ffffff"); px(c,wx+cx+3,wy+5,6,3,"#ffffff"); if(i===0&&!dusk){ px(c,wx+4,wy+4,6,6,"#fff3a0"); } }
     px(c,wx+23,wy,2,34,"#7a5236"); px(c,wx,wy+16,48,2,"#7a5236"); px(c,wx-3,wy+34,54,3,"#9c6a44"); });
   const flick=reduceMotion||rnd(Math.floor(t*8))>0.06; px(c,276,12,36,18,"#2b2140"); c.font="6px monospace"; c.fillStyle=flick?"#ffd23f":"#6b5a20"; c.fillText("AI",286,20); c.fillStyle=flick?"#ff5d8f":"#5a2a3a"; c.fillText("OFFICE",278,27);
+  // department signs on the wall
+  c.font="5px monospace"; [["PLAN",80],["QA",320]].forEach(([tx,x])=>{ const w=tx.length*4+6; px(c,x-w/2,49,w,9,"#2b2140"); c.fillStyle="#ffffff"; c.fillText(tx,x-w/2+3,56); });
   px(c,150,12,22,22,"#2b2140"); px(c,152,14,18,18,"#ffffff"); const m=new Date().getMinutes(), hh=(hr%12+m/60)/12*Math.PI*2, mm=m/60*Math.PI*2;
   c.strokeStyle="#2b2140"; c.lineWidth=1; c.beginPath(); c.moveTo(161,23); c.lineTo(161+Math.sin(hh)*5,23-Math.cos(hh)*5); c.moveTo(161,23); c.lineTo(161+Math.sin(mm)*7,23-Math.cos(mm)*7); c.stroke();
   // coffee machine + plants
-  px(c,96,40,20,30,"#5b5b70"); px(c,98,42,16,8,"#2b2140"); px(c,100,44,4,2,Math.floor(t*2)%2?"#5fd38d":"#2fa866"); px(c,106,44,6,2,"#ff5d8f"); px(c,101,56,10,8,"#3d3d50"); px(c,103,60,6,4,"#ffffff");
-  [[2,46],[306,46]].forEach(([x,y])=>{ px(c,x+2,y+14,10,10,"#c0634a"); px(c,x+3,y+13,8,2,"#a14f3a"); px(c,x,y+4,4,10,"#3fa860"); px(c,x+5,y,4,14,"#4fbe6c"); px(c,x+10,y+5,4,10,"#3fa860"); });
+  { const k=228; px(c,k,40,20,30,"#5b5b70"); px(c,k+2,42,16,8,"#2b2140"); px(c,k+4,44,4,2,Math.floor(t*2)%2?"#5fd38d":"#2fa866"); px(c,k+10,44,6,2,"#ff5d8f"); px(c,k+5,56,10,8,"#3d3d50"); px(c,k+7,60,6,4,"#ffffff"); }
+  [[2,46],[384,46]].forEach(([x,y])=>{ px(c,x+2,y+14,10,10,"#c0634a"); px(c,x+3,y+13,8,2,"#a14f3a"); px(c,x,y+4,4,10,"#3fa860"); px(c,x+5,y,4,14,"#4fbe6c"); px(c,x+10,y+5,4,10,"#3fa860"); });
   // floor
   for(let y=70;y<OH;y+=10) for(let x=0;x<OW;x+=10) px(c,x,y,10,10,LV>=10?(((x+y)/10)%2?"#f3cf6b":"#e6b94a"):(((x+y)/10)%2?"#e8b98a":"#dfa977"));
   px(c,0,70,OW,2,"#b9875a");
-  px(c,70,128,180,22,"#c76b8f"); px(c,73,131,174,16,"#e08aa9"); for(let x=78;x<244;x+=8) px(c,x,138,4,2,"#c76b8f");
+  // department pods: a coloured carpet under each team
+  DEPTS.forEach(d=>{ const ids=EMPLOYEES.filter(e=>e.dept===d.id).map(e=>SEATS[e.id]); if(ids.length<2) return; const x0=Math.min(...ids.map(q=>q.x))-26, x1=Math.max(...ids.map(q=>q.x))+26, y=ids[0].y;
+    c.globalAlpha=0.22; px(c,x0,y-28,x1-x0,52,d.color); c.globalAlpha=1; px(c,x0,y+23,x1-x0,1,d.color); });
+  // lounge: rug and sofa in the middle of the back row
+  px(c,166,250,68,14,"#c76b8f"); px(c,169,252,62,10,"#e08aa9"); for(let x=172;x<228;x+=8) px(c,x,256,4,2,"#c76b8f");
+  px(c,172,226,56,8,"#5f7fc8"); px(c,170,232,60,12,"#6c8cd5"); px(c,168,230,6,16,"#5f7fc8"); px(c,226,230,6,16,"#5f7fc8"); px(c,180,236,10,5,"#ffd23f"); px(c,210,236,10,5,"#ff8ab0");
   // unlocks on the wall/floor
   if(LV>=2){ px(c,188,34,26,36,"#7a5236"); [40,52,64].forEach((y,r)=>{ px(c,190,y-1,22,1,"#5a3a24"); for(let k=0;k<5;k++) px(c,191+k*4,y-2-((k+r)%3?6:7),3,(k+r)%3?6:7,["#ff6b6b","#6bc7ff","#ffd23f","#5fd38d","#b48cff"][(k+r)%5]); }); }
   if(LV>=3){ px(c,70,14,20,26,"#ffffff"); px(c,71,15,18,24,"#ff5d8f"); px(c,77,22,2,10,"#fff"); px(c,79,23,2,8,"#fff"); px(c,81,25,2,4,"#fff"); }
@@ -2289,18 +2371,16 @@ function drawOffice(now){
   if(LV>=6){ px(c,266,40,32,26,"#2b2140"); px(c,268,42,28,22,"#6bc7ff"); px(c,268,59,28,5,"#e8d18a"); const fx=268+((t*8)%24); px(c,fx,49,4,3,"#ff8a4d"); px(c,fx-1,50,1,1,"#ff8a4d"); px(c,284-((t*5)%14),54,3,2,"#ffd23f"); px(c,272,44+((t*6)%16),1,1,"#e6f7ff"); px(c,264,66,36,4,"#7a5236"); }
   if(LV>=9){ px(c,272,6,44,4,"#6bf2ff"); if(!reduceMotion){ const k=Math.floor(t*4)%44; px(c,272+k,5,2,6,"#ffffff"); } }
   // manager row, walkers, team row (depth order)
-  ["coord","manager","qa"].forEach(id=>drawDesk(c,byId[id],0,t,LV,now));
-  const walkers=Object.values(actors).filter(a=>a.mode!=="sit").sort((p,q)=>p.y-q.y);
-  walkers.filter(a=>a.y<=LANE+6).forEach(a=>drawStanding(c,a,t,now));
-  EMPLOYEES.forEach((e,i)=>{ if(!SEATS[e.id].back) drawDesk(c,e,i,t,LV,now); });
-  walkers.filter(a=>a.y>LANE+6).forEach(a=>drawStanding(c,a,t,now));
-  if(LV>=8){ const cx=((t*10)%380)-30, b=Math.floor(t*4)%2; px(c,cx,192,10,5,"#ffb347"); px(c,cx+8,189,5,5,"#ffb347"); px(c,cx+8,188,1,2,"#ffb347"); px(c,cx+12,188,1,2,"#ffb347"); px(c,cx-2,190+b,3,2,"#ffb347"); px(c,cx+10,191,1,1,"#2b2140"); px(c,cx+1,197,2,2-b,"#d98a2b"); px(c,cx+7,197,2,1+b,"#d98a2b"); }
+  // desks and walkers drawn back to front
+  const items=[...EMPLOYEES.map((e,i)=>({d:SEATS[e.id].y+12,f:()=>drawDesk(c,e,i,t,LV,now)})),...Object.values(actors).filter(a=>a.mode!=="sit").map(a=>({d:a.y,f:()=>drawStanding(c,a,t,now)}))];
+  items.sort((p,q)=>p.d-q.d).forEach(it=>it.f());
+  if(LV>=8){ const cx=((t*10)%460)-30, b=Math.floor(t*4)%2, cy=OH-8; px(c,cx,cy,10,5,"#ffb347"); px(c,cx+8,cy-3,5,5,"#ffb347"); px(c,cx+8,cy-4,1,2,"#ffb347"); px(c,cx+12,cy-4,1,2,"#ffb347"); px(c,cx-2,cy-2+b,3,2,"#ffb347"); px(c,cx+10,cy-1,1,1,"#2b2140"); px(c,cx+1,cy+5,2,2-b,"#d98a2b"); px(c,cx+7,cy+5,2,1+b,"#d98a2b"); }
   // lighting
-  if(!night){ c.save(); c.globalAlpha=dusk?0.10:0.12; c.fillStyle=dusk?"#ffb38a":"#fff6c8"; [[18,10],[96,10],[214,10]].forEach(([wx,wy])=>{ c.beginPath(); c.moveTo(wx,wy+36); c.lineTo(wx+48,wy+36); c.lineTo(wx+92,OH); c.lineTo(wx+44,OH); c.closePath(); c.fill(); }); c.restore(); }
+  if(!night){ c.save(); c.globalAlpha=dusk?0.10:0.12; c.fillStyle=dusk?"#ffb38a":"#fff6c8"; [[18,10],[96,10],[330,10]].forEach(([wx,wy])=>{ c.beginPath(); c.moveTo(wx,wy+36); c.lineTo(wx+48,wy+36); c.lineTo(wx+92,OH); c.lineTo(wx+44,OH); c.closePath(); c.fill(); }); c.restore(); }
   if(night||dusk){ c.fillStyle=night?"rgba(14,16,56,.42)":"rgba(255,120,60,.10)"; c.fillRect(0,0,OW,OH);
     if(night){ c.save(); c.globalCompositeOperation="lighter"; const glow=(x,y,r,col)=>{ const g=c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,col); g.addColorStop(1,"rgba(0,0,0,0)"); c.fillStyle=g; c.fillRect(x-r,y-r,r*2,r*2); };
       EMPLOYEES.forEach(e=>{ const s=SEATS[e.id]; const w=status[e.id]==="working"; glow(s.x,s.y-8*s.s,w?36:22,w?"rgba(120,230,255,.42)":"rgba(110,150,255,.2)"); if(LV>=7&&e.id!=="manager") glow(s.x-20*s.s,s.y-12*s.s,18,"rgba(255,220,120,.35)"); });
-      glow(108,48,14,"rgba(100,255,150,.28)"); glow(294,21,24,"rgba(255,93,143,.32)"); if(LV>=6) glow(282,53,22,"rgba(100,200,255,.3)"); c.restore(); } }
+      glow(240,48,14,"rgba(100,255,150,.28)"); glow(294,21,24,"rgba(255,93,143,.32)"); if(LV>=6) glow(282,53,22,"rgba(100,200,255,.3)"); c.restore(); } }
   drawParts(c);
   // status + speech bubbles, selection marker
   EMPLOYEES.forEach(e=>{ const h=headPos(e.id), a=actors[e.id], st=status[e.id];
@@ -2324,10 +2404,12 @@ function avatar(cv,e){ const c=cv.getContext("2d"); c.imageSmoothingEnabled=fals
    ========================================================= */
 let chats=store.get("chats",{}); EMPLOYEES.forEach(e=>{ chats[e.id] ||= []; });
 let tasks=store.get("tasks",[]);
-function renderTeam(){ const box=$("team"); box.innerHTML=""; EMPLOYEES.forEach(e=>{ const st=status[e.id]; const b=document.createElement("button"); b.className="member"+(e.id==="manager"?" mgr":"")+(e.id==="coord"||e.id==="qa"?" lead":"")+(st==="working"?" busy":""); b.setAttribute("aria-pressed",String(e.id===current));
+function renderTeam(){ const box=$("team"); box.innerHTML=""; DEPTS.forEach(d=>{ const mem=EMPLOYEES.filter(e=>e.dept===d.id).sort((a,b)=>(b.head?1:0)-(a.head?1:0)); const busy=mem.filter(e=>status[e.id]==="working").length;
+  const h=document.createElement("div"); h.className="dept-h"; h.style.setProperty("--dc",d.color); h.innerHTML=`<i aria-hidden="true"></i><b></b><span></span>`; h.querySelector("b").textContent=d.name; h.querySelector("span").textContent=`${mem.length} คน${busy?` · กำลังทำงาน ${busy}`:""}`; box.appendChild(h);
+  mem.forEach(e=>{ const st=status[e.id]; const b=document.createElement("button"); b.className="member"+(e.head?" lead":" staff")+(st==="working"?" busy":""); b.style.setProperty("--dc",d.color); b.setAttribute("aria-pressed",String(e.id===current));
   b.innerHTML=`<canvas width="16" height="18" aria-hidden="true"></canvas><span class="mi"><b></b><span></span><em class="pill ${st}">${{idle:"ว่าง",working:"กำลังทำ",done:"เสร็จแล้ว",error:"มีปัญหา"}[st]}</em></span>`;
-  avatar(b.querySelector("canvas"),e); b.querySelector("b").textContent=e.bubble+" "+e.name; b.querySelector(".mi > span").textContent=e.role;
-  b.onclick=()=>{ select(e.id); showTab("chat"); actors[e.id].jumpUntil=performance.now()+700; say(e.id,"👋",1.4); }; box.appendChild(b); }); }
+  avatar(b.querySelector("canvas"),e); b.querySelector("b").textContent=e.bubble+" "+e.name; b.querySelector(".mi > span").textContent=e.head?`👑 หัวหน้า · ${e.role}`:e.role;
+  b.onclick=()=>{ select(e.id); showTab("chat"); actors[e.id].jumpUntil=performance.now()+700; say(e.id,"👋",1.4); }; box.appendChild(b); }); }); }
 function setStatus(id,s){ const was=status[id]; status[id]=s; renderTeam(); if(s==="working"&&was!=="working") managerCheck(id); if(s==="done"&&was==="working"&&!reduceMotion){ const h=headPos(id); for(let k=0;k<10;k++) spawn(h.x,h.y,{kind:"spark",vx:(Math.random()-.5)*50,vy:-30-Math.random()*25,life:0.9,col:["#5fd38d","#ffd23f","#ffffff"][k%3],size:2}); } }
 function renderTasks(){ const ul=$("tasks"); if(!ul) return; ul.innerHTML=""; if(!tasks.length){ ul.innerHTML=`<li><span class="what" style="color:var(--muted)">ยังไม่มีงาน ลองพิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" ดูสิ</span></li>`; return; }
   tasks.slice().reverse().forEach(t=>{ const li=document.createElement("li"); li.innerHTML=`<span>${{working:"⏳",done:"✅",error:"⚠️"}[t.state]||"•"}</span><span class="who"></span><span class="what"></span>`; li.querySelector(".who").textContent=byId[t.who]?.name||t.who; li.querySelector(".what").textContent=t.what; li.querySelector(".what").title=t.what; ul.appendChild(li); }); }
@@ -2354,7 +2436,7 @@ function addTools(div,text,who){ const tools=document.createElement("div"); tool
   if(j&&Array.isArray(j.lines)&&project) btn("🎙️ ใช้บทพากย์นี้กับคลิป",()=>{ applyVoice(j); showTab("studio"); });
   if(j&&Array.isArray(j.plan)) btn("📅 บันทึกเป็นแผนคอนเทนต์",()=>{ setPlan(j.plan); showTab("lib"); });
   btn("📋 คัดลอก",()=>copyText(text));
-  EMPLOYEES.filter(x=>x.id!==who).forEach(o=>btn(`➡️ ส่งให้${o.name}`,()=>{ select(o.id); input.value=`งานจาก${byId[who].name}:\n\n${text}\n\nช่วยต่องานนี้ตามหน้าที่ของเธอหน่อย`; input.focus(); }));
+  EMPLOYEES.filter(x=>x.id!==who&&(x.head||x.dept===byId[who].dept)).forEach(o=>btn(`➡️ ส่งให้${o.name}`,()=>{ select(o.id); input.value=`งานจาก${byId[who].name}:\n\n${text}\n\nช่วยต่องานนี้ตามหน้าที่ของเธอหน่อย`; input.focus(); }));
   div.appendChild(tools); }
 function bubble(role,text,who){ const d=document.createElement("div"); d.className="msg "+(role==="user"?"me":role==="sys"?"sys":"ai");
   if(role==="ai"){ d.innerHTML=renderMarkdown(text); addTools(d,text,who); } else d.textContent=text; msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight; return d; }
@@ -2375,9 +2457,9 @@ $("tabChat").onclick=()=>showTab("chat"); $("tabStudio").onclick=()=>showTab("st
    ========================================================= */
 function settings(){ return { key:store.get("key",""), model:store.get("model","claude-opus-5-5"), tier:store.get("tier","default"), boss:store.get("boss","") }; }
 let sampleP=null, sdkP=null;
-async function callClaude(e, history, onText){
-  const {key,model,tier,boss}=settings();
-  const sys=e.system+`\nเรียกผู้ใช้ว่า "${boss||"เจ้านาย"}"`+(e.id==="coord"||e.id==="manager"?"\n\n"+teamContext():"");
+async function callClaude(e, history, onText, tierOverride){
+  const {key,model,boss}=settings(), tier=tierOverride||settings().tier;
+  const sys=e.system+`\nเรียกผู้ใช้ว่า "${boss||"เจ้านาย"}"`+(e.id==="coord"||e.id==="manager"?"\n\n"+orgChart()+"\n\n"+teamContext():"");
   if(inViewer){
     sampleP ||= claude.use("sample"); const sample=await sampleP;
     if(!sample){ const er=new Error("unavailable"); er.code="unavailable"; throw er; }
@@ -2410,7 +2492,7 @@ function friendlyError(err){
   if(s>=500) return "เซิร์ฟเวอร์มีปัญหาชั่วคราว ลองใหม่อีกครั้ง";
   return err?.message||String(err);
 }
-async function ask(id,userText){
+async function ask(id,userText,{tier}={}){
   const e=byId[id]; chats[id].push(autoLabel?{role:"user",content:userText,label:autoLabel}:{role:"user",content:userText}); saveChats(id);
   const task=addTask(id,userText); setStatus(id,"working"); if(current===id) renderChat();
   let live=null; const ensureLive=()=>{ if(current!==id) return null; if(!live||!live.isConnected){ live=document.createElement("div"); live.className="msg ai"; msgsEl.appendChild(live); } return live; };
@@ -2418,7 +2500,7 @@ async function ask(id,userText){
   try{
     let hist=chats[id].slice(-13); if(hist[0].role!=="user") hist=hist.slice(1);
     if(runningRec) liveWork(id,"");
-    let text=await callClaude(e,hist,t=>{ if(runningRec) liveWork(id,t); const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(t)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; } });
+    let text=await callClaude(e,hist,t=>{ if(runningRec) liveWork(id,t); const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(t)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; } },tier);
     if(!text.trim()) text="(ไม่มีข้อความตอบกลับ)";
     chats[id].push({role:"assistant",content:text}); saveChats(id); finishTask(task,"done"); setStatus(id,"done"); stats.done[id]=(stats.done[id]||0)+1; addXP(10); if(current===id) renderChat(); return text;
   }catch(err){ chats[id].pop(); saveChats(id); finishTask(task,"error"); setStatus(id,"error"); if(current===id){ renderChat(); bubble("sys","⚠️ "+friendlyError(err)); input.value=userText; } throw err; }
@@ -2548,26 +2630,47 @@ function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
 function teamContext(){ const arr=Object.values(recs).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,10);
   const lines=arr.map(r=>{ const st=recState(r); return `- ${r.title||r.topic||"(ยังไม่มีหัวข้อ)"} · ${st.k==="done"?"เสร็จ":st.t}${r.out?.qa?` · QA ${r.out.qa.score}/10`:""}`; });
   return `[ข้อมูลล่าสุดของทีม]\nเลเวลออฟฟิศ ${levelOf(stats.xp)} · คลิปเสร็จ ${stats.clips} · ไฟล์วิดีโอ ${stats.exports}\nคลิปล่าสุด:\n${lines.join("\n")||"- ยังไม่มี"}\nแผนคอนเทนต์ที่ยังไม่ได้ทำ: ${plan.filter(x=>!x.recId).map(x=>x.topic).join(", ")||"ไม่มี"}`; }
+/* Department staff do the groundwork in parallel (quick model), results are kept on the record so a
+   resumed job does not redo them; the head of the department then merges their work. */
+let activeStaff=[];
+async function staffWork(r,step,jobs){
+  r.sub ||= {}; const box=r.sub[step] ||= {}; const todo=jobs.filter(j=>box[j.id]==null);
+  if(todo.length){ activeStaff=todo.map(j=>j.id); renderJob();
+    todo.forEach(j=>logAct(r,j.id,`เริ่ม${byId[j.id].task}`));
+    const res=await Promise.all(todo.map(j=>ask(j.id,j.prompt,{tier:"quick"}).then(t=>({id:j.id,t}),err=>({id:j.id,err}))));
+    activeStaff=[]; const ok=res.filter(x=>!x.err);
+    if(!ok.length&&res.length) throw res[0].err;
+    ok.forEach(x=>{ box[x.id]=x.t; logAct(r,x.id,`ส่ง${byId[x.id].task}ให้${byId[deptOf(x.id).head].name}แล้ว`); handoff(x.id,deptOf(x.id).head); });
+    res.filter(x=>x.err).forEach(x=>logAct(r,x.id,`งานสะดุด (${friendlyError(x.err)}) หัวหน้าแผนกทำต่อเอง`));
+    saveRec(r); }
+  return jobs.map(j=>box[j.id]?`[งานจาก${byId[j.id].name} (${byId[j.id].role})]\n${String(box[j.id]).split(/```json/i)[0].trim().slice(0,2500)}`:"").filter(Boolean).join("\n\n");
+}
+const subJSON=(r,step,id)=>extractJSON(r.sub?.[step]?.[id]||"");
+const scriptOf=p=>p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}/${x.time}, กล้อง ${x.camera}, ${x.transition}, sfx ${x.sfx}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion},${e.motion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
 const STEP_FN={
   async plan(r){
     const past=Object.values(recs).filter(x=>x.id!==r.id&&(x.title||x.topic)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20).map(x=>"- "+(x.title||x.topic)).join("\n")||"- (ยังไม่มี)";
     const todo=plan.filter(it=>!it.recId||!recs[it.recId]).slice(0,6).map(it=>`- ${it.topic}${it.hook?` (hook: ${it.hook})`:""}`).join("\n");
     const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว What if / ความรู้สนุกๆ ที่คนไทยอยากดู";
-    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
+    const trendTxt=await staffWork(r,"plan",[{id:"trend",prompt:`${r.topic?`หัวข้อที่กำหนดมา: "${r.topic}" เสนอมุมเล่า 3 แบบที่น่าดูที่สุด`:`${src}\n\nเสนอหัวข้อคลิปสั้น 3 หัวข้อที่น่าจะคนดูเยอะ`} แต่ละข้อมี hook 1 บรรทัดและเหตุผลสั้นๆ\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}`}]);
+    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}${trendTxt?`\n\nข้อเสนอจากทีมประสานงาน:\n${trendTxt}`:""}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
     const topic=r.topic||str(j?.topic,140); if(!topic) throw new Error("น้องโฟลว์ยังเลือกหัวข้อไม่ได้ ลองกดทำต่ออีกครั้ง");
     r.topic=topic; if(!r.title) r.title=topic;
     const notes={}; ["creative","animator","editor","voice"].forEach(k=>{ const v=str(j?.notes?.[k],300); if(v) notes[k]=v; });
     r.out.plan={topic,why:str(j?.why,200),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
     r.out.brief={text:r.out.plan.brief,music:r.out.plan.music};
+    try{ const f=await staffWork(r,"facts",[{id:"fact",prompt:`หัวข้อคลิป: "${topic}"\nบรีฟ: ${r.out.plan.brief}\n\nรวบรวมข้อเท็จจริงและตัวเลขที่ถูกต้อง 5-8 ข้อสำหรับใช้ในคลิปนี้ บอกด้วยว่าข้อไหนเป็นการประมาณหรือสมมติ และเรื่องที่คนมักเข้าใจผิด`}]); if(f) r.out.plan.facts=f.replace(/^\[งานจาก[^\]]*\]\n/,""); }catch{ logAct(r,"coord","ค้นข้อมูลไม่สำเร็จ ให้ทีมเขียนบทตามบรีฟไปก่อน"); }
     const it=plan.find(x=>!x.recId&&x.topic===topic); if(it){ it.recId=r.id; savePlan(); }
     return `เลือกหัวข้อ "${topic}"${r.out.plan.why?` (${r.out.plan.why})`:""} และแจกงานให้ทีมแล้ว`;
   },
   async qa(r){
     let rounds=0, last=null;
+    const p0=r.project, auto0=qaAuto(p0);
+    const team=await staffWork(r,"qa",[{id:"truth",prompt:`ตรวจข้อเท็จจริงในคลิป "${p0.title}":\n${p0.scenes.map((x,i)=>`ฉาก ${i+1} | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration}`).join("\n")}\n\nชี้เฉพาะจุดที่ผิด เกินจริง หรือทำให้เข้าใจผิด พร้อมข้อความที่ถูกต้อง`},{id:"eye",prompt:`ตรวจภาพ ซับ และจังหวะของคลิป "${p0.title}" (สัดส่วน ${p0.aspect}, ซับ ${p0.subStyle})\nผลตรวจอัตโนมัติ: ${auto0.length?auto0.join(" / "):"ไม่พบปัญหา"}\n${scriptOf(p0)}\n\nชี้ปัญหาเป็นข้อๆ ระบุเลขฉาก`}]);
     for(;;){
       const p=r.project, auto=qaAuto(p), total=p.scenes.reduce((a,x)=>a+x.duration,0);
       const summary=p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}, ${x.transition}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
-      const j=extractJSON(await ask("qa",`ตรวจคลิป "${p.title}" รอบที่ ${rounds+1} (ยาว ${total.toFixed(0)} วินาที, เพลง ${p.music}, ซับ ${p.subStyle})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\nผลตรวจอัตโนมัติจากระบบ:\n${auto.length?auto.map(x=>"- "+x).join("\n"):"- ไม่พบปัญหา"}\n\n${summary}\n\nแก้ข้อความเล็กๆ ได้เองผ่าน edits (ข้อความธรรมดา ห้ามใส่ *) ปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ใส่ใน issues และตั้ง pass เป็น false ${rounds?"(นี่เป็นรอบตรวจซ้ำ ถ้าแก้ดีขึ้นแล้วให้ผ่าน)":""}\nตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"pass":true,"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น"],"issues":[{"scene":2,"problem":"ปัญหาและวิธีแก้","owner":"editor"}],"title":"","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
+      const j=extractJSON(await ask("qa",`${rounds===0&&team?`ทีมตรวจสอบของเธอส่งผลตรวจมาแล้ว พิจารณาประกอบ (ถ้าข้อไหนไม่ถูกต้องให้ข้ามได้):\n${team}\n\n`:""}ตรวจคลิป "${p.title}" รอบที่ ${rounds+1} (ยาว ${total.toFixed(0)} วินาที, เพลง ${p.music}, ซับ ${p.subStyle})\nบรีฟ: ${r.out.brief?.text||r.topic}\n\nผลตรวจอัตโนมัติจากระบบ:\n${auto.length?auto.map(x=>"- "+x).join("\n"):"- ไม่พบปัญหา"}\n\n${summary}\n\nแก้ข้อความเล็กๆ ได้เองผ่าน edits (ข้อความธรรมดา ห้ามใส่ *) ปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ใส่ใน issues และตั้ง pass เป็น false ${rounds?"(นี่เป็นรอบตรวจซ้ำ ถ้าแก้ดีขึ้นแล้วให้ผ่าน)":""}\nตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"pass":true,"score":8,"summary":"สรุป 1-2 ประโยค","notes":["จุดเด่น"],"issues":[{"scene":2,"problem":"ปัญหาและวิธีแก้","owner":"editor"}],"title":"","edits":[{"scene":1,"caption":"...","narration":"..."}]}\n\`\`\``));
       const applied=applyTextEdits(p,j);
       const issues=(Array.isArray(j?.issues)?j.issues:[]).slice(0,8).map(x=>({scene:Number(x?.scene)||0,problem:str(x?.problem,220)})).filter(x=>x.problem);
       last={auto,score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
@@ -2582,7 +2685,8 @@ const STEP_FN={
   },
   async approve(r){
     const p=r.project, total=p.scenes.reduce((a,x)=>a+x.duration,0);
-    const j=extractJSON(await ask("manager",`ขออนุมัติคลิป "${p.title}" (ยาว ${total.toFixed(0)} วินาที)\nผลตรวจจากน้องเช็ค: ${r.out.qa?`${r.out.qa.score}/10 ${r.out.qa.summary}`:"-"}\nบทพูด:\n${p.scenes.map((x,i)=>`${i+1}. ${x.narration.replace(/\*/g,"")}`).join("\n")}\n\nอนุมัติหรือไม่ และเขียนแคปชันโพสต์ TikTok ที่ชวนดูและชวนคอมเมนต์ พร้อมแฮชแท็ก 3-6 อัน ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"approved":true,"note":"ความเห็น 1 ประโยค","post":"แคปชันโพสต์ #แฮชแท็ก"}\n\`\`\``));
+    const draft=await staffWork(r,"approve",[{id:"post",prompt:`คลิป "${p.title}" (ยาว ${total.toFixed(0)} วินาที)\nบทพูด:\n${p.scenes.map((x,i)=>`${i+1}. ${x.narration}`).join("\n")}\n\nร่างแคปชันโพสต์ TikTok/Reels 2 แบบ พร้อมแฮชแท็ก 3-6 อัน`}]);
+    const j=extractJSON(await ask("manager",`${draft?`น้องโพสต์ร่างแคปชันมาให้แล้ว เลือกหรือปรับให้ดีที่สุด:\n${draft}\n\n`:""}ขออนุมัติคลิป "${p.title}" (ยาว ${total.toFixed(0)} วินาที)\nผลตรวจจากน้องเช็ค: ${r.out.qa?`${r.out.qa.score}/10 ${r.out.qa.summary}`:"-"}\nบทพูด:\n${p.scenes.map((x,i)=>`${i+1}. ${x.narration.replace(/\*/g,"")}`).join("\n")}\n\nอนุมัติหรือไม่ และเขียนแคปชันโพสต์ TikTok ที่ชวนดูและชวนคอมเมนต์ พร้อมแฮชแท็ก 3-6 อัน ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"approved":true,"note":"ความเห็น 1 ประโยค","post":"แคปชันโพสต์ #แฮชแท็ก"}\n\`\`\``));
     r.out.approve={approved:j?.approved!==false,note:str(j?.note,200),post:str(j?.post,700)};
     return r.out.approve.approved?`อนุมัติแล้ว 🎉 ${r.out.approve.note}`:`อนุมัติแบบมีข้อสังเกต: ${r.out.approve.note}`;
   },
@@ -2608,15 +2712,24 @@ const STEP_FN={
         if(typeof e.narration==="string"&&cleanStar(e.narration)&&cleanStar(e.narration)!==x.narration){ setNarration(x,e.narration,e.emph); applied++; } }); }
     r.out.review={score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,6).map(x=>str(String(x),160)).filter(Boolean),applied}; r.title=p.title;
   },
-  async creative(r){ r.out.creative=await ask("creative",`${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก${note(r,"creative")}`); return "ส่งบทให้น้องพิกเซลแล้ว"; },
-  async animator(r){ let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}:\n\n${r.out.creative}`);
+  async creative(r){ const facts=r.out.plan?.facts?`\n\nข้อมูลจากน้องข้อมูล (ใช้เฉพาะที่ถูกต้อง):\n${r.out.plan.facts}`:"", base=`หัวข้อ: "${r.topic}"\nบรีฟ: ${r.out.brief?.text||"-"}${facts}`;
+    const team=await staffWork(r,"creative",[{id:"hook",prompt:`${base}\n\nเขียนประโยคเปิดคลิป (hook) 3 แบบ และประโยคปิดชวนคอมเมนต์ 2 แบบ`},{id:"story",prompt:`${base}\n\nวางโครงเรื่องคลิปสั้น 5-7 จังหวะ ความยาวรวม 35-50 วินาที`}]);
+    r.out.creative=await ask("creative",`${team?`ทีมของเธอส่งงานมาแล้ว เลือกและเรียบเรียงส่วนที่ดีที่สุด:\n${team}\n\n`:""}${facts?`${facts.trim()}\n\n`:""}${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก${note(r,"creative")}`); return "ส่งบทให้น้องพิกเซลแล้ว"; },
+  async animator(r){ const scr=String(r.out.creative).split(/```json/i)[0].slice(0,6000);
+    const team=await staffWork(r,"animator",[{id:"shot",prompt:`บทคลิป (สัดส่วน ${r.aspect}):\n${scr}\n\nทำ shot list ทีละฉาก: ฉากหลัง เวลา กล้อง เอฟเฟกต์ และเหตุผลสั้นๆ`},{id:"acting",prompt:`บทคลิป:\n${scr}\n\nกำหนดทีละฉาก: ตัวละคร อารมณ์ ท่าทาง พร็อพ และคำพูดในบับเบิล (ถ้ามี)`}]);
+    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}:\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
     r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
-  async editor(r){ const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา${note(r,"editor")}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
+  async editor(r){ const sum=scriptOf(r.out.animator);
+    const team=await staffWork(r,"editor",[{id:"pace",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nวางจังหวะทีละฉาก: duration ที่เหมาะ transition และ sfx เฉพาะจังหวะสำคัญ`},{id:"subs",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nเลือก subStyle ของคลิป และทีละฉาก: คำเน้น 1-2 คำ (ต้องอยู่ในบทพูดตรงตัว) ข้อความบนจอที่สั้นลง และ subPos`}]);
+    const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
     let f; try{ f=normalizeProject({...cut,aspect:r.aspect}); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
     r.out.editor=f; r.project=clone(f); r.title=f.title; return `ตัดต่อเสร็จ ยาว ${f.scenes.reduce((a,x)=>a+x.duration,0).toFixed(0)} วินาที`; },
   async voice(r){ const lines=r.project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
-    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก${note(r,"voice")}:\n\n${lines}`));
+    const team=await staffWork(r,"voice",[{id:"tone",prompt:`บทพูดคลิป "${r.project.title}":\n${lines}\n\nชี้คำหรือประโยคที่พูดแล้วสะดุดหรือเป็นภาษาเขียน พร้อมคำที่พูดง่ายกว่า`},{id:"music",prompt:`คลิป "${r.project.title}" เพลงตอนนี้: ${r.project.music}\n${scriptOf(r.project)}\n\nเลือกเพลงและปรับเสียงประกอบ ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"music":"${CAT.music.join("|")}","sfx":[{"scene":1,"sfx":"${CAT.sfx.join("|")}"}]}\n\`\`\``}]);
+    const tone=team.split("\n\n[งานจาก").find(x=>x.includes("น้องโทน"))||"";
+    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก${note(r,"voice")}${tone?`\n\nข้อสังเกตจากน้องโทน:\n${tone.replace(/^\[?งานจาก[^\]]*\]\n/,"")}`:""}:\n\n${lines}`));
+    const mj=subJSON(r,"voice","music"); if(mj){ r.project.music=pick(mj.music,CAT.music,r.project.music); (Array.isArray(mj.sfx)?mj.sfx:[]).forEach(x=>{ const sc=r.project.scenes[(Number(x?.scene)||0)-1]; if(sc) sc.sfx=pick(x.sfx,CAT.sfx,sc.sfx); }); }
     r.out.voice=vj?.lines?{lines:vj.lines}:{lines:[]}; r.project=applyVoiceTo(r.project,r.out.voice); return "ปรับบทพากย์และอารมณ์เสียงแล้ว"; },
 };
 const STOP={stop:true};
@@ -2662,10 +2775,11 @@ function renderJob(){
   if(!r){ box.hidden=true; feed.innerHTML=`<li class="hint">ยังไม่มีกิจกรรม กด "ให้ทีมทำคลิปใหม่" แล้วดูทีมทำงานกันได้ที่นี่</li>`; return; }
   box.hidden=false; const S=stepsOf(r), running=runningRec===r.id, done=S.filter(s=>r.out?.[s]!=null).length;
   const curStep=running?S.find(s=>r.out?.[s]==null):null;
-  let pct=r.manual?100:(done/S.length)*100; if(curStep&&r.stepAt){ const exp={plan:25,creative:35,animator:60,editor:60,voice:30,qa:45,approve:25,brief:25,review:35}[curStep]||40; pct+=Math.min(0.9,(Date.now()-r.stepAt)/1000/exp)*(100/S.length); }
+  let pct=r.manual?100:(done/S.length)*100; if(curStep&&r.stepAt){ const exp={plan:55,creative:55,animator:80,editor:80,voice:45,qa:65,approve:35,brief:25,review:35}[curStep]||40; pct+=Math.min(0.9,(Date.now()-r.stepAt)/1000/exp)*(100/S.length); }
   $("jobTitle").textContent=r.title||r.topic||"น้องโฟลว์กำลังเลือกหัวข้อ..."; $("jobPct").textContent=Math.floor(pct)+"%"; $("jobBar").style.width=pct.toFixed(1)+"%";
   const now=$("jobNow"); now.innerHTML="";
-  if(curStep){ const who=STEP_WHO[curStep]; now.appendChild(miniAvatar(who)); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${byId[who].name} กำลัง${STEP_VERB[curStep]}...`; now.appendChild(t); const el=document.createElement("span"); el.className="el"; el.textContent=r.stepAt?fmt((Date.now()-r.stepAt)/1000):""; now.appendChild(el); }
+  if(curStep&&activeStaff.length){ activeStaff.forEach(id=>now.appendChild(miniAvatar(id))); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${activeStaff.map(id=>byId[id].name).join(" + ")} กำลังเตรียมงานให้${byId[STEP_WHO[curStep]].name}...`; now.appendChild(t); }
+  else if(curStep){ const who=STEP_WHO[curStep]; now.appendChild(miniAvatar(who)); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${byId[who].name} กำลัง${STEP_VERB[curStep]}...`; now.appendChild(t); const el=document.createElement("span"); el.className="el"; el.textContent=r.stepAt?fmt((Date.now()-r.stepAt)/1000):""; now.appendChild(el); }
   else { const st=recState(r); const t=document.createElement("span"); t.textContent=st.k==="done"?`✅ เสร็จแล้ว${r.out?.qa?` · ตรวจผ่าน ${r.out.qa.score}/10`:""}`:st.k==="ask"?"💬 รอคุณตอบคำถาม":`⏸ ${st.t}`; now.appendChild(t); }
   const ol=$("steps"); const states=S.map(st=>r.out?.[st]!=null?"done":(running&&st===curStep)?"working":(stepUI[st]==="error"||r.error?.stage===st)?"error":(r.waiting&&st==="brief")?"waiting":"");
   const sig=r.id+"|"+states.join(",")+"|"+viewStep; if(ol.dataset.sig!==sig){ ol.dataset.sig=sig; ol.innerHTML=""; ol.style.setProperty("--n",S.length); ol.style.setProperty("--nm",Math.ceil(S.length/2));
@@ -2685,7 +2799,7 @@ function liveWork(id,text){ liveState={id,text}; paintLive(); }
 function paintLive(){
   const box=$("liveBox"); const r=runningRec&&recs[runningRec]; if(!r){ box.hidden=true; return; }
   const st=stepsOf(r).find(s=>r.out?.[s]==null); if(!st){ box.hidden=true; return; }
-  box.hidden=false; const who=liveState.id||STEP_WHO[st]; $("liveHead").textContent=`สด · ${byId[who]?.name||""} กำลัง${who===STEP_WHO[st]?STEP_VERB[st]:"แก้งานตามที่ฝ่ายตรวจสอบแจ้ง"}`;
+  box.hidden=false; const who=liveState.id||STEP_WHO[st]; $("liveHead").textContent=`สด · ${byId[who]?.name||""} กำลัง${who===STEP_WHO[st]?STEP_VERB[st]:byId[who]?.head?"แก้งานตามที่ฝ่ายตรวจสอบแจ้ง":byId[who]?.task||"ช่วยงาน"}`;
   const body=$("liveBody"), t=liveState.text||"";
   if(!t.trim()){ body.innerHTML=`<div class="meter"><span class="spin" aria-hidden="true"></span><span>${esc(byId[who]?.name||"")} กำลังคิดก่อนเขียน (ปกติใช้เวลา 10-60 วินาที)</span></div>`; return; }
   const cut=t.search(/```json/i), prose=cut>=0?t.slice(0,cut):t, js=cut>=0?t.slice(cut):"";
@@ -2740,6 +2854,9 @@ function stepOutput(r,st){
   else if(st==="approve"){ H("h4",o.approved?"✅ อนุมัติแล้ว":"⚠️ อนุมัติแบบมีข้อสังเกต"); if(o.note) H("div",o.note); H("h4","แคปชันโพสต์"); const pst=H("div",o.post||"-"); pst.className="post"; const b=document.createElement("button"); b.className="btn small"; b.textContent="📋 คัดลอกแคปชัน"; b.style.marginTop="6px"; b.onclick=()=>copyText(o.post||""); d.appendChild(b); }
   else if(st==="brief"){ H("div",o.text||"").style.whiteSpace="pre-wrap"; }
   else H("div","ไม่มีข้อมูล");
+  // what the department's staff prepared for this step
+  const subs=(st==="plan"?["plan","facts"]:[st]).flatMap(k=>Object.entries(r.sub?.[k]||{}));
+  if(subs.length){ H("h4","งานจากทีมในแผนก"); subs.forEach(([id,txt])=>{ const det=document.createElement("details"); det.className="subwork"; const sm=document.createElement("summary"); sm.appendChild(miniAvatar(id)); sm.appendChild(document.createTextNode(` ${byId[id]?.name||id} · ${byId[id]?.task||""}`)); det.appendChild(sm); const body=document.createElement("div"); body.innerHTML=renderMarkdown(String(txt).split(/```json/i)[0]); det.appendChild(body); d.appendChild(det); }); }
   return d;
 }
 
