@@ -6,25 +6,26 @@
 <title>ออฟฟิศ AI ส่วนตัว</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Itim&family=Kanit:wght@400;600;800&family=Prompt:wght@400;600;800&family=Mitr:wght@400;600;700&family=Chakra+Petch:wght@400;600;700&family=Bai+Jamjuree:wght@400;600;700&family=Sriracha&family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Itim&family=Kanit:wght@400;600;800&family=Prompt:wght@400;600;800&family=Mitr:wght@400;600;700&family=Chakra+Petch:wght@400;600;700&family=Bai+Jamjuree:wght@400;600;700&family=Sriracha&family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* Theme tokens: dark creative-studio look by default, light mode on demand */
+/* Theme tokens: warm paper by default, warm charcoal in dark mode; one solid accent, no gradients */
 :root{
-  color-scheme:dark;
-  --bg:#0d0f15; --bg2:#121521; --panel:#161a24; --panel2:#1c2130; --ink:#eef0f7; --muted:#949bb0; --line:#272d3d; --line2:#323a4f;
-  --accent:#8b6cff; --accent-ink:#ffffff; --accent2:#ff5d8f; --ok:#34c47c; --warn:#f5b041; --err:#ff5a64;
-  --grad:linear-gradient(135deg,#8b6cff,#ff5d8f); --glow:0 0 0 1px rgba(139,108,255,.35),0 8px 30px rgba(139,108,255,.18);
-  --bubble:#1c2130; --me:#2a2450; --code:rgba(255,255,255,.06); --soft:#231f3d; --dot:rgba(255,255,255,.035);
-  --okbg:#15362a; --errbg:#3d1a22; --infobg:#1c2130; --partybg:#3a2f15;
-  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px rgba(0,0,0,.35); --r:16px;
-  --ui:"Prompt","Kanit",system-ui,sans-serif; --display:"Kanit","Prompt",system-ui,sans-serif;
-}
-:root[data-theme="light"]{
   color-scheme:light;
-  --bg:#f3f4f9; --bg2:#eceef6; --panel:#ffffff; --panel2:#f5f6fb; --ink:#161a26; --muted:#667085; --line:#e4e6ef; --line2:#d6d9e6;
-  --bubble:#ffffff; --me:#efeaff; --code:rgba(22,26,38,.06); --soft:#f1edff; --dot:rgba(22,26,38,.04);
-  --okbg:#e3f7ec; --errbg:#fde6e8; --infobg:#ffffff; --partybg:#fff4d6;
-  --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06);
+  --bg:#f3efe8; --bg2:#ebe6dd; --panel:#fffdf9; --panel2:#f8f4ee; --ink:#1e1c19; --muted:#6e675d; --line:#e2dbcf; --line2:#d3cabc;
+  --accent:#cf4a2a; --accent-h:#b63e21; --accent-ink:#ffffff; --accent2:#1f5f8b; --ok:#2e7a4d; --warn:#b97c12; --err:#bf3428;
+  --grad:var(--accent); --glow:none;
+  --bubble:#f3eee6; --me:#f9e3dc; --code:rgba(30,28,25,.06); --soft:#f6e6df; --dot:transparent;
+  --okbg:#e2f0e6; --errbg:#f8e1dd; --infobg:#fffdf9; --partybg:#fbf0d9;
+  --shadow:0 1px 2px rgba(40,30,20,.05); --r:12px;
+  --ui:"IBM Plex Sans Thai","Kanit",system-ui,sans-serif; --display:"IBM Plex Sans Thai","Kanit",system-ui,sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#161513; --bg2:#1c1a17; --panel:#1f1d1a; --panel2:#252320; --ink:#f1ece4; --muted:#a59d90; --line:#322f2a; --line2:#3f3b35;
+  --accent:#ef6a48; --accent-h:#f47f61; --accent2:#6fa8d6;
+  --bubble:#2a2724; --me:#3b2620; --code:rgba(255,255,255,.06); --soft:#33241f;
+  --okbg:#1e3326; --errbg:#3d221e; --infobg:#252320; --partybg:#3a3020;
+  --shadow:0 1px 2px rgba(0,0,0,.25);
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -318,41 +319,40 @@ dialog label{display:block;margin:10px 0 4px;font-weight:bold}
 dialog input,dialog select{width:100%;border:3px solid var(--line);background:var(--bg);padding:6px;border-radius:6px}
 dialog p{font-size:14px;color:var(--muted);margin:6px 0}
 .drow{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
-/* ===== New look: side rail, soft cards, gradient accents ===== */
-body{font-size:16px;background:var(--bg);background-image:radial-gradient(900px 500px at 85% -10%,rgba(139,108,255,.16),transparent 60%),radial-gradient(700px 420px at -10% 110%,rgba(255,93,143,.10),transparent 60%);background-attachment:fixed}
-:root[data-theme="light"] body{background-image:radial-gradient(900px 500px at 85% -10%,rgba(139,108,255,.10),transparent 60%),radial-gradient(700px 420px at -10% 110%,rgba(255,93,143,.07),transparent 60%)}
+/* ===== Layout and components ===== */
+body{font-size:16px;background:var(--bg);background-image:none;letter-spacing:.005em}
 .opt,.export,.scene,.rec,.stat,.planrow,.review,.job,.live,.out,.askbox,.empty,.tl,.member,.chip,.fontc,.msg,.toast,dialog,.recui,.recend,#partyCard,.lvl,.bar,.post,.thumb canvas,.stage,details.subwork,.pill,.dots span,.example,.chat-head canvas,.composer textarea,.mhead select,.make input,.make select,.qrow input,.opt select,.scene input,.scene textarea,dialog input,dialog select,.lvl .xp,.dept-h i{border-width:1px!important;box-shadow:none!important}
 .card{border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);border-radius:var(--r)}
-.btn{border:1px solid var(--line2);background:var(--panel2);box-shadow:none;border-radius:11px;padding:8px 14px;font-weight:500;transition:transform .15s,border-color .15s,background-color .15s,box-shadow .2s}
-.btn:hover{transform:translateY(-1px);box-shadow:none;border-color:var(--accent)}
+.btn{border:1px solid var(--line2);background:var(--panel);box-shadow:none;border-radius:9px;padding:8px 14px;font-weight:500;transition:transform .15s,border-color .15s,background-color .15s,box-shadow .2s}
+.btn:hover{transform:none;box-shadow:none;border-color:var(--ink)}
 .btn:active{transform:scale(.98);box-shadow:none}
-.btn.primary{background:var(--grad);border-color:transparent;color:#fff;text-shadow:none;box-shadow:var(--glow)}
-.btn.primary:hover{box-shadow:0 0 0 1px rgba(255,255,255,.12),0 10px 34px rgba(139,108,255,.35);border-color:transparent}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);text-shadow:none;box-shadow:none}
+.btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h)}
 .btn.small{padding:5px 10px;font-size:14px;box-shadow:none}
-.btn.big{border-radius:14px;box-shadow:var(--glow);padding:12px 18px}
+.btn.big{border-radius:10px;box-shadow:none;padding:12px 18px;font-weight:600}
 .btn.icon{width:38px;height:38px;padding:0;display:inline-grid;place-items:center;font-size:17px}
 input,select,textarea{border-color:var(--line2)!important;background:var(--bg2)!important;border-radius:10px!important;color:var(--ink)}
 /* app frame */
 .app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh;min-height:100dvh}
-.rail{position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;gap:18px;padding:18px 14px;padding-left:max(14px,env(safe-area-inset-left,0px));border-right:1px solid var(--line);background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:20}
+.rail{position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;gap:18px;padding:18px 14px;padding-left:max(14px,env(safe-area-inset-left,0px));border-right:1px solid var(--line);background:var(--panel);z-index:20}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 6px}
-.brand .logo{width:40px;height:40px;border-radius:12px;background:var(--grad);display:grid;place-items:center;color:#fff;font-size:20px;box-shadow:var(--glow);flex:none}
-.brand .bt{font-family:var(--display);font-weight:800;font-size:19px;line-height:1.1}
+.brand .logo{width:34px;height:34px;border-radius:8px;background:var(--ink);display:grid;place-items:center;color:var(--panel);font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.02em;flex:none}
+.brand .bt{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.15}
 .brand .bt small{display:block;font-family:var(--ui);font-weight:400;font-size:12px;color:var(--muted)}
 .navs{display:flex;flex-direction:column;gap:4px}
 .nav{display:flex;align-items:center;gap:12px;border:0;background:transparent;color:var(--muted);padding:11px 12px;border-radius:12px;cursor:pointer;font-size:15px;font-weight:500;text-align:left;position:relative;transition:background-color .15s,color .15s}
-.nav i{font-style:normal;font-size:19px;width:24px;text-align:center}
+.nav svg{width:20px;height:20px;flex:none}
 .nav:hover{background:var(--panel2);color:var(--ink)}
-.nav[aria-selected="true"]{background:var(--soft);color:var(--ink)}
-.nav[aria-selected="true"]::before{content:"";position:absolute;left:-14px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--grad)}
+.nav[aria-selected="true"]{background:var(--panel2);color:var(--ink);font-weight:600}
+.nav[aria-selected="true"]::before{content:"";position:absolute;left:-14px;top:9px;bottom:9px;width:4px;border-radius:0 3px 3px 0;background:var(--accent)}
 .rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .rail-btns{display:flex;gap:8px}
 .lvl{border-color:var(--line2);background:var(--panel2)}
-.lvl b{background:var(--grad)}
+.lvl b{background:var(--ink);color:var(--panel)}
 .sync{font-size:12px;color:var(--muted);white-space:normal}
 .content{min-width:0;padding:18px 26px 40px;padding-right:max(26px,env(safe-area-inset-right,0px))}
 .topbar{display:flex;align-items:flex-end;gap:12px;margin-bottom:16px}
-.topbar h1{margin:0;font-family:var(--display);font-weight:800;font-size:30px;line-height:1.15;letter-spacing:-.01em}
+.topbar h1{margin:0;font-family:var(--display);font-weight:700;font-size:28px;line-height:1.2}
 .topbar small{color:var(--muted);font-size:14px}
 .view{animation:paneIn .3s ease-out}
 .officegrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
@@ -370,7 +370,7 @@ input,select,textarea{border-color:var(--line2)!important;background:var(--bg2)!
 .side.wide .pane{min-height:0}
 .side.wide .studio{overflow:visible}
 @media (max-width:1180px){ .officegrid{grid-template-columns:minmax(0,1fr)} }
-@media (max-width:1100px){ .app{grid-template-columns:92px minmax(0,1fr)} .brand .bt,.sync{display:none} .brand{justify-content:center} .nav{flex-direction:column;gap:3px;padding:10px 4px;font-size:12px;text-align:center} .nav i{font-size:22px} .rail-foot{align-items:center} .rail-btns{flex-direction:column} .lvl{flex-direction:column;padding:4px;border-radius:12px} .lvl .xp{width:44px} }
+@media (max-width:1100px){ .app{grid-template-columns:92px minmax(0,1fr)} .brand .bt,.sync{display:none} .brand{justify-content:center} .nav{flex-direction:column;gap:4px;padding:10px 4px;font-size:12px;text-align:center} .nav svg{width:22px;height:22px} .rail-foot{align-items:center} .rail-btns{flex-direction:column} .lvl{flex-direction:column;padding:4px;border-radius:12px} .lvl .xp{width:44px} }
 @media (max-width:999px){ .chatgrid{grid-template-columns:minmax(0,1fr)} .people{position:static;max-height:300px} .people .team{grid-template-columns:repeat(3,minmax(0,1fr))} .side{position:static;height:calc(100vh - 140px);min-height:520px} }
 @media (max-width:700px){
   .app{grid-template-columns:minmax(0,1fr)}
@@ -381,22 +381,23 @@ input,select,textarea{border-color:var(--line2)!important;background:var(--bg2)!
   .people .team{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 /* components */
-.mhead h2{font-weight:700}
+.mhead h2{font-weight:700;font-size:18px}
+.card h2 .ico,.mhead h2 .ico{display:none}
 .card h2 .ico,.mhead h2 .ico{background:var(--soft);border:1px solid var(--line2);border-radius:10px}
 .job{background:var(--panel2);border-color:var(--line)}
 .bar{border-color:var(--line2);background:var(--bg2);height:10px}
-.bar i,.bar.big i{background:var(--grad)}
-.pct{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bar i,.bar.big i{background:var(--accent)}
+.pct{background:none;color:var(--ink)}
 .tl{border:1px dashed var(--line2);background:var(--panel2)}
 .tl.done{background:var(--okbg);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
-.tl.working{background:linear-gradient(90deg,rgba(139,108,255,.28),rgba(255,93,143,.28),rgba(139,108,255,.28));background-size:200% 100%;color:var(--ink);border-color:var(--accent)}
+.tl.working{background:var(--soft);animation:none;color:var(--ink);border:1px solid var(--accent)}
 .tl.working span{color:var(--ink)}
 .tl.sel{outline:2px solid var(--accent)}
 .live,.out{background:var(--panel2);border-color:var(--line)}
 .whead{background:transparent;border-bottom:1px solid var(--line)}
 .member{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--dc,var(--line))!important;border-radius:12px;padding:8px 10px;gap:8px;transition:transform .15s,border-color .15s,background-color .15s}
 .member:hover{transform:translateY(-2px);box-shadow:none;border-color:var(--line2)}
-.member[aria-pressed="true"]{background:var(--soft);border-color:var(--accent)}
+.member[aria-pressed="true"]{background:var(--panel);border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset!important}
 .member.lead{background:var(--panel2)}
 .member.busy{animation:none;box-shadow:0 0 0 1px var(--warn) inset!important}
 .member canvas{width:36px;height:40px;border-radius:10px;background:var(--bg2)}
@@ -407,28 +408,29 @@ input,select,textarea{border-color:var(--line2)!important;background:var(--bg2)!
 .dept-h i{border:0;border-radius:4px}
 .pill{border:1px solid var(--line2);background:var(--bg2)}
 .chip{border:1px solid var(--line2);background:var(--panel2)}
-.chip[aria-pressed="true"]{background:var(--grad);border-color:transparent}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
 .fontc{border:1px solid var(--line2);background:var(--panel2);border-radius:12px}
-.fontc[aria-pressed="true"]{background:var(--grad);border-color:transparent}
+.fontc[aria-pressed="true"]{background:var(--panel);border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset!important}
+.fontc[aria-pressed="true"] span{color:var(--muted)}
 .opt{background:var(--panel2);border:1px solid var(--line);border-radius:12px}
 .export{background:var(--soft);border:1px solid var(--line2);border-radius:14px}
 .scene,.rec,.planrow,.stat,.review{background:var(--panel2);border:1px solid var(--line);border-radius:12px}
-.scene.now,.rec.open{background:var(--soft);border-color:var(--accent)}
-.stat b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.scene.now,.rec.open{background:var(--panel);border-color:var(--ink)}
+.stat b{background:none;color:var(--ink)}
 .stage{background:#07080c;border:1px solid var(--line);border-radius:14px}
 .chat-head{border-bottom:1px solid var(--line);padding:12px 14px}
 .chat-head canvas{width:46px;height:52px;border-radius:12px;background:var(--bg2)}
 .msgs{padding:16px}
-.msg{border:0;background:var(--bubble);border-radius:16px 16px 16px 6px;padding:10px 13px}
-.msg.me{background:var(--grad);color:#fff;border-radius:16px 16px 6px 16px}
-.msg.me a{color:#fff}
+.msg{border:0;background:var(--bubble);border-radius:14px 14px 14px 4px;padding:10px 13px}
+.msg.me{background:var(--me);color:var(--ink);border-radius:14px 14px 4px 14px}
+
 .msg.auto{background:var(--soft)}
 .msg.sys{border:1px dashed var(--line2)}
 .composer{border-top:1px solid var(--line);padding:12px}
 .composer textarea{border:1px solid var(--line2)}
 .quick .chip{font-size:13px}
 .askbox{background:var(--soft);border-color:var(--accent)}
-.toast{background:var(--infobg);border:1px solid var(--line2);box-shadow:0 10px 30px rgba(0,0,0,.3)!important;border-radius:14px}
+.toast{background:var(--infobg);border:1px solid var(--line2);box-shadow:0 6px 18px rgba(40,30,20,.12)!important;border-radius:10px}
 #partyCard{border:1px solid var(--line2);box-shadow:0 20px 60px rgba(0,0,0,.45)!important;border-radius:20px}
 dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.45)!important}
 .recui,.recend{border:1px solid var(--line2);border-radius:18px}
@@ -438,6 +440,33 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
 .feed canvas,.tl canvas,.now canvas,.notes canvas{border-radius:6px}
 .example{border:0}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.export{background:var(--panel2)}
+.askbox{background:var(--panel2)}
+.toast .tl{background:var(--accent)}
+#partyCard b{background:none;color:var(--accent);-webkit-background-clip:border-box;background-clip:border-box}
+.xpf{color:var(--ok)}
+.tl{border-radius:8px}
+.live .dot{background:var(--accent);box-shadow:none;animation:none}
+.feed time{font-variant-numeric:tabular-nums}
+.chat-head canvas,.member canvas{background:var(--panel2)}
+.dept-h{font-size:13px;letter-spacing:.02em;text-transform:none}
+h2,h3,h4{letter-spacing:0}
+.btn.primary::after,.ripple{display:none}
+.ocol{display:flex;flex-direction:column;gap:18px;min-width:0}
+.depts{padding:14px 16px}
+.dhead{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.dhead h2{margin:0;font-family:var(--display);font-size:18px;font-weight:700}
+.dhead small{color:var(--muted);font-size:13px}
+.dlist{list-style:none;margin:0;padding:0}
+.dlist li{display:grid;grid-template-columns:10px minmax(110px,auto) minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 2px;border-top:1px solid var(--line);cursor:pointer;font-size:14px}
+.dlist li:hover .dn{text-decoration:underline}
+.dlist i{width:10px;height:10px;border-radius:3px;background:var(--dc)}
+.dlist .dn{font-weight:600}
+.dlist .dm{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlist .ds{color:var(--muted);font-size:13px;text-align:right}
+.dlist li.on .ds{color:var(--accent);font-weight:600}
+@media (max-width:560px){ .dlist li{grid-template-columns:10px minmax(0,1fr) auto} .dlist .dm{display:none} }
+.icon svg{width:18px;height:18px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -447,17 +476,17 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
 <div id="partyCard" hidden><b></b><span></span></div>
 <div class="app">
 <nav class="rail" aria-label="เมนูหลัก">
-  <div class="brand"><span class="logo" aria-hidden="true">✦</span><span class="bt">ออฟฟิศ AI<small>สตูดิโอคลิปสั้น</small></span></div>
+  <div class="brand"><span class="logo" aria-hidden="true">AI</span><span class="bt">ออฟฟิศ AI<small>สตูดิโอคลิปสั้น</small></span></div>
   <div class="navs" role="tablist" aria-orientation="vertical">
-    <button role="tab" class="nav" id="tabOffice" aria-selected="true" aria-controls="viewOffice"><i aria-hidden="true">🏢</i><span>ออฟฟิศ</span></button>
-    <button role="tab" class="nav" id="tabChat" aria-selected="false" aria-controls="viewChat"><i aria-hidden="true">💬</i><span>คุยกับทีม</span></button>
-    <button role="tab" class="nav" id="tabStudio" aria-selected="false" aria-controls="viewStudio"><i aria-hidden="true">🎬</i><span>สตูดิโอ</span></button>
-    <button role="tab" class="nav" id="tabLib" aria-selected="false" aria-controls="viewLib"><i aria-hidden="true">📚</i><span>คลังคลิป</span></button>
+    <button role="tab" class="nav" id="tabOffice" aria-selected="true" aria-controls="viewOffice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16"/><path d="M15 9h4a1 1 0 0 1 1 1v11"/><path d="M8 8h3M8 12h3M8 16h3"/><path d="M3 21h18"/></svg><span>ออฟฟิศ</span></button>
+    <button role="tab" class="nav" id="tabChat" aria-selected="false" aria-controls="viewChat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 18l-1.5 3 4-1.6A9 9 0 1 0 5 18z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg><span>คุยกับทีม</span></button>
+    <button role="tab" class="nav" id="tabStudio" aria-selected="false" aria-controls="viewStudio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.3-2.5z"/></svg><span>สตูดิโอ</span></button>
+    <button role="tab" class="nav" id="tabLib" aria-selected="false" aria-controls="viewLib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg><span>คลังคลิป</span></button>
   </div>
   <div class="rail-foot">
     <span class="lvl" id="lvl" title="เลเวลออฟฟิศ"></span>
-    <span class="sync" id="syncLbl">💾 บันทึกในเครื่องนี้</span>
-    <div class="rail-btns"><button class="btn small icon" id="themeBtn" title="สลับโหมดมืด/สว่าง" aria-label="สลับโหมดมืด/สว่าง">🌓</button><button class="btn small icon" id="settingsBtn" title="ตั้งค่า" aria-label="ตั้งค่า">⚙️</button></div>
+    <span class="sync" id="syncLbl">บันทึกในเครื่องนี้</span>
+    <div class="rail-btns"><button class="btn small icon" id="themeBtn" title="สลับโหมดมืด/สว่าง" aria-label="สลับโหมดมืด/สว่าง"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button><button class="btn small icon" id="settingsBtn" title="ตั้งค่า" aria-label="ตั้งค่า"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
   </div>
 </nav>
 <main class="content">
@@ -465,18 +494,19 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
   <section class="view" id="viewOffice" role="tabpanel" aria-labelledby="tabOffice">
     <div class="officegrid">
 
-    <div class="card office"><canvas id="officeCanvas" width="1600" height="1120" aria-label="ภาพออฟฟิศ คลิกที่พนักงานเพื่อคุยด้วย"></canvas></div>
+    <div class="ocol"><div class="card office"><canvas id="officeCanvas" width="1600" height="1120" aria-label="ภาพออฟฟิศ คลิกที่พนักงานเพื่อคุยด้วย"></canvas></div>
+      <div class="card depts"><div class="dhead"><h2>สถานะแผนก</h2><small id="deptSum"></small></div><ul class="dlist" id="deptList"></ul></div></div>
 
     <div class="card mission">
       <div class="mhead">
-        <h2><span class="ico" aria-hidden="true">🎛️</span> ศูนย์ควบคุมทีม</h2>
+        <h2>ศูนย์ควบคุมทีม</h2>
         <select id="aspect" aria-label="สัดส่วนวิดีโอ">
           <option value="9:16">แนวตั้ง 9:16 · TikTok/Reels</option>
           <option value="16:9">แนวนอน 16:9 · YouTube</option>
         </select>
       </div>
       <div class="cta">
-        <button class="btn primary big" id="makeBtn">🚀 ให้ทีมทำคลิปใหม่</button>
+        <button class="btn primary big" id="makeBtn">ให้ทีมทำคลิปใหม่</button>
         <button class="btn" id="stopBtn" hidden>⏸ หยุดหลังจบขั้นนี้</button>
       </div>
       <p class="hint" id="makeHint">ไม่ต้องพิมพ์อะไร ฝ่ายประสานงานจะเลือกหัวข้อเอง (จากแผนคอนเทนต์ก่อน ถ้ามี) แจกงานให้ทีม แล้วส่งคลิปให้ฝ่ายตรวจสอบและผู้จัดการอนุมัติ</p>
@@ -495,7 +525,7 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
             <div class="wbody" id="liveBody" aria-live="off"></div>
           </div>
           <div class="out" id="outBox" hidden>
-            <div class="whead"><span id="outHead"></span><button class="btn small" id="outLive" hidden>🔴 กลับไปดูสด</button></div>
+            <div class="whead"><span id="outHead"></span><button class="btn small" id="outLive" hidden>กลับไปดูสด</button></div>
             <div class="wbody" id="outBody"></div>
           </div>
         </div>
@@ -506,7 +536,7 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
         <div class="row"><button class="btn primary" id="askSend">ส่งคำตอบ</button><button class="btn" id="askSkip">ให้พี่มายตัดสินใจเอง</button></div>
       </div>
       <div class="feedwrap">
-        <h3>📡 ฟีดกิจกรรมทีม</h3>
+        <h3>ฟีดกิจกรรมทีม</h3>
         <ul class="feed" id="feed"></ul>
       </div>
     </div>
@@ -520,7 +550,7 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
       <div class="chat-head">
         <canvas id="chatAvatar" width="16" height="18"></canvas>
         <div class="t"><b id="chatName"></b><span id="chatRole"></span></div>
-        <button class="btn small" id="clearBtn">🧹 ล้างแชต</button>
+        <button class="btn small" id="clearBtn">ล้างแชต</button>
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="quick" id="quick"></div>
@@ -550,22 +580,22 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
         </div>
         <div class="opts">
           <div class="opt">
-            <label for="ttsToggle">🗣️ เสียงพากย์ตอนพรีวิว</label>
+            <label for="ttsToggle">เสียงพากย์ตอนพรีวิว</label>
             <select id="ttsToggle"><option value="on">เปิด (เสียงสังเคราะห์)</option><option value="off">ปิด</option></select>
             <select id="voicePick" aria-label="เลือกเสียง"></select>
             <label for="ttsRate" style="font-weight:normal">ความเร็วเสียง <span id="ttsRateLbl"></span></label>
             <input type="range" id="ttsRate" min="0.6" max="1.3" step="0.02" aria-label="ความเร็วเสียงพากย์">
-            <button class="btn small" id="ttsTest" type="button">🔊 ทดสอบเสียงพากย์</button>
+            <button class="btn small" id="ttsTest" type="button">ทดสอบเสียงพากย์</button>
             <small id="voiceStatus" class="vstat"></small>
             <small>ใช้ฟังตอนพรีวิวเท่านั้น ฝังลงไฟล์วิดีโอไม่ได้ ถ้าไม่ได้ยิน: เปิดเสียงเครื่องและปิดโหมดเงียบ</small>
           </div>
           <div class="opt">
-            <label for="voiceFile">🎙️ เสียงพากย์จริงของคุณ</label>
+            <label for="voiceFile">เสียงพากย์จริงของคุณ</label>
             <input type="file" id="voiceFile" accept="audio/*">
             <small id="voiceInfo">อัดเสียงอ่านตามซับด้วยมือถือ แล้วอัปโหลดตรงนี้ ระบบจะใส่ลงวิดีโอให้</small>
           </div>
           <div class="opt">
-            <label for="musicSel">🎵 เพลงประกอบ</label>
+            <label for="musicSel">เพลงประกอบ</label>
             <select id="musicSel">
               <option value="upbeat">สนุก สดใส</option><option value="funny">ตลก กวนๆ</option>
               <option value="tense">ตื่นเต้น ลุ้น</option><option value="mysterious">ลึกลับ</option>
@@ -573,31 +603,31 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
             </select>
           </div>
           <div class="opt">
-            <label for="bgMode">🏞️ ฉากหลัง</label>
+            <label for="bgMode">ฉากหลัง</label>
             <select id="bgMode"><option value="3d">3 มิติ (ตัวละคร 2 มิติในฉาก 3 มิติ)</option><option value="2d">2 มิติ</option></select>
             <small id="bgModeInfo"></small>
           </div>
           <div class="opt">
-            <label for="aspectStudio">📐 สัดส่วนวิดีโอ</label>
+            <label for="aspectStudio">สัดส่วนวิดีโอ</label>
             <select id="aspectStudio"><option value="9:16">แนวตั้ง 9:16</option><option value="16:9">แนวนอน 16:9</option></select>
           </div>
           <div class="opt" style="grid-column:1/-1">
-            <label>💬 สไตล์ซับ</label>
+            <label>สไตล์ซับ</label>
             <div class="chips" id="subStyles" role="radiogroup" aria-label="สไตล์ซับ"></div>
             <small>คำเน้นของแต่ละฉากตั้งได้ในช่อง "คำเน้น" ใต้บทพูด ซับจะเปลี่ยนสี กล้องซูมกระแทก และมีเสียงประกอบ ถ้าไม่ต้องการ กดปิด "เน้นคำสำคัญ"</small>
           </div>
           <div class="opt" style="grid-column:1/-1">
-            <label>🔤 ฟอนต์ข้อความในคลิป</label>
+            <label>ฟอนต์ข้อความในคลิป</label>
             <div class="fonts" id="fontChips" role="radiogroup" aria-label="ฟอนต์ข้อความในคลิป"></div>
             <small>ใช้กับซับ ข้อความบนจอ ป้ายในภาพ และหน้าจบ คลิปใหม่ที่ทีมทำจะใช้ฟอนต์ที่เลือกล่าสุด</small>
           </div>
         </div>
         <div class="export">
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button class="btn primary" id="exportBtn">🎬 สร้างไฟล์วิดีโอ</button>
-            <button class="btn" id="saveVideoBtn" hidden>⬇️ บันทึกวิดีโอ</button>
-            <button class="btn" id="recModeBtn">📱 โหมดอัดหน้าจอ (มีเสียงพากย์)</button>
-            <button class="btn" id="blenderBtn">🧊 ส่งออกไป Blender</button>
+            <button class="btn primary" id="exportBtn">สร้างไฟล์วิดีโอ</button>
+            <button class="btn" id="saveVideoBtn" hidden>บันทึกวิดีโอ</button>
+            <button class="btn" id="recModeBtn">โหมดอัดหน้าจอ (มีเสียงพากย์)</button>
+            <button class="btn" id="blenderBtn">ส่งออกไป Blender</button>
             <span id="exportMsg" style="font-size:14px">เรนเดอร์ตามเวลาจริง: คลิป 40 วินาทีใช้เวลาประมาณ 40 วินาที อย่าสลับแท็บระหว่างเรนเดอร์</span>
           </div>
           <small class="hint">ไฟล์จาก "สร้างไฟล์วิดีโอ" มีเพลงและเสียงเอฟเฟกต์ แต่เสียงพากย์สังเคราะห์ใส่ลงไฟล์ไม่ได้ (เบราว์เซอร์ไม่อนุญาต) ถ้าอยากได้เสียงพากย์ไปลง IG/TikTok ใช้ "โหมดอัดหน้าจอ" หรืออัปโหลดเสียงที่อัดเองด้านบน</small>
@@ -615,7 +645,7 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
         <div class="statgrid" id="statGrid"></div>
         <div class="unlocks" id="unlocks"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <b style="font-family:var(--display);font-size:18px;flex:1">📅 แผนคอนเทนต์</b>
+          <b style="font-family:var(--display);font-size:18px;flex:1">แผนคอนเทนต์</b>
           <button class="btn small" id="planAsk">ให้พี่มายวางแผน</button>
           <button class="btn small" id="planClear" hidden>ล้างแผน</button>
         </div>
@@ -636,7 +666,7 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
 <div class="recov" id="recOv" hidden role="dialog" aria-label="โหมดอัดหน้าจอ">
   <canvas id="recCv" width="720" height="1280"></canvas>
   <div class="recui" id="recUi">
-    <h2>📱 โหมดอัดหน้าจอ</h2>
+    <h2>โหมดอัดหน้าจอ</h2>
     <p>คลิปจะเล่นเต็มจอพร้อมเสียงพากย์ เพลง และเสียงเอฟเฟกต์ ภาพจะรอให้เสียงพากย์พูดจบก่อนค่อยไปฉากถัดไป</p>
     <ol>
       <li><b>iPad/iPhone:</b> ปัดเปิดศูนย์ควบคุม แล้วกดปุ่ม ⏺ บันทึกหน้าจอ (รอนับถอยหลัง 3 วินาที) <b>คอม:</b> Windows กด Win+Alt+R, Mac กด Cmd+Shift+5</li>
@@ -644,15 +674,15 @@ dialog{border:1px solid var(--line2);border-radius:18px;box-shadow:0 20px 60px r
       <li>จบคลิปแล้วหยุดอัด เปิดแอปรูปภาพ > แก้ไข > ครอบตัด ให้เหลือแค่ภาพคลิป แล้วโพสต์ลง IG/TikTok ได้เลย</li>
     </ol>
     <p class="vstat" id="recVoice"></p>
-    <p><button class="btn small" id="recTest" type="button">🔊 ทดสอบเสียงพากย์</button></p>
+    <p><button class="btn small" id="recTest" type="button">ทดสอบเสียงพากย์</button></p>
     <p class="hint">เปิดเสียงเครื่อง และปิดโหมดเงียบก่อน ถ้าไม่อยากให้เสียงรอบข้างติดมา ให้ปิดไมโครโฟนในปุ่มบันทึกหน้าจอ (กดค้างที่ปุ่ม)</p>
     <div class="row"><button class="btn primary big" id="recGo">▶ เริ่มเล่น</button><button class="btn" id="recClose">ปิด</button></div>
   </div>
-  <div class="recend" id="recEnd" hidden><b>✅ จบคลิปแล้ว หยุดอัดหน้าจอได้เลย</b><div class="row"><button class="btn primary" id="recAgain">▶ เล่นอีกครั้ง</button><button class="btn" id="recDone">ปิด</button></div></div>
+  <div class="recend" id="recEnd" hidden><b>จบคลิปแล้ว หยุดอัดหน้าจอได้เลย</b><div class="row"><button class="btn primary" id="recAgain">▶ เล่นอีกครั้ง</button><button class="btn" id="recDone">ปิด</button></div></div>
   <button class="recx" id="recX" aria-label="ปิดโหมดอัดหน้าจอ" hidden>×</button>
 </div>
 <dialog id="settings">
-  <h2 style="margin-top:0;font-family:var(--display)">⚙️ ตั้งค่าออฟฟิศ</h2>
+  <h2 style="margin-top:0;font-family:var(--display)">ตั้งค่าออฟฟิศ</h2>
   <div id="keyBox">
     <label for="apiKey">Anthropic API key</label>
     <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
@@ -2030,9 +2060,9 @@ $("voiceFile").onchange=async e=>{
   catch{ voiceBuf=null; $("voiceInfo").textContent="อ่านไฟล์เสียงนี้ไม่ได้ ลองไฟล์ .mp3, .m4a หรือ .wav"; }
 };
 
-const SUB_STYLES=[["pop","🔥 เด้งทีละคำ (TikTok)"],["karaoke","🎤 คาราโอเกะ"],["bounce","⬇️ หล่นทีละคำ"],["classic","▭ กล่องคลาสสิก"]];
+const SUB_STYLES=[["pop","เด้งทีละคำ (TikTok)"],["karaoke","คาราโอเกะ"],["bounce","⬇️ หล่นทีละคำ"],["classic","▭ กล่องคลาสสิก"]];
 function renderSubStyles(){ const box=$("subStyles"); box.innerHTML="";
-  const tg=document.createElement("button"); tg.type="button"; tg.className="chip toggle"; tg.textContent=project?.emphOn!==false?"✨ เน้นคำสำคัญ: เปิด":"✨ เน้นคำสำคัญ: ปิด"; tg.setAttribute("aria-pressed",String(project?.emphOn!==false));
+  const tg=document.createElement("button"); tg.type="button"; tg.className="chip toggle"; tg.textContent=project?.emphOn!==false?"เน้นคำสำคัญ: เปิด":"เน้นคำสำคัญ: ปิด"; tg.setAttribute("aria-pressed",String(project?.emphOn!==false));
   tg.onclick=()=>{ project.emphOn=project.emphOn===false; renderSubStyles(); relayout(); };  SUB_STYLES.forEach(([k,l])=>{ const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=l; b.setAttribute("role","radio"); b.setAttribute("aria-pressed",String(project?.subStyle===k)); b.setAttribute("aria-checked",String(project?.subStyle===k));
   b.onclick=()=>{ project.subStyle=k; renderSubStyles(); persistOpen(); if(!playing){ const i=R.sceneAt(playT); drawAt(playT>=R.endStart?0.9:Math.max(playT,R.starts[i]+0.9)); } }; box.appendChild(b); }); box.appendChild(tg); }
 const fontLoads={};
@@ -2078,7 +2108,7 @@ function renderSceneList(){ renderSubStyles(); renderFonts();
 function pickMime(){ const c=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"]; return c.find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||""; }
 $("exportBtn").onclick=async()=>{
   if(!project) return; if(!window.MediaRecorder||!videoCv.captureStream){ notice("เบราว์เซอร์นี้สร้างไฟล์วิดีโอไม่ได้ ลองใช้ Chrome หรือ Edge บนคอมพิวเตอร์"); return; }
-  stopPlay(); if(!voiceBuf) notice("ไฟล์วิดีโอนี้จะมีเพลงและเสียงเอฟเฟกต์ แต่ยังไม่มีเสียงพากย์ ถ้าต้องการเสียงพากย์ ใช้ \"📱 โหมดอัดหน้าจอ\" หรืออัดเสียงอ่านตามซับแล้วอัปโหลดในช่อง \"เสียงพากย์จริงของคุณ\"",9000,"info");
+  stopPlay(); if(!voiceBuf) notice("ไฟล์วิดีโอนี้จะมีเพลงและเสียงเอฟเฟกต์ แต่ยังไม่มีเสียงพากย์ ถ้าต้องการเสียงพากย์ ใช้ \"โหมดอัดหน้าจอ\" หรืออัดเสียงอ่านตามซับแล้วอัปโหลดในช่อง \"เสียงพากย์จริงของคุณ\"",9000,"info");
   await fontsReady(); onFontsChanged(); bg3dPrewarm(project,R.W,R.H); exporting=true; const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
   const msg=$("exportMsg"), bar=$("exportBar"); msg.textContent="กำลังเรนเดอร์... อย่าสลับแท็บหรือย่อหน้าต่าง";
   const vstream=videoCv.captureStream(30); const astream=AU.start(project,0,{record:true, voice:voiceBuf, accents:R.emphTimes()});
@@ -2534,7 +2564,7 @@ function bubbleAt(c,x,y,text){ c.font="7px Itim, sans-serif"; const w=Math.max(1
 function drawParts(c){ for(const p of parts){ c.globalAlpha=clamp(p.life/p.max,0,1)*(p.kind==="steam"?0.5:0.95); c.fillStyle=p.col; c.beginPath(); c.arc(p.x,p.y,(p.kind==="steam"?1.1:0.7)*p.size+0.2,0,7); c.fill(); } c.globalAlpha=1; }
 /* room */
 function drawWindow(c,wx,wy,i,t,night,dusk){ rrect(c,wx-3,wy-3,54,40,4); paint(c,"#ffffff",1);
-  const g=c.createLinearGradient(0,wy,0,wy+34); if(night){ g.addColorStop(0,"#16214a"); g.addColorStop(1,"#2b3a75"); } else if(dusk){ g.addColorStop(0,"#ff9e7a"); g.addColorStop(1,"#ffd0a0"); } else { g.addColorStop(0,"#7cc8ff"); g.addColorStop(1,"#cdeeff"); }
+  const g=night?"#1f2b5a":dusk?"#f6b48c":"#9fd5f5";
   c.save(); rrect(c,wx,wy,48,34,2); c.clip(); c.fillStyle=g; c.fillRect(wx,wy,48,34);
   if(night){ for(let k=0;k<7;k++){ c.fillStyle=(Math.floor(t*2)+k)%3?"#fff":"#ffe9a0"; c.beginPath(); c.arc(wx+4+rnd(k+i*9)*40,wy+3+rnd(k+i)*24,0.6,0,7); c.fill(); } if(i===2){ c.beginPath(); c.arc(wx+38,wy+9,4.5,0,7); c.fillStyle="#f6f0c4"; c.fill(); c.beginPath(); c.arc(wx+40,wy+8,4,0,7); c.fillStyle="#1d2a5a"; c.fill(); } }
   else { if(i===0){ c.beginPath(); c.arc(wx+10,wy+9,4.5,0,7); c.fillStyle=dusk?"#ffcf6b":"#fff3a0"; c.fill(); } const cx=wx+((t*4+i*40)%80)-16; c.fillStyle="#fff"; [[0,10,6,3.2],[5,8,4.5,3],[-5,10.5,4,2.4]].forEach(([dx,dy,rx,ry])=>{ c.beginPath(); c.ellipse(cx+dx+6,wy+dy,rx,ry,0,0,7); c.fill(); }); c.fillStyle="rgba(110,170,120,.7)"; c.beginPath(); c.ellipse(wx+24,wy+38,30,9,0,0,7); c.fill(); }
@@ -2553,7 +2583,7 @@ function drawOffice(now){
 const OFFICE_BG={cv:null,key:""};
 function drawRoom(c,t,LV,hr,night,dusk){
   // wall
-  const wg=c.createLinearGradient(0,0,0,70); wg.addColorStop(0,"#f6ecdf"); wg.addColorStop(1,"#efdfcb"); c.fillStyle=wg; c.fillRect(0,0,OW,70);
+  c.fillStyle="#f2e7d8"; c.fillRect(0,0,OW,70);
   c.fillStyle="rgba(200,170,140,.18)"; for(let x=8;x<OW;x+=16) c.fillRect(x,0,1.2,58);
   c.fillStyle="#d9bfa0"; c.fillRect(0,58,OW,12); c.fillStyle="#c9a985"; c.fillRect(0,58,OW,1.5); c.fillStyle="#b58e66"; c.fillRect(0,67.5,OW,2.5);
   [[18,10],[96,10],[330,10]].forEach(([wx,wy],i)=>drawWindow(c,wx,wy,i,t,night,dusk));
@@ -2621,11 +2651,18 @@ OC.addEventListener("click",ev=>{ const r=OC.getBoundingClientRect(); const x=(e
    ========================================================= */
 let chats=store.get("chats",{}); EMPLOYEES.forEach(e=>{ chats[e.id] ||= []; });
 let tasks=store.get("tasks",[]);
-function renderTeam(){ const box=$("team"); box.innerHTML=""; DEPTS.forEach(d=>{ const mem=EMPLOYEES.filter(e=>e.dept===d.id).sort((a,b)=>(b.head?1:0)-(a.head?1:0)); const busy=mem.filter(e=>status[e.id]==="working").length;
+function renderDepts(){ const ul=$("deptList"); if(!ul) return; ul.innerHTML=""; let busyAll=0;
+  DEPTS.forEach(d=>{ const mem=EMPLOYEES.filter(e=>e.dept===d.id), busy=mem.filter(e=>status[e.id]==="working"), head=mem.find(e=>e.head); busyAll+=busy.length;
+    const li=document.createElement("li"); li.style.setProperty("--dc",d.color); li.innerHTML=`<i aria-hidden="true"></i><span class="dn"></span><span class="dm"></span><span class="ds"></span>`;
+    li.querySelector(".dn").textContent=d.name; li.querySelector(".dm").textContent=`${head?.name||""} + ${mem.length-1} คน`;
+    const st=li.querySelector(".ds"); st.textContent=busy.length?`กำลังทำ · ${busy.map(e=>e.name).join(", ")}`:mem.some(e=>status[e.id]==="error")?"มีปัญหา":"ว่าง"; if(busy.length) li.classList.add("on");
+    li.onclick=()=>{ select(head.id); showTab("chat"); }; ul.appendChild(li); });
+  $("deptSum").textContent=busyAll?`ทำงานอยู่ ${busyAll} คน`:`พร้อมทำงาน ${EMPLOYEES.length} คน`; }
+function renderTeam(){ renderDepts(); const box=$("team"); box.innerHTML=""; DEPTS.forEach(d=>{ const mem=EMPLOYEES.filter(e=>e.dept===d.id).sort((a,b)=>(b.head?1:0)-(a.head?1:0)); const busy=mem.filter(e=>status[e.id]==="working").length;
   const h=document.createElement("div"); h.className="dept-h"; h.style.setProperty("--dc",d.color); h.innerHTML=`<i aria-hidden="true"></i><b></b><span></span>`; h.querySelector("b").textContent=d.name; h.querySelector("span").textContent=`${mem.length} คน${busy?` · กำลังทำงาน ${busy}`:""}`; box.appendChild(h);
   mem.forEach(e=>{ const st=status[e.id]; const b=document.createElement("button"); b.className="member"+(e.head?" lead":" staff")+(st==="working"?" busy":""); b.style.setProperty("--dc",d.color); b.setAttribute("aria-pressed",String(e.id===current));
   b.innerHTML=`<canvas width="16" height="18" aria-hidden="true"></canvas><span class="mi"><b></b><span></span><em class="pill ${st}">${{idle:"ว่าง",working:"กำลังทำ",done:"เสร็จแล้ว",error:"มีปัญหา"}[st]}</em></span>`;
-  avatar(b.querySelector("canvas"),e); b.querySelector("b").textContent=e.bubble+" "+e.name; b.querySelector(".mi > span").textContent=e.head?`👑 หัวหน้า · ${e.role}`:e.role;
+  avatar(b.querySelector("canvas"),e); b.querySelector("b").textContent=e.name; b.querySelector(".mi > span").textContent=e.head?`หัวหน้า · ${e.role}`:e.role;
   b.onclick=()=>{ select(e.id); showTab("chat"); actors[e.id].jumpUntil=performance.now()+700; say(e.id,"👋",1.4); }; box.appendChild(b); }); }); }
 function setStatus(id,s){ const was=status[id]; status[id]=s; renderTeam(); if(s==="working"&&was!=="working") managerCheck(id); if(s==="done"&&was==="working"&&!reduceMotion){ const h=headPos(id); for(let k=0;k<10;k++) spawn(h.x,h.y,{kind:"spark",vx:(Math.random()-.5)*50,vy:-30-Math.random()*25,life:0.9,col:["#5fd38d","#ffd23f","#ffffff"][k%3],size:2}); } }
 function renderTasks(){ const ul=$("tasks"); if(!ul) return; ul.innerHTML=""; if(!tasks.length){ ul.innerHTML=`<li><span class="what" style="color:var(--muted)">ยังไม่มีงาน ลองพิมพ์หัวข้อแล้วกด "สั่งทั้งทีม" ดูสิ</span></li>`; return; }
@@ -2649,16 +2686,16 @@ async function copyText(text){ try{ await navigator.clipboard.writeText(text); n
 const msgsEl=$("msgs"), input=$("input"), sendBtn=$("sendBtn");
 function addTools(div,text,who){ const tools=document.createElement("div"); tools.className="tools"; const btn=(label,fn)=>{ const b=document.createElement("button"); b.className="btn small"; b.textContent=label; b.onclick=fn; tools.appendChild(b); };
   const j=extractJSON(text);
-  if(j&&Array.isArray(j.scenes)) btn("🎞️ เปิดในห้องตัดต่อ (บันทึกลงคลัง)",()=>{ let p; try{ p=normalizeProject(j); }catch(e){ notice("เปิดไม่ได้: "+e.message); return; } const r=newRecFromProject(p); openRec(r.id,{switchTab:true}); });
-  if(j&&Array.isArray(j.lines)&&project) btn("🎙️ ใช้บทพากย์นี้กับคลิป",()=>{ applyVoice(j); showTab("studio"); });
-  if(j&&Array.isArray(j.plan)) btn("📅 บันทึกเป็นแผนคอนเทนต์",()=>{ setPlan(j.plan); showTab("lib"); });
-  btn("📋 คัดลอก",()=>copyText(text));
-  EMPLOYEES.filter(x=>x.id!==who&&(x.head||x.dept===byId[who].dept)).forEach(o=>btn(`➡️ ส่งให้${o.name}`,()=>{ select(o.id); input.value=`งานจาก${byId[who].name}:\n\n${text}\n\nช่วยต่องานนี้ตามหน้าที่ของเธอหน่อย`; input.focus(); }));
+  if(j&&Array.isArray(j.scenes)) btn("เปิดในห้องตัดต่อ (บันทึกลงคลัง)",()=>{ let p; try{ p=normalizeProject(j); }catch(e){ notice("เปิดไม่ได้: "+e.message); return; } const r=newRecFromProject(p); openRec(r.id,{switchTab:true}); });
+  if(j&&Array.isArray(j.lines)&&project) btn("ใช้บทพากย์นี้กับคลิป",()=>{ applyVoice(j); showTab("studio"); });
+  if(j&&Array.isArray(j.plan)) btn("บันทึกเป็นแผนคอนเทนต์",()=>{ setPlan(j.plan); showTab("lib"); });
+  btn("คัดลอก",()=>copyText(text));
+  EMPLOYEES.filter(x=>x.id!==who&&(x.head||x.dept===byId[who].dept)).forEach(o=>btn(`ส่งให้${o.name}`,()=>{ select(o.id); input.value=`งานจาก${byId[who].name}:\n\n${text}\n\nช่วยต่องานนี้ตามหน้าที่ของเธอหน่อย`; input.focus(); }));
   div.appendChild(tools); }
 function bubble(role,text,who){ const d=document.createElement("div"); d.className="msg "+(role==="user"?"me":role==="sys"?"sys":"ai");
   if(role==="ai"){ d.innerHTML=renderMarkdown(text); addTools(d,text,who); } else d.textContent=text; msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight; return d; }
 function autoBubble(m){ const d=document.createElement("div"); d.className="msg me auto"; d.innerHTML=`<details><summary></summary><pre></pre></details>`; d.querySelector("summary").textContent=m.label+" (กดดูรายละเอียด)"; d.querySelector("pre").textContent=m.content; msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight; }
-function renderChat(){ const e=byId[current]; avatar($("chatAvatar"),e); $("chatName").textContent=e.bubble+" "+e.name; $("chatRole").textContent=e.role; msgsEl.innerHTML="";
+function renderChat(){ const e=byId[current]; avatar($("chatAvatar"),e); $("chatName").textContent=e.name; $("chatRole").textContent=e.role; msgsEl.innerHTML="";
   if(!chats[e.id].length) bubble("sys",`${e.name} (${e.role}) พร้อมทำงานแล้ว สั่งได้เลย`);
   chats[e.id].forEach(m=>m.label?autoBubble(m):bubble(m.role==="user"?"user":"ai",m.content,e.id)); if(status[e.id]==="working") bubble("sys","⏳ กำลังทำงานอยู่...");
   const q=$("quick"); q.innerHTML=""; e.quick.forEach(s=>{ const b=document.createElement("button"); b.className="btn small"; b.textContent=s; b.onclick=()=>{ input.value=s; input.focus(); }; q.appendChild(b); });
@@ -2730,8 +2767,8 @@ async function send(){ const text=input.value.trim(); if(!text||status[current]=
 sendBtn.onclick=send;
 input.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&!ev.shiftKey&&!ev.isComposing){ ev.preventDefault(); send(); } });
 const clearBtn=$("clearBtn");
-clearBtn.onclick=()=>{ if(status[current]==="working") return; if(clearBtn.dataset.armed!=="1"){ clearBtn.dataset.armed="1"; clearBtn.textContent="กดอีกครั้งเพื่อยืนยัน"; setTimeout(()=>{ clearBtn.dataset.armed=""; clearBtn.textContent="🧹 ล้างแชต"; },3000); return; }
-  clearBtn.dataset.armed=""; clearBtn.textContent="🧹 ล้างแชต"; chats[current]=[]; saveChats(current); setStatus(current,"idle"); renderChat(); };
+clearBtn.onclick=()=>{ if(status[current]==="working") return; if(clearBtn.dataset.armed!=="1"){ clearBtn.dataset.armed="1"; clearBtn.textContent="กดอีกครั้งเพื่อยืนยัน"; setTimeout(()=>{ clearBtn.dataset.armed=""; clearBtn.textContent="ล้างแชต"; },3000); return; }
+  clearBtn.dataset.armed=""; clearBtn.textContent="ล้างแชต"; chats[current]=[]; saveChats(current); setStatus(current,"idle"); renderChat(); };
 
 function setNarration(x,raw,extraEmph=[]){ const old=x.emph||[]; const r=parseEmph(raw,[...(Array.isArray(extraEmph)?extraEmph:[]),...old]); x.narration=r.text; x.emph=r.emph; x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); }
 function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return; if(typeof l.text==="string"&&cleanStar(l.text)) setNarration(s,l.text,l.emph);
@@ -2756,15 +2793,15 @@ const Sync={mode:"local",db:null,uid:null,pending:new Map(),busy:new Set(),timer
 function syncLabel(t){ $("syncLbl").textContent=t; }
 function saveLocal(){ store.set("recs",recs); store.set("stats",stats); store.set("tomb",[...tomb].slice(-200)); }
 const stateDoc=()=>Sync.db.doc(`data/users/${Sync.uid}/state`);
-function queueWrite(key,refFn,dataFn){ if(Sync.mode!=="cloud") return; Sync.pending.set(key,{refFn,dataFn}); clearTimeout(Sync.timers[key]); Sync.timers[key]=setTimeout(()=>flush(key),700); syncLabel("☁️ กำลังบันทึก..."); }
+function queueWrite(key,refFn,dataFn){ if(Sync.mode!=="cloud") return; Sync.pending.set(key,{refFn,dataFn}); clearTimeout(Sync.timers[key]); Sync.timers[key]=setTimeout(()=>flush(key),700); syncLabel("กำลังบันทึก..."); }
 async function flush(key,retried=false){
   if(Sync.busy.has(key)) return; const job=Sync.pending.get(key); if(!job) return; Sync.pending.delete(key); Sync.busy.add(key);
   try{ const d=job.dataFn(); if(d===null) await job.refFn().delete(); else await job.refFn().set(d); }
   catch(e){ if(e?.code==="unavailable"&&!retried){ Sync.busy.delete(key); if(!Sync.pending.has(key)) Sync.pending.set(key,job); setTimeout(()=>flush(key,true),1200+Math.random()*1500); return; }
     if(e?.code==="quota_exceeded") notice("พื้นที่บันทึกออนไลน์เต็มแล้ว ลบคลิปเก่าในคลังออกบ้างนะ",9000);
-    else if(e?.code==="revoked"){ Sync.mode="local"; syncLabel("💾 บันทึกในเครื่องนี้"); }
-    else syncLabel("⚠️ ซิงก์ไม่สำเร็จ (บันทึกในเครื่องแล้ว)"); }
-  finally{ Sync.busy.delete(key); if(Sync.pending.has(key)) flush(key); else if(!Sync.pending.size&&!Sync.busy.size&&Sync.mode==="cloud") syncLabel("☁️ ซิงก์แล้ว"); }
+    else if(e?.code==="revoked"){ Sync.mode="local"; syncLabel("บันทึกในเครื่องนี้"); }
+    else syncLabel("ซิงก์ไม่สำเร็จ (บันทึกในเครื่องแล้ว)"); }
+  finally{ Sync.busy.delete(key); if(Sync.pending.has(key)) flush(key); else if(!Sync.pending.size&&!Sync.busy.size&&Sync.mode==="cloud") syncLabel("ซิงก์แล้ว"); }
 }
 const clone=o=>JSON.parse(JSON.stringify(o));
 function saveRec(r,{keepTime=false}={}){ if(jobRec?.id===r.id) jobRec=r;  if(!keepTime) r.updatedAt=Date.now(); recs[r.id]=r; saveLocal(); queueWrite("p:"+r.id,()=>stateDoc().collection("projects").doc(r.id),()=>recs[r.id]?clone(recs[r.id]):null); renderLibrary(); renderResume(); renderJob(); }
@@ -2780,7 +2817,7 @@ function persistOpen(){ if(!project) return;
 const LEVELS=[0,100,250,450,700,1000,1400,1900,2500,3200];
 const UNLOCKS=["ออฟฟิศเริ่มต้น","ชั้นหนังสือ","โปสเตอร์ช่อง","ป้ายไฟ ON AIR","ถ้วยรางวัล","ตู้ปลา","โคมไฟตั้งโต๊ะสีทอง","แมวประจำออฟฟิศ","ป้ายเพชร","พื้นทองระดับตำนาน"];
 const levelOf=xp=>{ let l=1; LEVELS.forEach((v,i)=>{ if(xp>=v) l=i+1; }); return l; };
-function addXP(n){ const before=levelOf(stats.xp); stats.xp+=n; saveStats(); xpFloat(n); const after=levelOf(stats.xp); if(after>before){ celebrate(`LEVEL UP! Lv.${after}`,`ปลดล็อก: ${UNLOCKS[after-1]}`); notice(`🎉 ออฟฟิศเลเวลอัปเป็น Lv.${after}! ปลดล็อก: ${UNLOCKS[after-1]}`,8000); EMPLOYEES.forEach((e,i)=>setTimeout(()=>{ actors[e.id].jumpUntil=performance.now()+700; say(e.id,"🎉",2); },i*120)); } }
+function addXP(n){ const before=levelOf(stats.xp); stats.xp+=n; saveStats(); xpFloat(n); const after=levelOf(stats.xp); if(after>before){ celebrate(`LEVEL UP! Lv.${after}`,`ปลดล็อก: ${UNLOCKS[after-1]}`); notice(`ออฟฟิศเลเวลอัปเป็น Lv.${after}! ปลดล็อก: ${UNLOCKS[after-1]}`,8000); EMPLOYEES.forEach((e,i)=>setTimeout(()=>{ actors[e.id].jumpUntil=performance.now()+700; say(e.id,"🎉",2); },i*120)); } }
 function renderLevel(){ const l=levelOf(stats.xp), lo=LEVELS[l-1], hi=LEVELS[l]??null; const pct=hi?((stats.xp-lo)/(hi-lo))*100:100;
   const el=$("lvl"); el.innerHTML=`<b>Lv.${l}</b><span class="xp" aria-hidden="true"><i style="width:${pct.toFixed(0)}%"></i></span><span>${stats.xp} XP</span>`; el.title=hi?`อีก ${hi-stats.xp} XP ถึง Lv.${l+1} (${UNLOCKS[l]})`:"เลเวลสูงสุดแล้ว"; }
 
@@ -2804,10 +2841,10 @@ function renderLibrary(){
     d.querySelector(".meta").textContent=`${r.topic&&r.topic!==r.title?"หัวข้อ: "+r.topic+" · ":""}${r.aspect||""} · แก้ล่าสุด ${fmtDate(r.updatedAt)}`+(st.k!=="done"?" · "+st.t:"");
     const dots=d.querySelector(".dots"); if(!r.manual) stepsOf(r).forEach((s,i)=>{ const sp=document.createElement("span"); sp.textContent=`${i+1} ${STEP_NAME[s]}`; if(r.out?.[s]!=null) sp.className="ok"; else if(r.error?.stage===s) sp.className="bad"; dots.appendChild(sp); });
     const tools=d.querySelector(".tools"); const btn=(label,fn,cls="btn small")=>{ const b=document.createElement("button"); b.className=cls; b.textContent=label; b.onclick=fn; tools.appendChild(b); return b; };
-    if(r.project) btn("🎞️ เปิด",()=>openRec(r.id,{switchTab:true}));
-    if(st.k==="ask") btn("💬 ตอบคำถาม",()=>{ showAsk(r); $("askBox").scrollIntoView({behavior:reduceMotion?"auto":"smooth",block:"center"}); },"btn small primary");
+    if(r.project) btn("เปิด",()=>openRec(r.id,{switchTab:true}));
+    if(st.k==="ask") btn("ตอบคำถาม",()=>{ showAsk(r); $("askBox").scrollIntoView({behavior:reduceMotion?"auto":"smooth",block:"center"}); },"btn small primary");
     else if(st.k!=="done") btn("▶ ทำต่อ",()=>runPipeline(r),"btn small primary").disabled=!!runningRec;
-    const del=btn("🗑️ ลบ",()=>{ if(del.dataset.armed!=="1"){ del.dataset.armed="1"; del.textContent="กดอีกครั้งเพื่อลบ"; setTimeout(()=>{ if(del.isConnected){ del.dataset.armed=""; del.textContent="🗑️ ลบ"; } },3000); return; } deleteRec(r.id); });
+    const del=btn("ลบ",()=>{ if(del.dataset.armed!=="1"){ del.dataset.armed="1"; del.textContent="กดอีกครั้งเพื่อลบ"; setTimeout(()=>{ if(del.isConnected){ del.dataset.armed=""; del.textContent="ลบ"; } },3000); return; } deleteRec(r.id); });
     if(runningRec===r.id) del.disabled=true;
     list.appendChild(d); });
   renderPlan();
@@ -2821,11 +2858,11 @@ function openRec(id,{switchTab=false}={}){ const r=recs[id]; if(!r?.project) ret
 function renderReview(){ const box=$("reviewCard"), r=openRecId&&recs[openRecId], qa=r?.out?.qa, ap=r?.out?.approve, rv=qa||r?.out?.review; if(!rv&&!ap){ box.hidden=true; return; } box.hidden=false; box.innerHTML="";
   const add=(html)=>{ const d=document.createElement("div"); d.innerHTML=html; box.appendChild(d); return d; };
   if(rv){ const st=Math.round(rv.score/2), d=add(`<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><span class="score"></span><span style="color:var(--warn);letter-spacing:2px">${"★".repeat(st)+"☆".repeat(5-st)}</span><span class="m" style="font-size:13px;color:var(--muted)"></span></div><div class="sum"></div><ul></ul>`);
-    d.querySelector(".score").textContent=qa?`🔍 น้องเช็คตรวจแล้ว ${rv.score}/10`:`📝 พี่มายตรวจแล้ว ${rv.score}/10`;
+    d.querySelector(".score").textContent=qa?`น้องเช็คตรวจแล้ว ${rv.score}/10`:`พี่มายตรวจแล้ว ${rv.score}/10`;
     d.querySelector(".m").textContent=[rv.applied?`แก้ข้อความ ${rv.applied} จุด`:"",qa&&qa.rounds>1?`ส่งกลับแก้ ${qa.rounds-1} รอบ`:""].filter(Boolean).join(" · ")||(qa?.pass===false?"ผ่านแบบมีหมายเหตุ":"ผ่าน");
     d.querySelector(".sum").textContent=rv.summary||""; const ul=d.querySelector("ul"); (rv.notes||[]).concat((rv.issues||[]).map(x=>`ฉาก ${x.scene||"-"}: ${x.problem}`)).slice(0,8).forEach(n=>{ const li=document.createElement("li"); li.textContent=n; ul.appendChild(li); }); }
   if(ap){ const d=add(`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><b></b><button class="btn small">📋 คัดลอกแคปชัน</button></div><div class="post"></div>`);
-    d.querySelector("b").textContent=(ap.approved?"✅ พี่มายอนุมัติแล้ว":"⚠️ พี่มายมีข้อสังเกต")+(ap.note?` · ${ap.note}`:""); d.querySelector(".post").textContent=ap.post||"(ไม่มีแคปชัน)"; d.querySelector("button").onclick=()=>copyText(ap.post||""); if(!ap.post) d.querySelector("button").hidden=true; } }
+    d.querySelector("b").textContent=(ap.approved?"พี่มายอนุมัติแล้ว":"พี่มายมีข้อสังเกต")+(ap.note?` · ${ap.note}`:""); d.querySelector(".post").textContent=ap.post||"(ไม่มีแคปชัน)"; d.querySelector("button").onclick=()=>copyText(ap.post||""); if(!ap.post) d.querySelector("button").hidden=true; } }
 function newRecFromProject(pj){ const id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); const p=clone(pj); delete p._total; p.example=false; const r={id,topic:"",title:p.title||"คลิปจากแชต",aspect:p.aspect||"9:16",createdAt:Date.now(),out:{},manual:true,project:p}; saveRec(r); return r; }
 
 /* Resumable whole-team pipeline */
@@ -3011,7 +3048,7 @@ async function runPipeline(r){
   try{
     const S=stepsOf(r);
     for(const st of S){ if(r.out[st]!=null) continue; if(stopReq) throw STOP;
-      stage=st; const who=STEP_WHO[st]; r.stepAt=Date.now(); autoLabel=`📋 งาน "${STEP_NAME[st]}" จากน้องโฟลว์`; stepState(st,"working"); select(who);
+      stage=st; const who=STEP_WHO[st]; r.stepAt=Date.now(); autoLabel=`งาน "${STEP_NAME[st]}" จากน้องโฟลว์`; stepState(st,"working"); select(who);
       if(st!=="plan"&&who!=="coord"&&r.out.plan) trip("coord",deskFront(who,SEATS.coord.x),{bubble:"📋",stay:1.4});
       logAct(r,who,`เริ่ม${STEP_VERB[st]||STEP_NAME[st]}`);
       const msg=await STEP_FN[st](r); r.runningAt=Date.now(); logAct(r,who,msg||`${STEP_NAME[st]}เสร็จแล้ว`); saveRec(r); stepState(st,"done");
@@ -3045,7 +3082,7 @@ function renderJob(){
   const now=$("jobNow"); now.innerHTML="";
   if(curStep&&activeStaff.length){ activeStaff.forEach(id=>now.appendChild(miniAvatar(id))); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${activeStaff.map(id=>byId[id].name).join(" + ")} กำลังเตรียมงานให้${byId[STEP_WHO[curStep]].name}...`; now.appendChild(t); }
   else if(curStep){ const who=STEP_WHO[curStep]; now.appendChild(miniAvatar(who)); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${byId[who].name} กำลัง${STEP_VERB[curStep]}...`; now.appendChild(t); const el=document.createElement("span"); el.className="el"; el.textContent=r.stepAt?fmt((Date.now()-r.stepAt)/1000):""; now.appendChild(el); }
-  else { const st=recState(r); const t=document.createElement("span"); t.textContent=st.k==="done"?`✅ เสร็จแล้ว${r.out?.qa?` · ตรวจผ่าน ${r.out.qa.score}/10`:""}`:st.k==="ask"?"💬 รอคุณตอบคำถาม":`⏸ ${st.t}`; now.appendChild(t); }
+  else { const st=recState(r); const t=document.createElement("span"); t.textContent=st.k==="done"?`เสร็จแล้ว${r.out?.qa?` · ตรวจผ่าน ${r.out.qa.score}/10`:""}`:st.k==="ask"?"รอคุณตอบคำถาม":`⏸ ${st.t}`; now.appendChild(t); }
   const ol=$("steps"); const states=S.map(st=>r.out?.[st]!=null?"done":(running&&st===curStep)?"working":(stepUI[st]==="error"||r.error?.stage===st)?"error":(r.waiting&&st==="brief")?"waiting":"");
   const sig=r.id+"|"+states.join(",")+"|"+viewStep; if(ol.dataset.sig!==sig){ ol.dataset.sig=sig; ol.innerHTML=""; ol.style.setProperty("--n",S.length); ol.style.setProperty("--nm",Math.ceil(S.length/2));
   S.forEach((st,i)=>{ const li=document.createElement("li"); li.className="tl "+states[i]+(viewStep===st?" sel":""); li.dataset.s=st; li.tabIndex=0; li.setAttribute("role","button"); li.setAttribute("aria-label",`ดูผลงานขั้น ${STEP_NAME[st]}`);
@@ -3070,12 +3107,12 @@ function paintLive(){
   const cut=t.search(/```json/i), prose=cut>=0?t.slice(0,cut):t, js=cut>=0?t.slice(cut):"";
   let meter="";
   if(js){ const n=k=>(js.match(new RegExp('"'+k+'"\\s*:','g'))||[]).length;
-    if(n("bg")) meter=`🎬 กำลังวางฉาก... ได้ ${n("bg")} ฉาก · ${n("type")} องค์ประกอบภาพ`;
-    else if(n("lines")||n("rate")) meter=`🎙️ กำลังกำกับเสียง... ${Math.max(n("text"),n("scene"))} ฉาก`;
-    else if(n("problem")||n("pass")) meter=`🔍 กำลังเขียนผลตรวจ... พบ ${n("problem")} ประเด็น`;
-    else if(n("topic")||n("brief")) meter="🧭 กำลังเขียนบรีฟและแจกงาน...";
-    else if(n("approved")||n("post")) meter="✍️ กำลังเขียนแคปชันโพสต์...";
-    else meter="📦 กำลังเขียนข้อมูลให้ห้องตัดต่อ..."; }
+    if(n("bg")) meter=`กำลังวางฉาก... ได้ ${n("bg")} ฉาก · ${n("type")} องค์ประกอบภาพ`;
+    else if(n("lines")||n("rate")) meter=`กำลังกำกับเสียง... ${Math.max(n("text"),n("scene"))} ฉาก`;
+    else if(n("problem")||n("pass")) meter=`กำลังเขียนผลตรวจ... พบ ${n("problem")} ประเด็น`;
+    else if(n("topic")||n("brief")) meter="กำลังเขียนบรีฟและแจกงาน...";
+    else if(n("approved")||n("post")) meter="กำลังเขียนแคปชันโพสต์...";
+    else meter="กำลังเขียนข้อมูลให้ห้องตัดต่อ..."; }
   body.innerHTML=(prose.trim()?renderMarkdown(prose):"")+(meter?`<div class="meter"><span class="spin" aria-hidden="true"></span><span>${esc(meter)}</span></div>`:"")+(js?"":`<span class="typing"></span>`);
   body.scrollTop=body.scrollHeight;
 }
@@ -3086,7 +3123,7 @@ function renderWork(r,S,curStep,running){
   const box=$("outBox"); $("outLive").hidden=!(running&&userPicked); 
   if(!viewStep){ box.hidden=true; return; }
   box.hidden=false; const key=r.id+"|"+viewStep+"|"+(r.updatedAt||0)+"|"+(r.project?.aspect||""); if(key===outKey) return; outKey=key;
-  const i=S.indexOf(viewStep); $("outHead").textContent=`📄 ผลงานขั้น ${i+1}: ${STEP_NAME[viewStep]} · ${byId[STEP_WHO[viewStep]]?.name||""}`;
+  const i=S.indexOf(viewStep); $("outHead").textContent=`ผลงานขั้น ${i+1}: ${STEP_NAME[viewStep]} · ${byId[STEP_WHO[viewStep]]?.name||""}`;
   const body=$("outBody"); body.innerHTML=""; try{ body.appendChild(stepOutput(r,viewStep)); }catch(e){ body.textContent="แสดงผลงานขั้นนี้ไม่ได้"; }
   body.scrollTop=0;
 }
@@ -3116,7 +3153,7 @@ function stepOutput(r,st){
     if(o.auto) { H("h4","ผลตรวจอัตโนมัติ"); const ul=document.createElement("ul"); (o.auto.length?o.auto:["ไม่พบปัญหา ✅"]).forEach(x=>{ const li=document.createElement("li"); li.textContent=x; ul.appendChild(li); }); d.appendChild(ul); }
     const items=(o.notes||[]).concat((o.issues||[]).map(x=>`ฉาก ${x.scene||"-"}: ${x.problem}`)); if(items.length){ H("h4","ความเห็นของผู้ตรวจ"); const ul=document.createElement("ul"); items.forEach(x=>{ const li=document.createElement("li"); li.textContent=x; ul.appendChild(li); }); d.appendChild(ul); }
     if(o.applied) H("div",`แก้ข้อความให้แล้ว ${o.applied} จุด`).className="hint"; }
-  else if(st==="approve"){ H("h4",o.approved?"✅ อนุมัติแล้ว":"⚠️ อนุมัติแบบมีข้อสังเกต"); if(o.note) H("div",o.note); H("h4","แคปชันโพสต์"); const pst=H("div",o.post||"-"); pst.className="post"; const b=document.createElement("button"); b.className="btn small"; b.textContent="📋 คัดลอกแคปชัน"; b.style.marginTop="6px"; b.onclick=()=>copyText(o.post||""); d.appendChild(b); }
+  else if(st==="approve"){ H("h4",o.approved?"อนุมัติแล้ว":"อนุมัติแบบมีข้อสังเกต"); if(o.note) H("div",o.note); H("h4","แคปชันโพสต์"); const pst=H("div",o.post||"-"); pst.className="post"; const b=document.createElement("button"); b.className="btn small"; b.textContent="คัดลอกแคปชัน"; b.style.marginTop="6px"; b.onclick=()=>copyText(o.post||""); d.appendChild(b); }
   else if(st==="brief"){ H("div",o.text||"").style.whiteSpace="pre-wrap"; }
   else H("div","ไม่มีข้อมูล");
   // what the department's staff prepared for this step
@@ -3150,9 +3187,9 @@ function renderPlan(){ const box=$("planBox"); if(!box) return; box.innerHTML=""
     row.innerHTML=`<span class="day"></span><span class="pt"><span class="tp"></span><small></small></span><span class="tools" style="margin:0"></span>`;
     row.querySelector(".day").textContent=it.day||"-"; row.querySelector(".tp").textContent=(st?.k==="done"?"✅ ":"")+it.topic; row.querySelector("small").textContent=it.hook?`hook: ${it.hook}`:"";
     const tools=row.querySelector(".tools"), b=document.createElement("button"); b.className="btn small"+(r?"":" primary");
-    if(r&&st.k==="done"){ b.textContent="🎞️ เปิด"; b.onclick=()=>openRec(r.id,{switchTab:true}); }
-    else if(r){ b.textContent=st.k==="ask"?"💬 ตอบคำถาม":"▶ ทำต่อ"; b.onclick=()=>st.k==="ask"?(showAsk(r),$("askBox").scrollIntoView({block:"center"})):runPipeline(r); b.disabled=!!runningRec&&st.k!=="ask"; }
-    else { b.textContent="🎬 สั่งทำ"; b.disabled=!!runningRec; b.onclick=()=>{ const nr=newRec(it.topic+(it.hook?` (hook: ${it.hook})`:""),$("aspect").value); nr.title=it.topic; it.recId=nr.id; savePlan(); runPipeline(nr); }; }
+    if(r&&st.k==="done"){ b.textContent="เปิด"; b.onclick=()=>openRec(r.id,{switchTab:true}); }
+    else if(r){ b.textContent=st.k==="ask"?"ตอบคำถาม":"▶ ทำต่อ"; b.onclick=()=>st.k==="ask"?(showAsk(r),$("askBox").scrollIntoView({block:"center"})):runPipeline(r); b.disabled=!!runningRec&&st.k!=="ask"; }
+    else { b.textContent="สั่งทำ"; b.disabled=!!runningRec; b.onclick=()=>{ const nr=newRec(it.topic+(it.hook?` (hook: ${it.hook})`:""),$("aspect").value); nr.title=it.topic; it.recId=nr.id; savePlan(); runPipeline(nr); }; }
     tools.appendChild(b); box.appendChild(row); }); }
 $("planAsk").onclick=()=>{ select("manager"); showTab("chat"); input.value="วางแผนคอนเทนต์ 7 วันสำหรับ TikTok ช่องความรู้สนุกๆ แนว What if"; input.focus(); };
 const planClear=$("planClear"); planClear.onclick=()=>{ if(planClear.dataset.armed!=="1"){ planClear.dataset.armed="1"; planClear.textContent="กดอีกครั้งเพื่อล้าง"; setTimeout(()=>{ planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; },3000); return; } planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; plan=[]; savePlan(); };
@@ -3160,15 +3197,15 @@ $("demoBtn").onclick=()=>{ openRecId=null; store.set("openRec",null); loadProjec
 
 /* Cloud sync through the claude.ai viewer */
 async function initCloud(){
-  if(!inViewer){ syncLabel("💾 บันทึกในเครื่องนี้"); return; }
-  syncLabel("☁️ กำลังเชื่อม...");
+  if(!inViewer){ syncLabel("บันทึกในเครื่องนี้"); return; }
+  syncLabel("กำลังเชื่อม...");
   let db=null,user=null,uid=null;
   try{ [db,user]=await Promise.all([claude.use("db"),claude.use("user")]); uid=user?await user.id():null; }catch{}
-  if(!db||!uid){ syncLabel("💾 บันทึกในเครื่องนี้"); renderLibrary(); return; }
+  if(!db||!uid){ syncLabel("บันทึกในเครื่องนี้"); renderLibrary(); return; }
   Sync.db=db; Sync.uid=uid; Sync.mode="cloud";
-  const timer=setTimeout(()=>{ if(!gotProjects) syncLabel("💾 ออฟไลน์ (บันทึกในเครื่องแล้ว)"); },10000);
+  const timer=setTimeout(()=>{ if(!gotProjects) syncLabel("ออฟไลน์ (บันทึกในเครื่องแล้ว)"); },10000);
   let gotProjects=false, firstConfirmed=true;
-  const fail=e=>{ clearTimeout(timer); if(e?.code==="revoked"||e?.code==="not_granted"){ Sync.mode="local"; } syncLabel("💾 บันทึกในเครื่องนี้ (ซิงก์ไม่ได้)"); renderLibrary(); };
+  const fail=e=>{ clearTimeout(timer); if(e?.code==="revoked"||e?.code==="not_granted"){ Sync.mode="local"; } syncLabel("บันทึกในเครื่องนี้ (ซิงก์ไม่ได้)"); renderLibrary(); };
   stateDoc().onSnapshot(snap=>{ const d=snap.data();
     if(d&&Array.isArray(d.plan)&&(d.planAt||0)>planAt){ plan=clone(d.plan); planAt=d.planAt; store.set("plan",plan); store.set("planAt",planAt); renderPlan(); }
     const r=d?.stats; if(!r) { if(!snap.metadata.fromCache&&(stats.xp>0||plan.length)) saveStats(); return; }
@@ -3184,7 +3221,7 @@ async function initCloud(){
     if(!qs.metadata.fromCache){
       if(firstConfirmed){ firstConfirmed=false; Object.keys(recs).forEach(id=>{ if(!seen.has(id)) saveRec(recs[id],{keepTime:true}); }); tomb.forEach(id=>{ if(seen.has(id)) queueWrite("p:"+id,()=>stateDoc().collection("projects").doc(id),()=>null); }); }
       else qs.docChanges().forEach(c=>{ if(c.type==="removed"&&!Sync.pending.has("p:"+c.doc.id)&&!Sync.busy.has("p:"+c.doc.id)&&recs[c.doc.id]&&runningRec!==c.doc.id){ delete recs[c.doc.id]; ch=true; } });
-      if(!Sync.pending.size&&!Sync.busy.size) syncLabel("☁️ ซิงก์แล้ว");
+      if(!Sync.pending.size&&!Sync.busy.size) syncLabel("ซิงก์แล้ว");
     }
     if(ch){ saveLocal(); renderLibrary(); renderResume(); }
   }, fail);
@@ -3200,7 +3237,7 @@ $("settingsBtn").onclick=openSettings; $("closeSettings").onclick=()=>dlg.close(
 $("saveSettings").onclick=()=>{ if(!inViewer){ store.set("key",$("apiKey").value.trim()); store.set("model",$("model").value); } store.set("tier",$("tier").value); store.set("boss",$("boss").value.trim()); dlg.close(); };
 $("forgetBtn").onclick=()=>{ store.del("key"); $("apiKey").value=""; };
 const savedTheme=store.get("theme",null); if(savedTheme) document.documentElement.dataset.theme=savedTheme;
-$("themeBtn").onclick=()=>{ const cur=document.documentElement.dataset.theme; const dark=cur?cur!=="light":true; const next=dark?"light":"dark"; document.documentElement.dataset.theme=next; store.set("theme",next); };
+$("themeBtn").onclick=()=>{ const cur=document.documentElement.dataset.theme; const dark=cur==="dark"; const next=dark?"light":"dark"; document.documentElement.dataset.theme=next; store.set("theme",next); };
 
 /* Boot */
 renderTeam(); renderTasks(); renderChat(); requestAnimationFrame(officeLoop);
