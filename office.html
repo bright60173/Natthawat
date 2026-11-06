@@ -1157,13 +1157,14 @@ function normalizeProject(p){
       return o;
     });
     const {text:narration,emph}=parseEmph(s.narration,s.emph);
-    const minDur=speakSeconds(narration)+0.6;
+    const al=s.align&&Array.isArray(s.align.e)&&s.align.e.length===narration.length?s.align.e:null;
+    const minDur=al?VOICE_LEAD+Math.max(0,...al.map(Number))+0.35:speakSeconds(narration)+0.6;
     return {
       bg:pick(s.bg,CAT.backgrounds,"sky"), time:pick(s.time,CAT.times,"day"),
       camera:pick(s.camera,CAT.cameras,"static"), effect:pick(s.effect,CAT.effects,"none"),
       transition:pick(s.transition,CAT.transitions,"fade"), sfx:pick(s.sfx,CAT.sfx,"none"),
-      caption:str(s.caption,40), narration, emph, subEn:str(s.subEn,140), subPos:pick(s.subPos,CAT.subPos,"auto"),
-      duration:clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15),
+      caption:str(s.caption,40), narration, emph, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"),
+      duration:al?clamp(minDur,1.2,20):clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15),
       voice:{ emotion:str(s.voice?.emotion,20), rate:num(s.voice?.rate,0.6,1.6,1), pitch:num(s.voice?.pitch,0.5,1.8,1) },
       elements:els,
     };
@@ -1453,6 +1454,7 @@ function drawCharacter(c,el,lt,talking){ if(CF.cs==="slim"&&!["robot","cat","ali
 }
 
 /* Thai-aware line wrapping */
+const VOICE_LEAD=0.15;
 const segmenter=(typeof Intl!=="undefined"&&Intl.Segmenter)?new Intl.Segmenter("th",{granularity:"word"}):null;
 function wordsOf(t){ return segmenter?[...segmenter.segment(t)].map(s=>s.segment):t.split(/(\s+)/); }
 function wrap(c,text,maxW){ const out=[]; let cur=""; for(const w of wordsOf(text)){ const test=cur+w; if(c.measureText(test).width>maxW && cur.trim()){ out.push(cur.trim()); cur=w.replace(/^\s+/,""); } else cur=test; } if(cur.trim()) out.push(cur.trim()); return out; }
@@ -1730,9 +1732,11 @@ class Renderer{
     const text=s.narration||"", ranges=[];
     if(this.project.emphOn!==false) (s.emph||[]).forEach(ph=>{ let k=text.indexOf(ph); while(ph&&k>=0){ ranges.push([k,k+ph.length]); k=text.indexOf(ph,k+ph.length); } });
     const segs=segmenter?[...segmenter.segment(text)].map(x=>({w:x.segment,at:x.index})):(()=>{ const out=[]; let at=0; text.split(/(\s+)/).forEach(w=>{ if(w) out.push({w,at}); at+=w.length; }); return out; })();
-    const words=[]; segs.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } const end=t.at+t.w.length; words.push({text:t.w.trim(),emph:ranges.some(([a,b])=>t.at<b&&end>a),sp:/\s$/.test(t.w)}); });
+    const words=[]; segs.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } const end=t.at+t.w.length; words.push({text:t.w.trim(),at:t.at,end,emph:ranges.some(([a,b])=>t.at<b&&end>a),sp:/\s$/.test(t.w)}); });
     const t0=0.15, t1=Math.max(t0+0.6,s.duration-0.35), lens=words.map(w=>Math.max(1,w.text.replace(/[ัิ-ฺ็-๎]/g,"").length)+(w.sp?2:0)), tot=lens.reduce((a,b)=>a+b,0)||1; let acc=0;
     words.forEach((w,k)=>{ w.from=t0+(acc/tot)*(t1-t0); acc+=lens[k]; w.to=t0+(acc/tot)*(t1-t0); });
+    // real voiceover timings (ElevenLabs character alignment, scene-local seconds, voice starts at VOICE_LEAD)
+    const A=s.align; if(A&&A.s?.length===text.length&&A.e?.length===text.length) words.forEach(w=>{ let a=w.at; while(a<w.end-1&&/\s/.test(text[a])) a++; let b=Math.max(a,w.end-1); while(b>a&&/\s/.test(text[b])) b--; w.from=VOICE_LEAD+A.s[a]; w.to=Math.max(w.from+0.05,VOICE_LEAD+A.e[b]); });
     const chunks=[]; let cur=[], len=0;
     words.forEach((w,k)=>{ const L=lens[k], prev=cur[cur.length-1]; if(cur.length&&(len+L>15||(w.emph!==prev.emph&&len>5))){ chunks.push(cur); cur=[]; len=0; } cur.push(w); len+=L; if((w.sp||/[,.!?…]$/.test(w.text))&&len>7){ chunks.push(cur); cur=[]; len=0; } });
     if(cur.length) chunks.push(cur);
