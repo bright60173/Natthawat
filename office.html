@@ -1106,7 +1106,7 @@ const CAT = {
   characters:["boy","girl","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry"],
   props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow"],
-  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","jump","talk","wave"],
+  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave"],
   enters:["none","pop","fade","left","right","top","bottom"],
   cameras:["static","zoom-in","zoom-out","pan-left","pan-right","orbit","drone","shake"],
   effects:["none","rain","snow","sparkles","confetti","speedlines","fireworks","flash","darken","heat","bubbles"],
@@ -1276,11 +1276,13 @@ function shade(hex,amt){ let h=String(hex).replace("#",""); if(h.length===3) h=h
 function limb(c,pts,w,col){ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w; c.strokeStyle=col; c.beginPath(); c.moveTo(pts[0],pts[1]); if(pts.length===6) c.quadraticCurveTo(pts[2],pts[3],pts[4],pts[5]); else c.lineTo(pts[2],pts[3]); c.stroke(); }
 function fillE(c,x,y,rx,ry,col,rot=0){ c.beginPath(); c.ellipse(x,y,Math.abs(rx),Math.abs(ry),rot,0,Math.PI*2); c.fillStyle=col; c.fill(); }
 function drawCharacter(c,el,lt,talking){
-  const L=LOOKS[el.look]||LOOKS.boy, emo=el.emotion, walking=el.motion==="walk"||el.motion==="move", waving=el.motion==="wave";
-  const breath=Math.sin(lt*2.4)*0.012, swing=walking?Math.sin(lt*9):0;
-  let bob=Math.sin(lt*2.4)*1.5; if(emo==="excited") bob=-Math.abs(Math.sin(lt*7))*7;
+  const L=LOOKS[el.look]||LOOKS.boy, emo=el.emotion, mo=el.motion, running=mo==="run", walking=mo==="walk"||mo==="move"||running, waving=mo==="wave";
+  // talking: a 0..1 mouth level from the spoken words (lip sync), or a loop when no timing is known
+  const talkAmt=typeof talking==="number"?talking:(talking?Math.abs(Math.sin(lt*13))*0.75+0.25:0); talking=talkAmt>0.02;
+  const breath=Math.sin(lt*2.4)*0.012, swing=walking?Math.sin(lt*(running?16:9)):0;
+  let bob=Math.sin(lt*2.4)*1.5; if(emo==="excited"||mo==="celebrate") bob=-Math.abs(Math.sin(lt*7))*(mo==="celebrate"?12:7); if(running) bob=-Math.abs(Math.sin(lt*16))*6;
   if(emo==="scared"||emo==="shocked") c.translate(Math.sin(lt*38)*1.6,0);
-  if(walking) c.rotate(0.05);
+  if(walking) c.rotate(running?0.13:0.05);
   const skinD=shade(L.skin,-0.18), topD=shade(L.top,-0.2), botD=shade(L.bottom,-0.22);
   // tail (cat)
   if(L.cat){ limb(c,[26,-48,74,-70+Math.sin(lt*3)*12,58,-118+Math.sin(lt*3)*6],15,shade(L.skin,-0.12)); fillE(c,58,-118+Math.sin(lt*3)*6,9,9,"#fff1df"); }
@@ -1290,8 +1292,8 @@ function drawCharacter(c,el,lt,talking){
   c.save(); c.translate(0,bob); c.scale(1-breath*0.5,1+breath);
   // back arm
   const talkG=talking?Math.sin(lt*6):0;
-  const armUp=emo==="excited"||emo==="shocked"||waving, wv=waving?Math.sin(lt*9):0;
-  const backArm=armUp?[ 30,-118, 52,-150, 58+wv*10,-178-wv*6]:(talking?[30,-118,48,-96+talkG*6,40+talkG*8,-130-Math.abs(talkG)*22]:[30,-118,40,-92,38,-66+Math.sin(lt*2.4)*2]);
+  const armUp=emo==="excited"||emo==="shocked"||waving||mo==="celebrate", wv=waving?Math.sin(lt*9):mo==="celebrate"?Math.sin(lt*7):0, shrug=mo==="shrug";
+  const backArm=running?[30,-118,30-swing*22,-96,30-swing*34,-78]:shrug?[30,-118,58,-104,72,-124+Math.sin(lt*2)*3]:armUp?[ 30,-118, 52,-150, 58+wv*10,-178-wv*6]:(talking?[30,-118,48,-96+talkG*6,40+talkG*8,-130-Math.abs(talkG)*22]:[30,-118,40,-92,38,-66+Math.sin(lt*2.4)*2]);
   limb(c,backArm,17,L.coat?shade(L.top,-0.1):topD); fillE(c,backArm[4],backArm[5],9,9,skinD);
   // body (rounded, shaded)
   const g=c.createLinearGradient(-30,-140,30,-50); g.addColorStop(0,shade(L.top,0.12)); g.addColorStop(1,topD);
@@ -1302,11 +1304,12 @@ function drawCharacter(c,el,lt,talking){
   // neck shadow
   fillE(c,0,-136,18,6,skinD);
   // front arm
-  const frontArm=emo==="thinking"?[-30,-118,-34,-90,-6,-150]:armUp?[-30,-118,-52,-150,-58,-178]:[-30,-118,-42,-92-talkG*4,-38,-66+Math.sin(lt*2.4+1)*2];
-  limb(c,frontArm,17,L.top); fillE(c,frontArm[4],frontArm[5],9.5,9.5,L.skin);
+  const pt=mo==="point"?easeOut(clamp(lt/0.35,0,1)):0;
+  const frontArm=running?[-30,-118,-30+swing*22,-96,-30+swing*34,-78]:shrug?[-30,-118,-58,-104,-72,-124+Math.sin(lt*2+1)*3]:pt?[-30,-118,lerp(-42,-66,pt),lerp(-92,-124,pt),lerp(-38,-100,pt),lerp(-66,-136+Math.sin(lt*3)*2,pt)]:emo==="thinking"?[-30,-118,-34,-90,-6,-150]:armUp?[-30,-118,-52,-150,-58+(mo==="celebrate"?-wv*10:0),-178]:[-30,-118,-42,-92-talkG*4,-38,-66+Math.sin(lt*2.4+1)*2];
+  limb(c,frontArm,17,L.top); fillE(c,frontArm[4],frontArm[5],9.5,9.5,L.skin); if(pt>0.6) limb(c,[frontArm[4]-4,frontArm[5]-2,frontArm[4]-17,frontArm[5]-6],6,L.skin);
   // head group (tilts)
-  const hy=-188, tilt=(emo==="thinking"?-0.13:0)+(talking?Math.sin(lt*4.5)*0.05:0)+Math.sin(lt*1.2)*0.02+(emo==="sad"?0.06:0);
-  c.save(); c.translate(0,-140); c.rotate(tilt); c.translate(0,140);
+  const hy=-188, tilt=(emo==="thinking"?-0.13:0)+(talking?Math.sin(lt*4.5)*0.05*(0.5+talkAmt):0)+Math.sin(lt*1.2)*0.02+(emo==="sad"?0.06:0)+(shrug?Math.sin(lt*2)*0.08:0);
+  c.save(); c.translate(0,-140+(mo==="nod"?Math.abs(Math.sin(lt*5))*5:0)+(shrug?-4:0)); c.rotate(tilt); c.translate(0,140);
   if(L.pig){ fillE(c,-50,hy+2,15,17,shade(L.hair,-0.1)); fillE(c,50,hy+2,15,17,shade(L.hair,-0.1)); }
   if(L.cat){ c.fillStyle=L.skin; c.beginPath(); c.moveTo(-40,hy-18); c.lineTo(-32,hy-66); c.lineTo(-8,hy-40); c.fill(); c.beginPath(); c.moveTo(40,hy-18); c.lineTo(32,hy-66); c.lineTo(8,hy-40); c.fill();
     c.fillStyle="#ffc9d6"; c.beginPath(); c.moveTo(-32,hy-30); c.lineTo(-30,hy-54); c.lineTo(-16,hy-38); c.fill(); c.beginPath(); c.moveTo(32,hy-30); c.lineTo(30,hy-54); c.lineTo(16,hy-38); c.fill(); }
@@ -1324,7 +1327,7 @@ function drawCharacter(c,el,lt,talking){
   // face
   const ey=hy+4, ex=17, dark="#2b2140", blink=(lt+el.x*3)%3.4<0.13, look=emo==="thinking"?-4:(walking?3:0);
   if(L.robot){ const col=emo==="angry"?"#ff5a5a":"#6bf2ff"; if(blink){ c.fillStyle=col; c.fillRect(-22,ey-2,14,3); c.fillRect(8,ey-2,14,3); } else { c.fillStyle=col; c.beginPath(); c.roundRect(-22,ey-9,14,14,4); c.roundRect(8,ey-9,14,14,4); c.fill(); }
-    const mo=talking?Math.abs(Math.sin(lt*12))*7+2:2; c.fillStyle=col; c.fillRect(-12,ey+16-mo/2,24,mo); }
+    const mh=talking?talkAmt*9+2:2; c.fillStyle=col; c.fillRect(-12,ey+16-mh/2,24,mh); }
   else {
     const big=L.alien?1.7:1;
     if(blink){ limb(c,[-ex-7,ey,-ex+7,ey],4,dark); limb(c,[ex-7,ey,ex+7,ey],4,dark); }
@@ -1340,7 +1343,7 @@ function drawCharacter(c,el,lt,talking){
     fillE(c,-30,ey+15,9,5.5,emo==="angry"?"rgba(255,80,80,.45)":"rgba(255,120,150,.4)"); fillE(c,30,ey+15,9,5.5,emo==="angry"?"rgba(255,80,80,.45)":"rgba(255,120,150,.4)");
     if(L.cat){ c.fillStyle="#ff8aa8"; c.beginPath(); c.moveTo(-5,ey+12); c.lineTo(5,ey+12); c.lineTo(0,ey+17); c.fill(); [[-1,0],[1,0]].forEach(([sx])=>{ limb(c,[sx*14,ey+18,sx*40,ey+14],2,"rgba(43,33,64,.6)"); limb(c,[sx*14,ey+22,sx*40,ey+24],2,"rgba(43,33,64,.6)"); }); }
     // mouth
-    const my=ey+26, open=talking?Math.abs(Math.sin(lt*13))*9+3:0, mouth="#7a2638";
+    const my=ey+26, open=talking?talkAmt*12+1:0, mouth="#7a2638";
     if(emo==="shocked"||emo==="scared"){ fillE(c,0,my+2,8,11+open*0.3,mouth); fillE(c,0,my+7,5,3.5,"#ff8a9a"); }
     else if(open>0){ fillE(c,0,my,11,open,mouth); if(open>6) fillE(c,0,my+open*0.45,6,open*0.35,"#ff8a9a"); }
     else if(emo==="sad"||emo==="angry"){ limb(c,[-10,my+5,0,my-3,10,my+5],4.5,mouth); }
@@ -1757,7 +1760,7 @@ class Renderer{
       case "float": y+=Math.sin(T*2)*0.012; rot+=Math.sin(T*1.6)*0.04; break; case "spin": rot=T*1.6; break; case "pulse": sc*=1+Math.sin(T*6)*0.06; break;
       case "shake": x+=Math.sin(T*40)*0.006; break; case "fall": { y=lerp(el.y-0.7,el.y,easeOut(mt)); const land=(lt-at)/Math.max(0.5,s.duration-at); if(mt>0.92&&mt<1&&!reduceMotion){ sx=1.12; sy=0.88; } break; }
       case "rise": y=lerp(el.y,el.toY<el.y?el.toY:el.y-0.5,easeInOut(mt)); break;
-      case "move": case "walk": { x=lerp(x,el.toX,easeInOut(mt)); y=lerp(y,el.toY,easeInOut(mt)); if(el.type!=="character"&&mt<1) rot+=(el.toX>el.x?1:-1)*0.05*Math.sin(mt*Math.PI); break; }
+      case "move": case "walk": case "run": { x=lerp(x,el.toX,easeInOut(mt)); y=lerp(y,el.toY,easeInOut(mt)); if(el.type!=="character"&&mt<1) rot+=(el.toX>el.x?1:-1)*0.05*Math.sin(mt*Math.PI); break; }
       case "jump": { const ph=Math.abs(Math.sin(T*5)); lift=ph*0.06; y-=lift; if(!reduceMotion){ if(ph<0.15){ sx=1+(0.15-ph)*0.9; sy=1-(0.15-ph)*0.9; } else { sx=1-ph*0.05; sy=1+ph*0.07; } } break; }
     }
     if(el.type==="character"&&!reduceMotion){ const br=Math.sin(T*2.4)*0.012; sy*=1+br; sx*=1-br*0.5; }
@@ -1774,7 +1777,7 @@ class Renderer{
       if(ep<1&&["left","right","top","bottom"].includes(el.enter)){ const dir={left:[-1,0],right:[1,0],top:[0,-1],bottom:[0,1]}[el.enter]; const cy=el.type==="character"?Y-base*0.25*el.scale:Y;
         c.save(); c.globalAlpha=(1-ep)*0.6; c.strokeStyle="#ffffff"; c.lineCap="round"; for(let i=-1;i<=1;i++){ c.lineWidth=base*0.006; const ox=dir[1]?i*base*0.05:0, oy=dir[0]?i*base*0.06:0, L0=base*0.12, L1=base*0.32; c.beginPath(); c.moveTo(X+ox+dir[0]*L0,cy+oy+dir[1]*L0); c.lineTo(X+ox+dir[0]*L1,cy+oy+dir[1]*L1); c.stroke(); } c.restore(); } }
     c.save(); c.globalAlpha=alpha; c.translate(X,Y); c.rotate(rot); c.scale(sx,sy);
-    if(el.type==="character"){ const k=base*0.0024*sc; c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,el.motion==="talk"||(el.motion==="none"&&!!el.say)); c.restore();
+    if(el.type==="character"){ const k=base*0.0024*sc; c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,this.talkLevel(s,el,lt,at)); c.restore();
       if(el.say && lt>=at+0.3) this.drawBubble(c,el.say,X,Y-base*0.0024*sc*250,u,s,sc);
       return; }
     if(el.type==="emoji"){ const fs=Math.round(base*0.17*sc); c.font=`${fs}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.fillText(el.char,0,0); c.restore(); return; }
@@ -1793,6 +1796,12 @@ class Renderer{
     c.save(); c.font=`800 ${fs}px ${this.fam}`; const w=c.measureText(el.text).width+fs*0.32; c.restore();
     const k=Math.min(1,W*0.84/w), w2=w*k, X=el.x*W, lo=w2/2+W*0.06, hi=W-w2/2-W*0.06, dx=(lo>hi?W/2:clamp(X,lo,hi))-X; return C[key]={k,dx}; }
   textRect(s,el,dy=0){ const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,f=this.textFit(s,el),fs=m*0.09*el.scale*f.k; c.font=`800 ${fs}px ${this.fam}`; const w=c.measureText(el.text).width, X=el.x*W+f.dx, Y=(el.y+dy)*H; return {x0:X-w/2-fs*0.2,x1:X+w/2+fs*0.2,y0:Y-fs*0.75,y1:Y+fs*0.75,fs}; }
+  // lip sync: who speaks (a "talk" character, one with a speech bubble, or the only character in the scene) opens the mouth per syllable of the current word
+  talkLevel(s,el,lt,at){ const idx=this.project.scenes.indexOf(s), S=this.subs[idx]; const chars=s.elements.filter(e=>e.type==="character");
+    const speaks=el.motion==="talk"||(!!el.say&&el.motion==="none")||(chars.length===1&&!!s.narration);
+    if(!speaks||reduceMotion) return 0; if(!S||!S.words?.length) return el.motion==="talk"?true:0;
+    const w=S.words.find(x=>lt>=x.from&&lt<x.to); if(!w) return 0; const p=(lt-w.from)/Math.max(0.05,w.to-w.from);
+    const syl=clamp((w.text.match(/[ะาำิีึืุูเแโใไัaeiouAEIOU]/g)||[]).length||1,1,4); return Math.abs(Math.sin(Math.PI*syl*p))*0.85+0.1; }
   textShift(s,el){ const key="t"+this.W+s.elements.indexOf(el), C=this.rc(s); if(C[key]!==undefined) return C[key]; const cap=this.capRect(s); let dy=0;
     if(cap){ const r=this.textRect(s,el); if(r.x1>cap.x0&&r.x0<cap.x1&&r.y1>cap.y0&&r.y0<cap.y1) dy=(cap.y1+r.fs*0.85)/this.H-el.y; }
     return C[key]=dy; }
@@ -2146,7 +2155,7 @@ function camSamples(s,idx){ const out=[], step=0.25;
 function elTrack(el,s,idx){ const at=el.at>0?el.at:(el.enter!=="none"?Math.max(0,idx)*0.14:0), out=[];
   for(let t=0;t<=s.duration+1e-6;t+=0.1){ const ep=el.enter==="none"?1:clamp((t-at)/0.55,0,1), e=easeOut(ep), mt=clamp((t-at)/Math.max(0.5,s.duration-at),0,1); let x=el.x,y=el.y,sc=1;
     switch(el.enter){ case "pop": sc=Math.max(0.001,easeBack(ep)); break; case "left": x=lerp(-0.3,el.x,e); break; case "right": x=lerp(1.3,el.x,e); break; case "top": y=lerp(-0.3,el.y,e); break; case "bottom": y=lerp(1.3,el.y,e); break; }
-    switch(el.motion){ case "float": y+=Math.sin(t*2)*0.012; break; case "pulse": sc*=1+Math.sin(t*6)*0.06; break; case "shake": x+=Math.sin(t*40)*0.006; break; case "fall": y=lerp(el.y-0.7,el.y,easeOut(mt)); break; case "rise": y=lerp(el.y,el.toY<el.y?el.toY:el.y-0.5,easeInOut(mt)); break; case "move": case "walk": x=lerp(x,el.toX,easeInOut(mt)); y=lerp(y,el.toY,easeInOut(mt)); break; case "jump": y-=Math.abs(Math.sin(t*5))*0.06; break; }
+    switch(el.motion){ case "float": y+=Math.sin(t*2)*0.012; break; case "pulse": sc*=1+Math.sin(t*6)*0.06; break; case "shake": x+=Math.sin(t*40)*0.006; break; case "fall": y=lerp(el.y-0.7,el.y,easeOut(mt)); break; case "rise": y=lerp(el.y,el.toY<el.y?el.toY:el.y-0.5,easeInOut(mt)); break; case "move": case "walk": case "run": x=lerp(x,el.toX,easeInOut(mt)); y=lerp(y,el.toY,easeInOut(mt)); break; case "jump": y-=Math.abs(Math.sin(t*5))*0.06; break; }
     if(el.type==="character") y+=Math.sin(t*2.4)*0.002;
     out.push([+t.toFixed(2),+x.toFixed(4),+y.toFixed(4),+sc.toFixed(3)]); }
   return {track:out,show:el.enter==="none"?0:at}; }
@@ -2264,6 +2273,7 @@ const LAYOUT_RULES=`กฎการจัดภาพ:
 - ใช้ "motion":"move" หรือ "walk" คู่กับ toX/toY เพื่อเคลื่อนที่ ใช้ "flip": true ให้ตัวละครหันซ้าย
 - ใส่คำสำคัญ 1-2 คำต่อฉาก (ตัวเลข คำช็อก คำตอบ) ใน "emph" โดยต้องเป็นคำที่อยู่ในบทพูดตรงตัว ซับจะเด้งเน้นคำนั้นและกล้องซูมกระแทกตามจังหวะ ห้ามใส่ * ในข้อความใดๆ (บทพูด caption say text title)
 - ใช้ emoji เป็นสติกเกอร์เสริมอารมณ์ได้ฉากละไม่เกิน 2 ตัว
+- ให้ตัวละครแสดงจริง ไม่ยืนนิ่ง: "point" ชี้ไปที่ของหรือตัวเลขสำคัญ (หันหน้าไปทางนั้นด้วย flip), "celebrate" ตอนดีใจหรือเฉลย, "shrug" ตอนสงสัย, "nod" ตอนยืนยัน, "run" ตอนหนีหรือรีบ (ใช้ toX), "talk" ตัวที่กำลังพูด ตัวละครที่พูดจะขยับปากตามบทพากย์ให้อัตโนมัติ
 - ฉากหลัง (bg) เป็นฉาก 3 มิติที่มีของประกอบครบแล้ว เช่น city มีตึกและรถวิ่ง forest มีต้นไม้ ocean มีคลื่นและชายหาด room มีโซฟาและหน้าต่าง จึงไม่ต้องใส่ prop ซ้ำกับฉาก ให้ใช้ prop เฉพาะสิ่งที่เล่าเรื่อง
 - ห้ามใช้ชื่อที่ไม่อยู่ในรายการ`;
 
@@ -2293,6 +2303,7 @@ ${STYLE}` },
 4) ภาษาไทยถูกต้อง อ่านง่าย ข้อความบนจอสั้น (ไม่เกิน 18 ตัวอักษร)
 5) ทุกฉากมีคำเน้น (emph) และภาพสื่อตรงกับบท ข้อความทุกช่องต้องไม่มีเครื่องหมาย *
 6) ความเหมาะสม: ไม่ทำให้เข้าใจผิด ไม่ใช้ของที่มีลิขสิทธิ์ ไม่มีเนื้อหาอันตราย
+ให้คะแนนตรงไปตรงมา: 9-10 เฉพาะคลิปที่ภาพสวย จุดสนใจชัด ตัวละครแสดงอารมณ์ตรงบท ไม่รก และพร้อมโพสต์จริงเท่านั้น ถ้าทีมตรวจภาพแนบผลจากภาพจริงมา ให้เชื่อผลนั้นมากกว่าการเดาจากข้อมูล
 เข้มงวดแต่ยุติธรรม แก้ข้อความเล็กๆ ได้เอง ส่วนปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ส่งกลับให้ทีมแก้
 ${STYLE}` },
   { id:"creative", name:"น้องครีม", role:"นักเขียนบท / ครีเอทีฟ", px:{hair:"#ff5d8f",shirt:"#ffd34d",skin:"#ffd7b5"}, bubble:"💡",
@@ -2715,21 +2726,33 @@ $("tabOffice").onclick=()=>showTab("office"); $("tabChat").onclick=()=>showTab("
    ========================================================= */
 function settings(){ return { key:store.get("key",""), model:store.get("model","claude-opus-5-5"), tier:store.get("tier","default"), boss:store.get("boss","") }; }
 let sampleP=null, sdkP=null;
-async function callClaude(e, history, onText, tierOverride){
+const blobB64=b=>new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).split(",")[1]); fr.onerror=rej; fr.readAsDataURL(b); });
+/* real frames from the render engine, one per scene (at the moment its key word lands), for visual review */
+async function sceneFrames(p,max=8){ const rr=new Renderer(document.createElement("canvas")); rr.load(normalizeProject(p)); const P=rr.project, idx=P.scenes.map((_,i)=>i);
+  const pick=idx.length<=max?idx:Array.from({length:max},(_,k)=>Math.round(k*(idx.length-1)/(max-1)));
+  const W=rr.W>rr.H?640:360, H=Math.round(W*rr.H/rr.W), cv=document.createElement("canvas"); cv.width=W; cv.height=H; const g=cv.getContext("2d"); const out=[];
+  for(const i of pick){ const s=P.scenes[i], S=rr.subs[i], f=(S?.emphStarts?.[0]??s.duration*0.55)+0.35; rr.drawFrame(rr.starts[i]+Math.min(s.duration-0.05,Math.max(0.6,f))); g.drawImage(rr.cv,0,0,W,H);
+    out.push({scene:i+1,blob:await new Promise(r=>cv.toBlob(r,"image/jpeg",0.82))}); }
+  return out.filter(x=>x.blob); }
+async function callClaude(e, history, onText, tierOverride, images){
   const {key,model,boss}=settings(), tier=tierOverride||settings().tier;
   const sys=e.system+`\nเรียกผู้ใช้ว่า "${boss||"เจ้านาย"}"`+(e.id==="coord"||e.id==="manager"?"\n\n"+orgChart()+"\n\n"+teamContext():"");
   if(inViewer){
     sampleP ||= claude.use("sample"); const sample=await sampleP;
     if(!sample){ const er=new Error("unavailable"); er.code="unavailable"; throw er; }
     const msgs=history.map(m=>({role:m.role,content:m.content})); msgs[0]={role:"user",content:`[บทบาทและคำสั่งงานของคุณ]\n${sys}\n[จบคำสั่งงาน]\n\n`+msgs[0].content};
-    const res=await sample(msgs,{modelTier:tier,cache:false,onText:({text})=>onText(text)});
+    const opts={modelTier:tier,cache:false,onText:({text})=>onText(text)};
+    if(images?.length){ let ok=false; try{ ok=!!(await sample.limits?.())?.images; }catch{} if(ok) opts.images=images; }
+    const res=await sample(msgs,opts);
     return (res.text||"")+(res.truncated?"\n\n_(ตอบยาวเกินจนถูกตัด ลองสั่งให้ทำทีละส่วน)_":"");
   }
   if(!key){ openSettings(); const er=new Error("ยังไม่ได้ใส่ API key ใส่ในหน้าตั้งค่าก่อนนะ"); er.code="nokey"; throw er; }
   sdkP ||= import("https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.0.0/+esm");
   const Anthropic=(await sdkP).default; const client=new Anthropic({apiKey:key,dangerouslyAllowBrowser:true});
   const effort={quick:"low",default:"medium",complex:"high"}[tier]||"medium";
-  const params={model,max_tokens:32000,system:sys,messages:history.map(m=>({role:m.role,content:m.content})),thinking:{type:"adaptive"},output_config:{effort}};
+  const messages=history.map(m=>({role:m.role,content:m.content}));
+  if(images?.length){ const last=messages[messages.length-1]; const blocks=await Promise.all(images.map(async b=>({type:"image",source:{type:"base64",media_type:b.type||"image/jpeg",data:await blobB64(b)}}))); last.content=[...blocks,{type:"text",text:last.content}]; }
+  const params={model,max_tokens:32000,system:sys,messages,thinking:{type:"adaptive"},output_config:{effort}};
   if(model!=="claude-haiku-5-5"){ params.fallbacks="default"; params.betas=["server-side-fallback-2026-07-01"]; }
   let acc=""; const stream=client.beta.messages.stream(params); stream.on("text",d=>{ acc+=d; onText(acc); });
   const msg=await stream.finalMessage();
@@ -2750,7 +2773,7 @@ function friendlyError(err){
   if(s>=500) return "เซิร์ฟเวอร์มีปัญหาชั่วคราว ลองใหม่อีกครั้ง";
   return err?.message||String(err);
 }
-async function ask(id,userText,{tier}={}){
+async function ask(id,userText,{tier,images}={}){
   const e=byId[id]; chats[id].push(autoLabel?{role:"user",content:userText,label:autoLabel}:{role:"user",content:userText}); saveChats(id);
   const task=addTask(id,userText); setStatus(id,"working"); if(current===id) renderChat();
   let live=null; const ensureLive=()=>{ if(current!==id) return null; if(!live||!live.isConnected){ live=document.createElement("div"); live.className="msg ai"; msgsEl.appendChild(live); } return live; };
@@ -2758,7 +2781,7 @@ async function ask(id,userText,{tier}={}){
   try{
     let hist=chats[id].slice(-13); if(hist[0].role!=="user") hist=hist.slice(1);
     if(runningRec) liveWork(id,"");
-    let text=await callClaude(e,hist,t=>{ if(runningRec) liveWork(id,t); const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(t)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; } },tier);
+    let text=await callClaude(e,hist,t=>{ if(runningRec) liveWork(id,t); const l=ensureLive(); if(l){ l.innerHTML=renderMarkdown(t)+`<span class="thinking"></span>`; msgsEl.scrollTop=msgsEl.scrollHeight; } },tier,images);
     if(!text.trim()) text="(ไม่มีข้อความตอบกลับ)";
     chats[id].push({role:"assistant",content:text}); saveChats(id); finishTask(task,"done"); setStatus(id,"done"); stats.done[id]=(stats.done[id]||0)+1; addXP(10); if(current===id) renderChat(); return text;
   }catch(err){ chats[id].pop(); saveChats(id); finishTask(task,"error"); setStatus(id,"error"); if(current===id){ renderChat(); bubble("sys","⚠️ "+friendlyError(err)); input.value=userText; } throw err; }
@@ -2897,7 +2920,7 @@ async function staffWork(r,step,jobs){
   r.sub ||= {}; const box=r.sub[step] ||= {}; const todo=jobs.filter(j=>box[j.id]==null);
   if(todo.length){ activeStaff=todo.map(j=>j.id); renderJob();
     todo.forEach(j=>logAct(r,j.id,`เริ่ม${byId[j.id].task}`));
-    const res=await Promise.all(todo.map(j=>ask(j.id,j.prompt).then(t=>({id:j.id,t}),err=>({id:j.id,err}))));
+    const res=await Promise.all(todo.map(j=>ask(j.id,j.prompt,{images:j.images}).then(t=>({id:j.id,t}),err=>({id:j.id,err}))));
     activeStaff=[]; const ok=res.filter(x=>!x.err);
     if(!ok.length&&res.length) throw res[0].err;
     ok.forEach(x=>{ box[x.id]=x.t; logAct(r,x.id,`ส่ง${byId[x.id].task}ให้${byId[deptOf(x.id).head].name}แล้ว`); handoff(x.id,deptOf(x.id).head); });
@@ -2954,8 +2977,8 @@ const STEP_FN={
   },
   async qa(r){
     let rounds=0, last=null;
-    const p0=r.project, auto0=qaAuto(p0);
-    const team=await staffWork(r,"qa",[{id:"truth",prompt:`ตรวจข้อเท็จจริงในคลิป "${p0.title}":\n${p0.scenes.map((x,i)=>`ฉาก ${i+1} | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration}`).join("\n")}\n\nชี้เฉพาะจุดที่ผิด เกินจริง หรือทำให้เข้าใจผิด พร้อมข้อความที่ถูกต้อง`},{id:"eye",prompt:`ตรวจภาพ ซับ และจังหวะของคลิป "${p0.title}" (สัดส่วน ${p0.aspect}, ซับ ${p0.subStyle})\nผลตรวจอัตโนมัติ: ${auto0.length?auto0.join(" / "):"ไม่พบปัญหา"}\n${scriptOf(p0)}\n\nชี้ปัญหาเป็นข้อๆ ระบุเลขฉาก`}]);
+    const p0=r.project, auto0=qaAuto(p0); let shots=[]; if(!r.sub?.qa?.eye){ try{ shots=await sceneFrames(p0); }catch(e){ console.warn("frames",e); } }
+    const team=await staffWork(r,"qa",[{id:"truth",prompt:`ตรวจข้อเท็จจริงในคลิป "${p0.title}":\n${p0.scenes.map((x,i)=>`ฉาก ${i+1} | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration}`).join("\n")}\n\nชี้เฉพาะจุดที่ผิด เกินจริง หรือทำให้เข้าใจผิด พร้อมข้อความที่ถูกต้อง`},{id:"eye",images:shots.map(x=>x.blob),prompt:`ตรวจภาพ ซับ และจังหวะของคลิป "${p0.title}" (สัดส่วน ${p0.aspect}, ซับ ${p0.subStyle})${shots.length?`\nแนบภาพจริงจากเครื่องเรนเดอร์ ${shots.length} ภาพ เรียงตามลำดับ คือฉาก ${shots.map(x=>x.scene).join(", ")} ดูภาพให้ละเอียดเหมือนผู้กำกับศิลป์: องค์ประกอบภาพ จุดสนใจชัดไหม ของรกหรือซ้อนกันไหม ตัวละครแสดงอารมณ์ตรงบทไหม ซับและข้อความอ่านง่ายไหม สีและฉากหลังเข้ากับเรื่องไหม`:""}\nผลตรวจอัตโนมัติ: ${auto0.length?auto0.join(" / "):"ไม่พบปัญหา"}\n${scriptOf(p0)}\n\nชี้ปัญหาเป็นข้อๆ ระบุเลขฉากและวิธีแก้ที่ทำได้ (ขยับตำแหน่ง เปลี่ยนท่า เปลี่ยนฉากหลัง ลดของ ย่อข้อความ) แล้วให้คะแนนงานภาพและอนิเมชัน 1-10 ตามด้วย\n\x60\x60\x60json\n{"score":7,"issues":[{"scene":1,"problem":"ปัญหาและวิธีแก้"}]}\n\x60\x60\x60`}]);
     for(;;){
       const p=r.project, auto=qaAuto(p), total=p.scenes.reduce((a,x)=>a+x.duration,0);
       const summary=p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}, ${x.transition}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
@@ -2963,7 +2986,7 @@ const STEP_FN={
       const applied=applyTextEdits(p,j);
       const issues=(Array.isArray(j?.issues)?j.issues:[]).slice(0,8).map(x=>({scene:Number(x?.scene)||0,problem:str(x?.problem,220)})).filter(x=>x.problem);
       last={auto,score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
-      if((last.pass&&last.score>=8)||!issues.length||rounds>=2) break;
+      if((last.pass&&last.score>=9)||!issues.length||rounds>=2) break;
       rounds++; logAct(r,"qa",`พบ ${issues.length} จุดที่ต้องแก้ ส่งกลับให้น้องคัท`); handoff("qa","editor");
       const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nคลิปตอนนี้:\n${scriptOf(p)}\n${[...new Set(issues.map(x=>x.scene).filter(n=>p.scenes[n-1]))].map(n=>`\nภาพปัจจุบันของฉาก ${n} (ถ้าแก้ภาพ ให้แก้จากชุดนี้): ${JSON.stringify(p.scenes[n-1].elements)}`).join("")}\n\n${EDIT_FORMAT}`));
       try{ r.project=mergeEdits(p,cut,r.aspect); staffFallbacks(r.project,r); directorPass(r.project); logAct(r,"editor","แก้ตามที่ฝ่ายตรวจสอบแจ้งแล้ว ส่งตรวจใหม่"); handoff("editor","qa"); }
@@ -3010,7 +3033,7 @@ const STEP_FN={
     const reviews=[];
     try{ await staffWork(r,"tableread",[{id:"hook",prompt:`อ่านบทฉบับร่างของน้องครีม ให้คะแนนตามเกณฑ์: ${SCRIPT_RUBRIC}\nเน้นดูเรื่อง hook และตอนจบ\n\n${String(draft).split(/\x60\x60\x60json/i)[0].slice(0,6000)}\n\nตอบสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"score":7,"fixes":["สิ่งที่ต้องแก้ ระบุฉาก"]}\n\x60\x60\x60`},{id:"story",prompt:`อ่านบทฉบับร่างของน้องครีม ให้คะแนนตามเกณฑ์: ${SCRIPT_RUBRIC}\nเน้นดูการเล่าเรื่อง ความถูกต้อง และภาพแต่ละฉาก\n\n${String(draft).split(/\x60\x60\x60json/i)[0].slice(0,6000)}\n\nตอบสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"score":7,"fixes":["สิ่งที่ต้องแก้ ระบุฉาก"]}\n\x60\x60\x60`}]);
       ["hook","story"].forEach(id=>{ const j=subJSON(r,"tableread",id); if(j) reviews.push({id,score:Math.round(num(j.score,0,10,7)),fixes:(Array.isArray(j.fixes)?j.fixes:[]).slice(0,6).map(x=>str(String(x),200)).filter(Boolean)}); }); }catch{ }
-    const low=reviews.filter(v=>v.score<8&&v.fixes.length);
+    const low=reviews.filter(v=>v.score<9&&v.fixes.length);
     if(low.length){ logAct(r,"creative",`ทีมให้คะแนนบท ${reviews.map(v=>v.score).join(" และ ")}/10 ขอแก้ก่อนส่งต่อ`);
       draft=await ask("creative",`ทีมอ่านบทของเธอแล้ว ให้คะแนนและขอแก้:\n${low.map(v=>`${byId[v.id].name} (${v.score}/10):\n${v.fixes.map(f=>"- "+f).join("\n")}`).join("\n\n")}\n\nแก้บทให้ผ่านเกณฑ์ (${SCRIPT_RUBRIC}) แล้วส่งบทฉบับเต็มทุกฉากในรูปแบบเดิม`); }
     r.out.creative=draft; r.out.tableread={scores:reviews.map(v=>({id:v.id,score:v.score})),revised:low.length>0};
