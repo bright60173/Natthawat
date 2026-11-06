@@ -2646,7 +2646,16 @@ async function staffWork(r,step,jobs){
   return jobs.map(j=>box[j.id]?`[งานจาก${byId[j.id].name} (${byId[j.id].role})]\n${String(box[j.id]).trim().slice(0,3500)}`:"").filter(Boolean).join("\n\n");
 }
 const subJSON=(r,step,id)=>extractJSON(r.sub?.[step]?.[id]||"");
-const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุดเลื่อนจริง 2) มีข้อเท็จจริงหรือตัวเลขน่าทึ่งที่ถูกต้องอย่างน้อย 1 จุด 3) เรื่องไหลเป็นเหตุและผล มีจุดหักมุม 4) ประโยคสั้น พูดง่าย ไม่ซ้ำคำ 5) ทุกฉากมีภาพที่ชัดและทำเป็นอนิเมชันได้ 6) ตอนจบชวนคอมเมนต์ 7) ยาวรวม 35-55 วินาที`;
+const EDIT_FORMAT=`ส่งเฉพาะสิ่งที่เปลี่ยน ไม่ต้องส่งคลิปทั้งก้อน ในบล็อก \x60\x60\x60json รูปแบบ:
+{"title":"(ถ้าเปลี่ยน)","music":"(ถ้าเปลี่ยน)","subStyle":"(ถ้าเปลี่ยน)","endCard":"(ถ้าเปลี่ยน)","scenes":[{"scene":1,"duration":3.2,"camera":"...","effect":"...","transition":"...","sfx":"...","caption":"...","narration":"...","emph":["คำ"],"subPos":"..."}]}
+ความยาวฉากคำนวณจากบทพูดอัตโนมัติ (ประมาณ 11 ตัวอักษรต่อวินาที บวก 0.6 วินาที) ถ้าจะทำให้ฉากสั้นลงต้องย่อ narration: ฉากแรกบทพูดไม่เกิน 30 ตัวอักษร คลิปรวมไม่เกิน 50 วินาที
+ใส่เฉพาะฉากและช่องที่เปลี่ยน ถ้าจะแก้ภาพในฉากไหน ให้ใส่ "elements" ทั้งชุดของฉากนั้น ห้ามเพิ่มหรือลบฉาก ข้อความทุกช่องห้ามมีเครื่องหมาย *`;
+function mergeEdits(base,j,aspect){ const p=clone(base); if(!j||typeof j!=="object") throw new Error("no edits");
+  ["title","music","subStyle","endCard","emphOn"].forEach(k=>{ if(j[k]!=null&&j[k]!=="") p[k]=j[k]; });
+  const list=Array.isArray(j.scenes)?j.scenes:[], full=list.length===p.scenes.length&&list.every(x=>x&&Array.isArray(x.elements)&&x.bg);
+  list.forEach((e,i)=>{ const k=full?i:(Number(e?.scene)||0)-1, x=p.scenes[k]; if(!x||!e) return; const {scene,...rest}=e; Object.assign(x,rest); });
+  return normalizeProject({...p,aspect}); }
+const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุดเลื่อนจริง 2) มีข้อเท็จจริงหรือตัวเลขน่าทึ่งที่ถูกต้องอย่างน้อย 1 จุด 3) เรื่องไหลเป็นเหตุและผล มีจุดหักมุม 4) ประโยคสั้น พูดง่าย ไม่ซ้ำคำ 5) ทุกฉากมีภาพที่ชัดและทำเป็นอนิเมชันได้ 6) ตอนจบชวนคอมเมนต์ 7) ยาวรวม 35-50 วินาที 6-8 ฉาก บทพูดฉากแรกไม่เกิน 30 ตัวอักษร (ความยาวฉากคำนวณจากบทพูด)`;
 /* Director's pass: rule-based polish after editing, so every clip meets the house style even when a model slips. */
 const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
 function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","zoom-in","pan-left","drone","zoom-out"];
@@ -2696,8 +2705,8 @@ const STEP_FN={
       last={auto,score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
       if((last.pass&&last.score>=8)||!issues.length||rounds>=2) break;
       rounds++; logAct(r,"qa",`พบ ${issues.length} จุดที่ต้องแก้ ส่งกลับให้น้องคัท`); handoff("qa","editor");
-      const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nแก้แล้วส่ง JSON ฉบับเต็มกลับมา (คงจำนวนฉากและ emph ไว้ ห้ามใส่ * ในข้อความ):\n\`\`\`json\n${JSON.stringify(stripP(p))}\n\`\`\``));
-      try{ r.project=normalizeProject({...cut,aspect:r.aspect}); staffFallbacks(r.project,r); directorPass(r.project); logAct(r,"editor","แก้ตามที่ฝ่ายตรวจสอบแจ้งแล้ว ส่งตรวจใหม่"); handoff("editor","qa"); }
+      const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nคลิปตอนนี้:\n${scriptOf(p)}\n${[...new Set(issues.map(x=>x.scene).filter(n=>p.scenes[n-1]))].map(n=>`\nภาพปัจจุบันของฉาก ${n} (ถ้าแก้ภาพ ให้แก้จากชุดนี้): ${JSON.stringify(p.scenes[n-1].elements)}`).join("")}\n\n${EDIT_FORMAT}`));
+      try{ r.project=mergeEdits(p,cut,r.aspect); staffFallbacks(r.project,r); directorPass(r.project); logAct(r,"editor","แก้ตามที่ฝ่ายตรวจสอบแจ้งแล้ว ส่งตรวจใหม่"); handoff("editor","qa"); }
       catch{ logAct(r,"editor","แก้ไม่สำเร็จ ใช้ฉบับเดิมไปก่อน"); break; }
     }
     r.out.qa=last; r.title=r.project.title;
@@ -2753,8 +2762,8 @@ const STEP_FN={
     r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
   async editor(r){ const sum=scriptOf(r.out.animator);
     const team=await staffWork(r,"editor",[{id:"pace",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nวางจังหวะทีละฉาก: duration ที่เหมาะ transition และ sfx เฉพาะจังหวะสำคัญ อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"scenes":[{"scene":1,"duration":3.2,"transition":"${CAT.transitions.join("|")}","sfx":"${CAT.sfx.join("|")}"}]}\n\x60\x60\x60`},{id:"subs",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nเลือก subStyle ของคลิป และทีละฉาก: คำเน้น 1-2 คำ (ต้องอยู่ในบทพูดตรงตัว) ข้อความบนจอไม่เกิน 18 ตัวอักษร และ subPos อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"subStyle":"${CAT.subStyles.join("|")}","scenes":[{"scene":1,"emph":["คำ"],"caption":"ข้อความสั้น","subPos":"${CAT.subPos.join("|")}"}]}\n\x60\x60\x60`}]);
-    const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
-    let f; try{ f=normalizeProject({...cut,aspect:r.aspect}); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
+    const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปัง${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}\n\nสตอรี่บอร์ดตอนนี้ (title "${r.out.animator.title}", music ${r.out.animator.music}, subStyle ${r.out.animator.subStyle}):\n${sum}\n\nสรุปสิ่งที่ตัดต่อเป็น bullet 3-5 ข้อ แล้ว${EDIT_FORMAT}`));
+    let f; try{ f=mergeEdits(r.out.animator,cut,r.aspect); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
     const nFix=staffFallbacks(f,r), dir=directorPass(f); r.out.polish={staff:nFix,director:dir};
     if(nFix||dir.length) logAct(r,"editor",`เกลางานรอบสุดท้าย: ${[nFix?`ใช้แผนของน้องซับ/น้องจังหวะ ${nFix} จุด`:"",...dir].filter(Boolean).slice(0,4).join(" · ")}`);
     r.out.editor=f; r.project=clone(f); r.title=f.title; return `ตัดต่อเสร็จ ยาว ${f.scenes.reduce((a,x)=>a+x.duration,0).toFixed(0)} วินาที`; },
