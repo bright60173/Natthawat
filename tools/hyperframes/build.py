@@ -16,7 +16,7 @@ driver=f'''(function(){{
   const P=normalizeProject({proj});
   const cv=document.getElementById("hfcv"); const rr=new Renderer(cv); rr.load(P);
   for(const c of [rr.cv,rr.bufA,rr.bufB]){{ c.width=W; c.height=H; }} rr.W=W; rr.H=H; rr.layout();
-  const ready=(async()=>{{ try{{ await Promise.all(["400","600","800"].map(w=>document.fonts.load(w+" 40px Kanit","กขค Abc"))); await document.fonts.load("40px Itim","กขค"); }}catch(e){{}} fontEpoch++; rr.layout();
+  const ready=(async()=>{{ try{{ await Promise.all(["400","600","700","800"].map(w=>document.fonts.load(w+" 40px Kanit","กขค Abc"))); await document.fonts.load("40px Itim","กขค"); if(P.font&&P.font!=="Kanit") await Promise.all(["400","600","700","800"].map(w=>document.fonts.load(w+' 40px "'+P.font+'"',"กขคงจ Abc 0123"))); }}catch(e){{}} fontEpoch++; rr.layout();
     BG3D.scale=1; BG3D.w=0; P.scenes.forEach((s,i)=>{{ try{{ bg3dFrame(s,0.05,i,W,H); }}catch(e){{}} }}); }})();
   window.__hf=window.__hf||{{}}; window.__hf.buildReady=window.__hf.buildReady||{{}}; window.__hf.buildReady["ai-office"]=ready;
   let q=Promise.resolve();

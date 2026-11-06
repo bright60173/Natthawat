@@ -11,9 +11,9 @@ mkdir -p "$HF_DIR"; [ -f "$HF_DIR/package.json" ] || (cd "$HF_DIR" && npm init -
 [ -x "$HF_DIR/node_modules/.bin/hyperframes" ] || (cd "$HF_DIR" && npm i hyperframes >/dev/null)
 [ -f "$HF_DIR/node_modules/three/build/three.min.js" ] || (cd "$HF_DIR" && npm i three@0.128.0 >/dev/null)
 cp "$HF_DIR/node_modules/three/build/three.min.js" "$WORK/proj/lib/three.min.js"
-# Thai fonts (Kanit, Itim) as local files so the render needs no network
+# Thai fonts (every clip font) as local files so the render needs no network
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
-curl -sS -A "$UA" "https://fonts.googleapis.com/css2?family=Itim&family=Kanit:wght@400;600;800&display=swap" -o "$WORK/proj/fonts.css"
+curl -sS -A "$UA" "https://fonts.googleapis.com/css2?family=Itim&family=Kanit:wght@400;600;800&family=Prompt:wght@400;600;800&family=Mitr:wght@400;600;700&family=Chakra+Petch:wght@400;600;700&family=Bai+Jamjuree:wght@400;600;700&family=Sriracha&family=Mali:wght@400;600;700&display=swap" -o "$WORK/proj/fonts.css"
 for u in $(grep -o "https://fonts.gstatic.com[^)]*" "$WORK/proj/fonts.css" | sort -u); do curl -sS "$u" -o "$WORK/proj/assets/fonts/$(basename "$u")"; done
 sed "s#https://fonts.gstatic.com/[^)]*/\([^/)]*\)#assets/fonts/\1#g" "$WORK/proj/fonts.css" > "$WORK/proj/fonts.local.css"
 # page wrapper for the audio step
