@@ -2630,22 +2630,42 @@ function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
 function teamContext(){ const arr=Object.values(recs).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,10);
   const lines=arr.map(r=>{ const st=recState(r); return `- ${r.title||r.topic||"(ยังไม่มีหัวข้อ)"} · ${st.k==="done"?"เสร็จ":st.t}${r.out?.qa?` · QA ${r.out.qa.score}/10`:""}`; });
   return `[ข้อมูลล่าสุดของทีม]\nเลเวลออฟฟิศ ${levelOf(stats.xp)} · คลิปเสร็จ ${stats.clips} · ไฟล์วิดีโอ ${stats.exports}\nคลิปล่าสุด:\n${lines.join("\n")||"- ยังไม่มี"}\nแผนคอนเทนต์ที่ยังไม่ได้ทำ: ${plan.filter(x=>!x.recId).map(x=>x.topic).join(", ")||"ไม่มี"}`; }
-/* Department staff do the groundwork in parallel (quick model), results are kept on the record so a
+/* Department staff do the groundwork in parallel, results are kept on the record so a
    resumed job does not redo them; the head of the department then merges their work. */
 let activeStaff=[];
 async function staffWork(r,step,jobs){
   r.sub ||= {}; const box=r.sub[step] ||= {}; const todo=jobs.filter(j=>box[j.id]==null);
   if(todo.length){ activeStaff=todo.map(j=>j.id); renderJob();
     todo.forEach(j=>logAct(r,j.id,`เริ่ม${byId[j.id].task}`));
-    const res=await Promise.all(todo.map(j=>ask(j.id,j.prompt,{tier:"quick"}).then(t=>({id:j.id,t}),err=>({id:j.id,err}))));
+    const res=await Promise.all(todo.map(j=>ask(j.id,j.prompt).then(t=>({id:j.id,t}),err=>({id:j.id,err}))));
     activeStaff=[]; const ok=res.filter(x=>!x.err);
     if(!ok.length&&res.length) throw res[0].err;
     ok.forEach(x=>{ box[x.id]=x.t; logAct(r,x.id,`ส่ง${byId[x.id].task}ให้${byId[deptOf(x.id).head].name}แล้ว`); handoff(x.id,deptOf(x.id).head); });
     res.filter(x=>x.err).forEach(x=>logAct(r,x.id,`งานสะดุด (${friendlyError(x.err)}) หัวหน้าแผนกทำต่อเอง`));
     saveRec(r); }
-  return jobs.map(j=>box[j.id]?`[งานจาก${byId[j.id].name} (${byId[j.id].role})]\n${String(box[j.id]).split(/```json/i)[0].trim().slice(0,2500)}`:"").filter(Boolean).join("\n\n");
+  return jobs.map(j=>box[j.id]?`[งานจาก${byId[j.id].name} (${byId[j.id].role})]\n${String(box[j.id]).trim().slice(0,3500)}`:"").filter(Boolean).join("\n\n");
 }
 const subJSON=(r,step,id)=>extractJSON(r.sub?.[step]?.[id]||"");
+const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุดเลื่อนจริง 2) มีข้อเท็จจริงหรือตัวเลขน่าทึ่งที่ถูกต้องอย่างน้อย 1 จุด 3) เรื่องไหลเป็นเหตุและผล มีจุดหักมุม 4) ประโยคสั้น พูดง่าย ไม่ซ้ำคำ 5) ทุกฉากมีภาพที่ชัดและทำเป็นอนิเมชันได้ 6) ตอนจบชวนคอมเมนต์ 7) ยาวรวม 35-55 วินาที`;
+/* Director's pass: rule-based polish after editing, so every clip meets the house style even when a model slips. */
+const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
+function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","zoom-in","pan-left","drone","zoom-out"];
+  if(S[0]&&S[0].camera==="static"){ S[0].camera="zoom-in"; fixes.push("ฉากแรกใช้กล้องซูมเข้าให้ hook มีพลัง"); }
+  for(let i=1;i<S.length;i++){ if(S[i].camera===S[i-1].camera&&S[i].camera!=="shake"){ const nx=S[i+1]?.camera; const c=rot.find(x=>x!==S[i-1].camera&&x!==nx&&(x!=="drone"||OUTDOOR.includes(S[i].bg))); if(c){ S[i].camera=c; fixes.push(`ฉาก ${i+1} เปลี่ยนมุมกล้องไม่ให้ซ้ำฉากก่อน`); } } }
+  if(S.length>=4&&!S.some(x=>x.camera==="drone"||x.camera==="orbit")){ const k=S.findIndex((x,i)=>i>0&&i<S.length-1&&OUTDOOR.includes(x.bg)); const i=k>0?k:1; S[i].camera=OUTDOOR.includes(S[i].bg)?"drone":"orbit"; fixes.push(`ฉาก ${i+1} ใช้มุมกว้าง${S[i].camera==="drone"?"แบบโดรน":"แบบโคจร"}ให้ฉากมีมิติ`); }
+  if(S.length>3&&new Set(S.slice(1).map(x=>x.transition)).size<2){ const tr=["whip","slide","zoom","fade","cut"]; S.slice(1).forEach((x,i)=>{ x.transition=tr[i%tr.length]; }); fixes.push("สลับทรานซิชันให้มีจังหวะ"); }
+  S.forEach((x,i)=>{ const ch=x.elements.filter(e=>e.type==="character"&&!["move","walk"].includes(e.motion)); for(let a=0;a<ch.length;a++) for(let b=a+1;b<ch.length;b++){ if(Math.abs(ch[a].x-ch[b].x)<0.2&&Math.abs(ch[a].y-ch[b].y)<0.12){
+      const n=ch.length; ch.sort((u,v)=>u.x-v.x).forEach((e,k)=>{ e.x=+(n===1?0.5:0.22+k*(0.56/(n-1))).toFixed(3); }); fixes.push(`ฉาก ${i+1} จัดตัวละครไม่ให้ซ้อนกัน`); return; } } });
+  return [...new Set(fixes)]; }
+/* Apply the subtitle/pacing staff's structured plans wherever the head's cut breaks a rule. */
+function staffFallbacks(p,r){ let n=0; const sj=subJSON(r,"editor","subs"), pj=subJSON(r,"editor","pace");
+  p.scenes.forEach((x,i)=>{ const a=(Array.isArray(sj?.scenes)?sj.scenes:[]).find(z=>Number(z?.scene)===i+1);
+    if(a){ const em=(Array.isArray(a.emph)?a.emph:[]).map(w=>cleanStar(String(w))).filter(w=>w&&x.narration.includes(w)).slice(0,2);
+      if(!(x.emph||[]).some(w=>x.narration.includes(w))&&em.length){ x.emph=em; n++; }
+      const cap=cleanStar(String(a.caption||"")); if(x.caption.length>18&&cap&&cap.length<=18){ x.caption=cap; n++; }
+      if(a.subPos&&x.subPos==="auto"&&CAT.subPos.includes(a.subPos)&&a.subPos!=="auto"){ x.subPos=a.subPos; } } });
+  if(p.scenes.length>3&&new Set(p.scenes.slice(1).map(x=>x.transition)).size<2&&Array.isArray(pj?.scenes)){ pj.scenes.forEach(z=>{ const x=p.scenes[(Number(z?.scene)||0)-1]; if(x&&CAT.transitions.includes(z.transition)){ x.transition=z.transition; n++; } }); }
+  return n; }
 const scriptOf=p=>p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}/${x.time}, กล้อง ${x.camera}, ${x.transition}, sfx ${x.sfx}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion},${e.motion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
 const STEP_FN={
   async plan(r){
@@ -2674,10 +2694,10 @@ const STEP_FN={
       const applied=applyTextEdits(p,j);
       const issues=(Array.isArray(j?.issues)?j.issues:[]).slice(0,8).map(x=>({scene:Number(x?.scene)||0,problem:str(x?.problem,220)})).filter(x=>x.problem);
       last={auto,score:Math.round(num(j?.score,0,10,7)),summary:str(j?.summary,300),notes:(Array.isArray(j?.notes)?j.notes:[]).slice(0,4).map(x=>str(String(x),160)).filter(Boolean),issues,applied:(last?.applied||0)+applied,rounds:rounds+1,pass:j?.pass!==false};
-      if(last.pass||!issues.length||rounds>=1) break;
+      if((last.pass&&last.score>=8)||!issues.length||rounds>=2) break;
       rounds++; logAct(r,"qa",`พบ ${issues.length} จุดที่ต้องแก้ ส่งกลับให้น้องคัท`); handoff("qa","editor");
       const cut=extractJSON(await ask("editor",`ฝ่ายตรวจสอบ (น้องเช็ค) ส่งคลิปกลับมาให้แก้:\n${issues.map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n")}\n\nแก้แล้วส่ง JSON ฉบับเต็มกลับมา (คงจำนวนฉากและ emph ไว้ ห้ามใส่ * ในข้อความ):\n\`\`\`json\n${JSON.stringify(stripP(p))}\n\`\`\``));
-      try{ r.project=normalizeProject({...cut,aspect:r.aspect}); logAct(r,"editor","แก้ตามที่ฝ่ายตรวจสอบแจ้งแล้ว ส่งตรวจใหม่"); handoff("editor","qa"); }
+      try{ r.project=normalizeProject({...cut,aspect:r.aspect}); staffFallbacks(r.project,r); directorPass(r.project); logAct(r,"editor","แก้ตามที่ฝ่ายตรวจสอบแจ้งแล้ว ส่งตรวจใหม่"); handoff("editor","qa"); }
       catch{ logAct(r,"editor","แก้ไม่สำเร็จ ใช้ฉบับเดิมไปก่อน"); break; }
     }
     r.out.qa=last; r.title=r.project.title;
@@ -2714,16 +2734,29 @@ const STEP_FN={
   },
   async creative(r){ const facts=r.out.plan?.facts?`\n\nข้อมูลจากน้องข้อมูล (ใช้เฉพาะที่ถูกต้อง):\n${r.out.plan.facts}`:"", base=`หัวข้อ: "${r.topic}"\nบรีฟ: ${r.out.brief?.text||"-"}${facts}`;
     const team=await staffWork(r,"creative",[{id:"hook",prompt:`${base}\n\nเขียนประโยคเปิดคลิป (hook) 3 แบบ และประโยคปิดชวนคอมเมนต์ 2 แบบ`},{id:"story",prompt:`${base}\n\nวางโครงเรื่องคลิปสั้น 5-7 จังหวะ ความยาวรวม 35-50 วินาที`}]);
-    r.out.creative=await ask("creative",`${team?`ทีมของเธอส่งงานมาแล้ว เลือกและเรียบเรียงส่วนที่ดีที่สุด:\n${team}\n\n`:""}${facts?`${facts.trim()}\n\n`:""}${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก${note(r,"creative")}`); return "ส่งบทให้น้องพิกเซลแล้ว"; },
+    r.drafts ||= {}; let draft=r.drafts.creative;
+    if(!draft) draft=r.drafts.creative=await ask("creative",`${team?`ทีมของเธอส่งงานมาแล้ว เลือกและเรียบเรียงส่วนที่ดีที่สุด:\n${team}\n\n`:""}เกณฑ์คุณภาพของบท: ${SCRIPT_RUBRIC}\n\n${facts?`${facts.trim()}\n\n`:""}${r.out.brief?`บรีฟจากพี่มาย (ผู้จัดการ):\n${r.out.brief.text}\n\n`:""}เขียนบทคลิปสั้นแนว What if / ความรู้สนุกๆ หัวข้อ: "${r.topic}" ความยาว 35-50 วินาที 5-7 ฉาก${note(r,"creative")}`);
+    saveRec(r);
+    // table read: the hook writer and the story planner score the draft; below 8/10 the head revises once
+    const reviews=[];
+    try{ await staffWork(r,"tableread",[{id:"hook",prompt:`อ่านบทฉบับร่างของน้องครีม ให้คะแนนตามเกณฑ์: ${SCRIPT_RUBRIC}\nเน้นดูเรื่อง hook และตอนจบ\n\n${String(draft).split(/\x60\x60\x60json/i)[0].slice(0,6000)}\n\nตอบสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"score":7,"fixes":["สิ่งที่ต้องแก้ ระบุฉาก"]}\n\x60\x60\x60`},{id:"story",prompt:`อ่านบทฉบับร่างของน้องครีม ให้คะแนนตามเกณฑ์: ${SCRIPT_RUBRIC}\nเน้นดูการเล่าเรื่อง ความถูกต้อง และภาพแต่ละฉาก\n\n${String(draft).split(/\x60\x60\x60json/i)[0].slice(0,6000)}\n\nตอบสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"score":7,"fixes":["สิ่งที่ต้องแก้ ระบุฉาก"]}\n\x60\x60\x60`}]);
+      ["hook","story"].forEach(id=>{ const j=subJSON(r,"tableread",id); if(j) reviews.push({id,score:Math.round(num(j.score,0,10,7)),fixes:(Array.isArray(j.fixes)?j.fixes:[]).slice(0,6).map(x=>str(String(x),200)).filter(Boolean)}); }); }catch{ }
+    const low=reviews.filter(v=>v.score<8&&v.fixes.length);
+    if(low.length){ logAct(r,"creative",`ทีมให้คะแนนบท ${reviews.map(v=>v.score).join(" และ ")}/10 ขอแก้ก่อนส่งต่อ`);
+      draft=await ask("creative",`ทีมอ่านบทของเธอแล้ว ให้คะแนนและขอแก้:\n${low.map(v=>`${byId[v.id].name} (${v.score}/10):\n${v.fixes.map(f=>"- "+f).join("\n")}`).join("\n\n")}\n\nแก้บทให้ผ่านเกณฑ์ (${SCRIPT_RUBRIC}) แล้วส่งบทฉบับเต็มทุกฉากในรูปแบบเดิม`); }
+    r.out.creative=draft; r.out.tableread={scores:reviews.map(v=>({id:v.id,score:v.score})),revised:low.length>0};
+    return "ส่งบทให้น้องพิกเซลแล้ว"; },
   async animator(r){ const scr=String(r.out.creative).split(/```json/i)[0].slice(0,6000);
     const team=await staffWork(r,"animator",[{id:"shot",prompt:`บทคลิป (สัดส่วน ${r.aspect}):\n${scr}\n\nทำ shot list ทีละฉาก: ฉากหลัง เวลา กล้อง เอฟเฟกต์ และเหตุผลสั้นๆ`},{id:"acting",prompt:`บทคลิป:\n${scr}\n\nกำหนดทีละฉาก: ตัวละคร อารมณ์ ท่าทาง พร็อพ และคำพูดในบับเบิล (ถ้ามี)`}]);
-    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}:\n\n${r.out.creative}`);
+    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}\n\nเกณฑ์คุณภาพ: ภาพทุกฉากต้องเล่าเรื่องได้แม้ปิดเสียง ตัวละครแสดงอารมณ์ตรงกับบท มีพร็อพหรือข้อความที่สื่อตัวเลข/ข้อเท็จจริงสำคัญ ฉากหลังและมุมกล้องไม่ซ้ำติดกัน มีอย่างน้อย 1 ฉากมุมกว้าง (drone หรือ orbit):\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
     r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
   async editor(r){ const sum=scriptOf(r.out.animator);
-    const team=await staffWork(r,"editor",[{id:"pace",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nวางจังหวะทีละฉาก: duration ที่เหมาะ transition และ sfx เฉพาะจังหวะสำคัญ`},{id:"subs",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nเลือก subStyle ของคลิป และทีละฉาก: คำเน้น 1-2 คำ (ต้องอยู่ในบทพูดตรงตัว) ข้อความบนจอที่สั้นลง และ subPos`}]);
+    const team=await staffWork(r,"editor",[{id:"pace",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nวางจังหวะทีละฉาก: duration ที่เหมาะ transition และ sfx เฉพาะจังหวะสำคัญ อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"scenes":[{"scene":1,"duration":3.2,"transition":"${CAT.transitions.join("|")}","sfx":"${CAT.sfx.join("|")}"}]}\n\x60\x60\x60`},{id:"subs",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nเลือก subStyle ของคลิป และทีละฉาก: คำเน้น 1-2 คำ (ต้องอยู่ในบทพูดตรงตัว) ข้อความบนจอไม่เกิน 18 ตัวอักษร และ subPos อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"subStyle":"${CAT.subStyles.join("|")}","scenes":[{"scene":1,"emph":["คำ"],"caption":"ข้อความสั้น","subPos":"${CAT.subPos.join("|")}"}]}\n\x60\x60\x60`}]);
     const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปังและส่ง JSON ฉบับเต็มกลับมา${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}:\n\n\`\`\`json\n${JSON.stringify(r.out.animator)}\n\`\`\``));
     let f; try{ f=normalizeProject({...cut,aspect:r.aspect}); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
+    const nFix=staffFallbacks(f,r), dir=directorPass(f); r.out.polish={staff:nFix,director:dir};
+    if(nFix||dir.length) logAct(r,"editor",`เกลางานรอบสุดท้าย: ${[nFix?`ใช้แผนของน้องซับ/น้องจังหวะ ${nFix} จุด`:"",...dir].filter(Boolean).slice(0,4).join(" · ")}`);
     r.out.editor=f; r.project=clone(f); r.title=f.title; return `ตัดต่อเสร็จ ยาว ${f.scenes.reduce((a,x)=>a+x.duration,0).toFixed(0)} วินาที`; },
   async voice(r){ const lines=r.project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
     const team=await staffWork(r,"voice",[{id:"tone",prompt:`บทพูดคลิป "${r.project.title}":\n${lines}\n\nชี้คำหรือประโยคที่พูดแล้วสะดุดหรือเป็นภาษาเขียน พร้อมคำที่พูดง่ายกว่า`},{id:"music",prompt:`คลิป "${r.project.title}" เพลงตอนนี้: ${r.project.music}\n${scriptOf(r.project)}\n\nเลือกเพลงและปรับเสียงประกอบ ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"music":"${CAT.music.join("|")}","sfx":[{"scene":1,"sfx":"${CAT.sfx.join("|")}"}]}\n\`\`\``}]);
@@ -2775,7 +2808,7 @@ function renderJob(){
   if(!r){ box.hidden=true; feed.innerHTML=`<li class="hint">ยังไม่มีกิจกรรม กด "ให้ทีมทำคลิปใหม่" แล้วดูทีมทำงานกันได้ที่นี่</li>`; return; }
   box.hidden=false; const S=stepsOf(r), running=runningRec===r.id, done=S.filter(s=>r.out?.[s]!=null).length;
   const curStep=running?S.find(s=>r.out?.[s]==null):null;
-  let pct=r.manual?100:(done/S.length)*100; if(curStep&&r.stepAt){ const exp={plan:55,creative:55,animator:80,editor:80,voice:45,qa:65,approve:35,brief:25,review:35}[curStep]||40; pct+=Math.min(0.9,(Date.now()-r.stepAt)/1000/exp)*(100/S.length); }
+  let pct=r.manual?100:(done/S.length)*100; if(curStep&&r.stepAt){ const exp={plan:55,creative:90,animator:80,editor:80,voice:45,qa:65,approve:35,brief:25,review:35}[curStep]||40; pct+=Math.min(0.9,(Date.now()-r.stepAt)/1000/exp)*(100/S.length); }
   $("jobTitle").textContent=r.title||r.topic||"น้องโฟลว์กำลังเลือกหัวข้อ..."; $("jobPct").textContent=Math.floor(pct)+"%"; $("jobBar").style.width=pct.toFixed(1)+"%";
   const now=$("jobNow"); now.innerHTML="";
   if(curStep&&activeStaff.length){ activeStaff.forEach(id=>now.appendChild(miniAvatar(id))); const sp=document.createElement("span"); sp.className="spin"; sp.setAttribute("aria-hidden","true"); now.appendChild(sp); const t=document.createElement("span"); t.textContent=`${activeStaff.map(id=>byId[id].name).join(" + ")} กำลังเตรียมงานให้${byId[STEP_WHO[curStep]].name}...`; now.appendChild(t); }
@@ -2855,8 +2888,10 @@ function stepOutput(r,st){
   else if(st==="brief"){ H("div",o.text||"").style.whiteSpace="pre-wrap"; }
   else H("div","ไม่มีข้อมูล");
   // what the department's staff prepared for this step
-  const subs=(st==="plan"?["plan","facts"]:[st]).flatMap(k=>Object.entries(r.sub?.[k]||{}));
-  if(subs.length){ H("h4","งานจากทีมในแผนก"); subs.forEach(([id,txt])=>{ const det=document.createElement("details"); det.className="subwork"; const sm=document.createElement("summary"); sm.appendChild(miniAvatar(id)); sm.appendChild(document.createTextNode(` ${byId[id]?.name||id} · ${byId[id]?.task||""}`)); det.appendChild(sm); const body=document.createElement("div"); body.innerHTML=renderMarkdown(String(txt).split(/```json/i)[0]); det.appendChild(body); d.appendChild(det); }); }
+  if(st==="creative"&&r.out.tableread?.scores?.length) H("div",`อ่านบทร่วมกันในแผนก: ${r.out.tableread.scores.map(v=>`${byId[v.id]?.name} ${v.score}/10`).join(" · ")}${r.out.tableread.revised?" · แก้บทแล้วก่อนส่งต่อ":" · ผ่านเกณฑ์"}`).className="hint";
+  if(st==="editor"&&r.out.polish&&(r.out.polish.staff||r.out.polish.director?.length)){ H("h4","เกลางานรอบสุดท้าย"); const ul=document.createElement("ul"); [r.out.polish.staff?`ใช้แผนของน้องซับ/น้องจังหวะ ${r.out.polish.staff} จุด`:"",...(r.out.polish.director||[])].filter(Boolean).forEach(x=>{ const li=document.createElement("li"); li.textContent=x; ul.appendChild(li); }); d.appendChild(ul); }
+  const subs=(st==="plan"?["plan","facts"]:st==="creative"?["creative","tableread"]:[st]).flatMap(k=>Object.entries(r.sub?.[k]||{}).map(([id,t])=>[id,t,k]));
+  if(subs.length){ H("h4","งานจากทีมในแผนก"); subs.forEach(([id,txt,k])=>{ const det=document.createElement("details"); det.className="subwork"; const sm=document.createElement("summary"); sm.appendChild(miniAvatar(id)); sm.appendChild(document.createTextNode(` ${byId[id]?.name||id} · ${k==="tableread"?"อ่านบทและให้คะแนน":byId[id]?.task||""}`)); det.appendChild(sm); const body=document.createElement("div"); body.innerHTML=renderMarkdown(String(txt).split(/```json/i)[0]); det.appendChild(body); d.appendChild(det); }); }
   return d;
 }
 
