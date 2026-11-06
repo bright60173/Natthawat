@@ -1624,7 +1624,7 @@ class Renderer{
       if(el.say && lt>=at+0.3) this.drawBubble(c,el.say,X,Y-base*0.0024*sc*250,u,s,sc);
       return; }
     if(el.type==="emoji"){ const fs=Math.round(base*0.17*sc); c.font=`${fs}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.fillText(el.char,0,0); c.restore(); return; }
-    if(el.type==="text"){ const fs=Math.round(base*0.09*sc); c.font=`800 ${fs}px Kanit, sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.lineWidth=fs*0.16; c.strokeStyle=OL; c.lineJoin="round"; c.strokeText(el.text,0,0); c.fillStyle=el.color; c.fillText(el.text,0,0); c.restore(); return; }
+    if(el.type==="text"){ const f=this.textFit(s,el), fs=Math.max(8,Math.round(base*0.09*sc*f.k)); if(f.dx) c.translate(f.dx/(sx||1),0); c.font=`800 ${fs}px Kanit, sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.lineWidth=fs*0.16; c.strokeStyle=OL; c.lineJoin="round"; c.strokeText(el.text,0,0); c.fillStyle=el.color; c.fillText(el.text,0,0); c.restore(); return; }
     const k=base*0.0022*sc; c.scale(el.flip?-k:k,k);
     if(el.glow){ const g=c.createRadialGradient(0,0,10,0,0,95); g.addColorStop(0,"rgba(255,255,200,.55)"); g.addColorStop(1,"rgba(255,255,200,0)"); c.fillStyle=g; c.fillRect(-100,-100,200,200); }
     outline(c,4); (PROPS[el.name]||PROPS.star)(c,T);
@@ -1634,7 +1634,11 @@ class Renderer{
     if(s.caption){ const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,fs=Math.round(m*0.085); c.font=`800 ${fs}px Kanit, sans-serif`; const lines=wrap(c,s.caption,W*0.88).slice(0,2), y0=H*(W>H?0.13:0.12), w=Math.max(...lines.map(l=>c.measureText(l).width));
       r={x0:W/2-w/2-fs*0.3,x1:W/2+w/2+fs*0.3,y0:y0-fs*0.8,y1:y0+(lines.length-1)*fs*1.15+fs*0.85}; }
     return C[key]=r; }
-  textRect(s,el,dy=0){ const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,fs=m*0.09*el.scale; c.font=`800 ${fs}px Kanit, sans-serif`; const w=c.measureText(el.text).width, X=el.x*W, Y=(el.y+dy)*H; return {x0:X-w/2-fs*0.2,x1:X+w/2+fs*0.2,y0:Y-fs*0.75,y1:Y+fs*0.75,fs}; }
+  // on-screen text shrinks to fit 90% of the width and slides inward so it never runs off the edge
+  textFit(s,el){ const key="f"+this.W+"|"+fontEpoch+"|"+s.elements.indexOf(el), C=this.rc(s); if(C[key]) return C[key]; const W=this.W,m=Math.min(W,this.H),c=this.c,fs=m*0.09*el.scale;
+    c.save(); c.font=`800 ${fs}px Kanit, sans-serif`; const w=c.measureText(el.text).width+fs*0.32; c.restore();
+    const k=Math.min(1,W*0.84/w), w2=w*k, X=el.x*W, lo=w2/2+W*0.06, hi=W-w2/2-W*0.06, dx=(lo>hi?W/2:clamp(X,lo,hi))-X; return C[key]={k,dx}; }
+  textRect(s,el,dy=0){ const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,f=this.textFit(s,el),fs=m*0.09*el.scale*f.k; c.font=`800 ${fs}px Kanit, sans-serif`; const w=c.measureText(el.text).width, X=el.x*W+f.dx, Y=(el.y+dy)*H; return {x0:X-w/2-fs*0.2,x1:X+w/2+fs*0.2,y0:Y-fs*0.75,y1:Y+fs*0.75,fs}; }
   textShift(s,el){ const key="t"+this.W+s.elements.indexOf(el), C=this.rc(s); if(C[key]!==undefined) return C[key]; const cap=this.capRect(s); let dy=0;
     if(cap){ const r=this.textRect(s,el); if(r.x1>cap.x0&&r.x0<cap.x1&&r.y1>cap.y0&&r.y0<cap.y1) dy=(cap.y1+r.fs*0.85)/this.H-el.y; }
     return C[key]=dy; }
@@ -1706,7 +1710,7 @@ class Renderer{
     else if(fx==="confetti"){ const cols=["#ff5d8f","#ffd23f","#6bc7ff","#5fd38d","#b48cff"]; for(let i=0;i<90;i++){ const x=(rnd(i)*W+Math.sin(lt*2+i)*30), y=((rnd(i+2)*-H)+lt*H*0.5)%H+ (lt*H*0.5>H?0:0); const yy=(y+H)%H; c.save(); c.translate(x,yy); c.rotate(lt*4+i); c.fillStyle=cols[i%5]; c.fillRect(-6*u,-3*u,12*u,6*u); c.restore(); } }
     else if(fx==="speedlines"){ c.strokeStyle="rgba(255,255,255,.55)"; for(let i=0;i<40;i++){ const a=rnd(i)*Math.PI*2, r0=Math.max(W,H)*(0.35+rnd(i+1)*0.1)+((lt*600+i*50)%200)*u; c.lineWidth=(2+rnd(i+4)*5)*u; c.beginPath(); c.moveTo(W/2+Math.cos(a)*r0,H/2+Math.sin(a)*r0); c.lineTo(W/2+Math.cos(a)*(r0+260*u),H/2+Math.sin(a)*(r0+260*u)); c.stroke(); } }
     else if(fx==="fireworks"){ for(let b=0;b<4;b++){ const t0=((lt+b*0.6)%2.4)/2.4, cx=W*(0.2+rnd(b+idx)*0.6), cy=H*(0.18+rnd(b+5)*0.3); const col=["#ffd23f","#ff5d8f","#6bc7ff","#5fd38d"][b]; for(let i=0;i<18;i++){ const a=i*Math.PI/9, r=easeOut(t0)*150*u; c.globalAlpha=1-t0; c.fillStyle=col; c.beginPath(); c.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r+t0*t0*40*u,5*u,0,7); c.fill(); } } c.globalAlpha=1; }
-    else if(fx==="flash"){ const a=clamp(1-lt/0.45,0,1); c.fillStyle=`rgba(255,255,255,${a})`; c.fillRect(0,0,W,H); }
+    else if(fx==="flash"){ const a=lt<0.08?(lt/0.08)*0.85:clamp(0.85*(1-(lt-0.08)/0.4),0,1); c.fillStyle=`rgba(255,255,255,${a})`; c.fillRect(0,0,W,H); }
     else if(fx==="darken"){ const g=c.createRadialGradient(W/2,H/2,Math.min(W,H)*0.25,W/2,H/2,Math.max(W,H)*0.7); g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,10,.75)"); c.fillStyle=g; c.fillRect(0,0,W,H); }
     else if(fx==="heat"){ c.fillStyle=`rgba(255,110,40,${0.18+0.06*Math.sin(lt*3)})`; c.fillRect(0,0,W,H); }
     else if(fx==="bubbles"){ c.strokeStyle="rgba(255,255,255,.75)"; c.lineWidth=3*u; for(let i=0;i<30;i++){ const x=rnd(i)*W+Math.sin(lt*2+i)*14*u, y=H-((rnd(i+8)*H+lt*H*0.2)%H); c.beginPath(); c.arc(x,y,(6+rnd(i+1)*14)*u,0,7); c.stroke(); } }
@@ -2090,7 +2094,8 @@ const SCHEMA=`{
 }`;
 const LAYOUT_RULES=`กฎการจัดภาพ:
 - x และ y เป็นสัดส่วนของจอ 0-1 (0,0 = มุมซ้ายบน) ตัวละครใช้ y เป็นตำแหน่งเท้า (ปกติ 0.75-0.85) พร็อพใช้ y เป็นจุดกึ่งกลาง
-- ด้านบน 0-0.2 เป็นที่ของ caption และด้านล่าง 0.86 ลงไปเป็นที่ของซับ อย่าวางของสำคัญทับ
+- ด้านบน 0-0.2 เป็นที่ของ caption ซับจะถูกวางอัตโนมัติในช่วงที่ว่าง ในคลิปแนวตั้ง ข้อความสำคัญต้องอยู่ระหว่าง y 0.09-0.69 เพราะส่วนล่างของจอโดนปุ่มและแคปชันของ IG/TikTok บัง (ตัวละครยืนต่ำกว่านั้นได้)
+- ภาพต้องโล่ง อ่านง่าย: ไม่เกิน 5 องค์ประกอบต่อฉาก ข้อความในภาพ (type text) ไม่เกิน 1-2 อันต่อฉาก แต่ละอันไม่เกิน 14 ตัวอักษร ห้ามใส่ข้อความซ้ำกับซับหรือ caption และไม่ต้องติดป้ายเดิมซ้ำทุกฉาก
 - scale 1 = ตัวละครสูงราว 1/2 ของความกว้างจอ พร็อพกว้างราว 1/5 ของจอ ใช้ 0.5-3
 - ทุกฉากควรมีอย่างน้อย 2 องค์ประกอบ ให้มีการเคลื่อนไหว (motion/enter/at ต่างกัน) เพื่อให้ภาพมีชีวิต
 - เลือกอารมณ์ตัวละครให้ตรงเนื้อเรื่อง ใช้ "say" เพื่อให้ตัวละครพูดคำสั้นๆ ตลกๆ
@@ -2624,6 +2629,8 @@ function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
   p.scenes.forEach((x,i)=>{ if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(p.emphOn!==false&&!(x.emph||[]).length) out.push(`ฉาก ${i+1} ไม่มีคำเน้น (emph)`);
     if(x.caption.length>18) out.push(`ฉาก ${i+1} ข้อความบนจอยาว ${x.caption.length} ตัวอักษร (ควรไม่เกิน 18)`);
     if(x.elements.length<2) out.push(`ฉาก ${i+1} มีองค์ประกอบภาพน้อย (${x.elements.length})`);
+    const nt=x.elements.filter(e=>e.type==="text").length; if(nt>2) out.push(`ฉาก ${i+1} มีข้อความในภาพ ${nt} อัน รกเกินไป (ควรไม่เกิน 2 รวมกับซับ)`);
+    if(x.elements.length>6) out.push(`ฉาก ${i+1} มีของในภาพ ${x.elements.length} ชิ้น แน่นเกินไป (ควรไม่เกิน 5)`);
     if(x.elements.some(e=>e.enter==="none"&&e.motion!=="move"&&e.motion!=="walk"&&(e.x<0.04||e.x>0.96))) out.push(`ฉาก ${i+1} มีของหลุดขอบจอ`); });
   if(p.scenes.length>3&&new Set(p.scenes.slice(1).map(x=>x.transition)).size<2) out.push("ใช้ทรานซิชันแบบเดียวทั้งคลิป");
   return [...new Set(out)].slice(0,12); }
