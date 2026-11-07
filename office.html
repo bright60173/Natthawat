@@ -1124,7 +1124,7 @@ const FONT_IDS=CLIP_FONTS.map(f=>f[0]);
 const famOf=f=>`"${FONT_IDS.includes(f)?f:"Kanit"}", Kanit, sans-serif`;
 const CF={ff:famOf("Kanit"),cs:"cute"};
 const CAT = {
-  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse"],
+  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street"],
   times:["day","sunset","night"],
   characters:["boy","girl","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry"],
@@ -1194,7 +1194,7 @@ function normalizeProject(p){
     aspect:p.aspect==="16:9"?"16:9":"9:16",
     music:pick(p.music,CAT.music,"upbeat"),
     subStyle:pick(p.subStyle,CAT.subStyles,"pop"),
-    look:pick(p.look,["bright","cinematic"],"bright"),
+    look:pick(p.look,["bright","cinematic","doc"],"bright"),
     charStyle:"cute",
     font:pick(p.font,FONT_IDS,pick(store.get("clipFont","Kanit"),FONT_IDS,"Kanit")),
     emphOn:p.emphOn!==false,
@@ -1221,7 +1221,68 @@ function starsField(c,W,H,t,n=90,hMax=1){ for(let i=0;i<n;i++){ const x=rnd(i)*W
 function cloudShape(c,x,y,s,a=1){ c.globalAlpha=a; c.fillStyle="#ffffff"; c.beginPath(); c.arc(x,y,28*s,0,7); c.arc(x+30*s,y-12*s,34*s,0,7); c.arc(x+64*s,y,26*s,0,7); c.rect(x,y-4*s,64*s,30*s); c.fill(); c.globalAlpha=1; }
 function hills(c,W,H,y,col,amp,ph){ c.fillStyle=col; c.beginPath(); c.moveTo(0,H); for(let x=0;x<=W;x+=W/40){ c.lineTo(x,y+Math.sin(x/W*Math.PI*2+ph)*amp); } c.lineTo(W,H); c.closePath(); c.fill(); }
 
+/* Palette and helpers for the illustrated 2D sets. */
+function SET_PAL(time){ const n=time==="night", ss=time==="sunset";
+  return { night:n, skyTop:n?"#1d2340":ss?"#e9a77a":"#bcd8de", skyBot:n?"#33395a":ss?"#f3d1a2":"#e4ecdf", sun:n?"#f2ecd2":ss?"#ffd9a0":"#fff6dc",
+    hill:n?"#1f3a33":"#3f6e55", hill2:n?"#25463c":"#5a8a63", sea:n?"#1f4656":"#4f97a0", sea2:n?"#1a3c4a":"#3f8792", sand:n?"#6f6650":"#e8d3a8", sand2:n?"#5d5542":"#d8c08f",
+    wall:n?"#8c8a86":"#f0ede6", roof:n?"#2b2f3a":"#3f4552", wood:n?"#5a4430":"#a3774f", glass:n?"#30405a":"#b9d3dc", frame:n?"#2a2f38":"#4a4f5a", door:n?"#3a2f26":"#6b4f3a",
+    fence:n?"#6d6a64":"#e9e4da", road:n?"#3a3c42":"#7c7e84", grass:n?"#2f4a33":"#6f9a58", grass2:n?"#284030":"#5f8a4b", tree:n?"#22402f":"#4f8a50", tree2:n?"#1b3426":"#3f7442" }; }
+function setSky(c,W,H,P,hz){ c.fillStyle=P.skyTop; c.fillRect(0,0,W,hz); for(let k=1;k<=4;k++){ c.globalAlpha=k/4; c.fillStyle=P.skyBot; c.fillRect(0,hz*(0.4+k*0.12),W,hz*(0.6-k*0.12)+1); } c.globalAlpha=1; c.fillStyle=P.sun; c.beginPath(); c.arc(W*0.24,hz*0.38,W*0.055,0,7); c.fill();
+  if(P.night){ c.fillStyle="rgba(255,255,255,.7)"; for(let i=0;i<30;i++) c.fillRect(rnd(i+200)*W,rnd(i+300)*hz*0.8,W*0.003,W*0.003); }
+  else { c.fillStyle="rgba(255,255,255,.75)"; [[0.6,0.18],[0.15,0.1],[0.85,0.3]].forEach(([x,y],k)=>{ const cx=W*x, cy=hz*y; c.beginPath(); c.ellipse(cx,cy,W*0.09,W*0.025,0,0,7); c.ellipse(cx+W*0.04,cy-W*0.018,W*0.05,W*0.025,0,0,7); c.fill(); }); } }
+function umbrella(c,x,y,w,col,P){ c.strokeStyle="#5a5248"; c.lineWidth=w*0.03; c.beginPath(); c.moveTo(x,y-w*0.3); c.lineTo(x+w*0.03,y+w*0.12); c.stroke();
+  c.save(); c.translate(x,y-w*0.3); c.scale(1,0.5); for(let i=0;i<6;i++){ c.fillStyle=i%2?"#f4efe4":col; c.beginPath(); c.moveTo(0,0); c.arc(0,0,w*0.5,Math.PI+i*Math.PI/6,Math.PI+(i+1)*Math.PI/6); c.closePath(); c.fill(); } c.restore();
+  c.fillStyle="rgba(0,0,0,.12)"; c.beginPath(); c.ellipse(x+w*0.05,y+w*0.13,w*0.35,w*0.05,0,0,7); c.fill(); }
+function tree2d(c,x,y,r,P){ c.fillStyle="#5a4632"; c.fillRect(x-r*0.08,y-r*0.6,r*0.16,r*0.6); c.fillStyle=P.tree2; c.beginPath(); c.arc(x-r*0.35,y-r*0.75,r*0.5,0,7); c.arc(x+r*0.4,y-r*0.8,r*0.45,0,7); c.fill(); c.fillStyle=P.tree; c.beginPath(); c.arc(x,y-r*1.05,r*0.6,0,7); c.fill(); }
 const BG={
+  /* Illustrated flat 2D sets per situation (muted documentary palette, as in the owner's viral references).
+     Ground line near 0.78H so characters (y 0.75-0.85) stand on it. time: day | sunset | night. */
+  beach(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.5);
+    c.fillStyle=P.hill; c.beginPath(); c.moveTo(W*0.45,H*0.5); c.bezierCurveTo(W*0.6,H*0.36,W*0.78,H*0.33,W*0.92,H*0.4); c.bezierCurveTo(W*1.0,H*0.43,W*1.05,H*0.46,W*1.1,H*0.5); c.closePath(); c.fill();
+    c.fillStyle=P.hill2; c.beginPath(); c.moveTo(W*0.62,H*0.5); c.bezierCurveTo(W*0.72,H*0.42,W*0.84,H*0.41,W*0.98,H*0.46); c.lineTo(W*1.05,H*0.5); c.closePath(); c.fill();
+    c.fillStyle=P.sea; c.fillRect(0,H*0.5,W,H*0.16); c.fillStyle=P.sea2; c.fillRect(0,H*0.58,W,H*0.08);
+    c.strokeStyle="rgba(255,255,255,.55)"; c.lineWidth=Math.max(1,W*0.003); for(let r=0;r<5;r++){ const y=H*(0.52+r*0.028), o=(t*W*0.02*(r%2?1:-1)+r*97)%(W*0.3); for(let x=-W*0.3+o;x<W;x+=W*0.3){ c.beginPath(); c.moveTo(x,y); c.lineTo(x+W*0.08,y); c.stroke(); } }
+    c.fillStyle="rgba(255,255,255,.8)"; c.beginPath(); for(let x=0;x<=W;x+=W/40) c.lineTo(x,H*0.66+Math.sin(x*0.02+t*1.6)*H*0.004); c.lineTo(W,H*0.675); c.lineTo(0,H*0.675); c.fill();
+    c.fillStyle=P.sand; c.fillRect(0,H*0.67,W,H*0.33); c.fillStyle=P.sand2; for(let i=0;i<40;i++){ c.fillRect(rnd(i+3)*W,H*(0.7+rnd(i+9)*0.28),W*0.012,H*0.003); }
+    [[0.62,0.7,"#d9a23a",0.2],[0.12,0.74,"#c8452f",0.28],[0.88,0.73,"#2f6fa8",0.26]].forEach(([x,y,col,sz])=>umbrella(c,W*x,H*y,W*sz,col,P));
+    c.fillStyle=P.night?"rgba(0,0,0,.25)":"rgba(0,0,0,0)"; c.fillRect(0,0,W,H); },
+  estate(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.62);
+    for(let i=0;i<5;i++) tree2d(c,W*(-0.05+i*0.27),H*0.6,W*0.12,P);
+    const house=(x,w,k)=>{ const y=H*0.62, h=H*0.2; c.fillStyle=P.wall; c.fillRect(x,y-h,w,h); c.fillStyle=P.roof; c.beginPath(); c.moveTo(x-w*0.06,y-h); c.lineTo(x+w*0.5,y-h-H*0.07); c.lineTo(x+w*1.06,y-h); c.closePath(); c.fill();
+      c.fillStyle=P.wood; c.fillRect(x+w*0.08,y-h*0.92,w*0.26,h*0.5); c.fillStyle="rgba(0,0,0,.18)"; for(let s=0;s<6;s++) c.fillRect(x+w*0.08+s*w*0.045,y-h*0.92,w*0.006,h*0.5);
+      c.fillStyle=P.glass; c.fillRect(x+w*0.45,y-h*0.9,w*0.42,h*0.3); c.fillRect(x+w*0.45,y-h*0.45,w*0.42,h*0.3); c.strokeStyle=P.frame; c.lineWidth=W*0.004; c.strokeRect(x+w*0.45,y-h*0.9,w*0.42,h*0.3); c.strokeRect(x+w*0.45,y-h*0.45,w*0.42,h*0.3);
+      c.fillStyle=P.door; c.fillRect(x+w*0.12,y-h*0.36,w*0.18,h*0.36); if(P.night){ c.fillStyle="rgba(255,214,140,.55)"; c.fillRect(x+w*0.45,y-h*0.45,w*0.42,h*0.3); } };
+    house(W*0.02,W*0.42,0); house(W*0.55,W*0.42,1);
+    c.fillStyle=P.fence; c.fillRect(0,H*0.62,W,H*0.025); c.fillStyle="#c8452f"; for(let x=0;x<W;x+=W*0.08) c.fillRect(x,H*0.645,W*0.04,H*0.012); c.fillStyle="#f2efe8"; for(let x=W*0.04;x<W;x+=W*0.08) c.fillRect(x,H*0.645,W*0.04,H*0.012);
+    c.fillStyle=P.road; c.fillRect(0,H*0.657,W,H*0.11); c.fillStyle="rgba(255,255,255,.75)"; for(let x=0;x<W;x+=W*0.14) c.fillRect(x,H*0.71,W*0.07,H*0.005);
+    c.fillStyle=P.grass; c.fillRect(0,H*0.767,W,H*0.233); c.fillStyle=P.grass2; for(let i=0;i<30;i++) c.fillRect(rnd(i+51)*W,H*(0.78+rnd(i+7)*0.2),W*0.02,H*0.004); },
+  school(c,W,H,t,time){ const P=SET_PAL(time); c.fillStyle=P.night?"#4a4640":"#ece4d4"; c.fillRect(0,0,W,H);
+    c.fillStyle=P.night?"#3b3832":"#ddd3c0"; c.fillRect(0,H*0.5,W,H*0.24); c.fillStyle="#9a3b2c"; c.fillRect(0,H*0.18,W,H*0.012); c.fillRect(0,H*0.5,W,H*0.01);
+    for(let i=0;i<4;i++){ const x=W*(0.04+i*0.25), y=H*0.22; c.fillStyle="#8e3426"; c.fillRect(x,y,W*0.2,H*0.24); c.save(); c.beginPath(); c.rect(x+W*0.012,y+H*0.008,W*0.176,H*0.224); c.clip(); setSky(c,W,H,P,H*0.5); c.fillStyle=P.hill; c.fillRect(x,y+H*0.16,W*0.2,H*0.1); c.restore(); c.fillStyle="#8e3426"; c.fillRect(x+W*0.097,y,W*0.006,H*0.24); c.fillRect(x,y+H*0.115,W*0.2,H*0.006); }
+    c.fillStyle="#2f5d46"; c.fillRect(W*0.32,H*0.53,W*0.36,H*0.15); c.strokeStyle="#a37548"; c.lineWidth=W*0.008; c.strokeRect(W*0.32,H*0.53,W*0.36,H*0.15); c.fillStyle="rgba(255,255,255,.55)"; c.fillRect(W*0.36,H*0.57,W*0.18,H*0.004); c.fillRect(W*0.36,H*0.6,W*0.25,H*0.004);
+    c.fillStyle="#efe7d6"; c.font=`600 ${W*0.03}px sans-serif`; c.fillStyle="#3d3a35"; c.fillRect(W*0.08,H*0.12,W*0.12,H*0.035); c.fillStyle="#efe7d6"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("ม.4/2",W*0.14,H*0.138);
+    c.fillStyle=P.night?"#5b554c":"#c9bda6"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(0,0,0,.08)"; for(let y=H*0.74;y<H;y+=H*0.045) c.fillRect(0,y,W,H*0.003); },
+  nightroom(c,W,H,t,time){ c.fillStyle="#2a2440"; c.fillRect(0,0,W,H); c.fillStyle="#241f38"; for(let x=0;x<W;x+=W*0.1) c.fillRect(x,0,W*0.05,H*0.74);
+    const wx=W*0.42,wy=H*0.1,ww=W*0.52,wh=H*0.42; c.fillStyle="#141a33"; c.fillRect(wx,wy,ww,wh); c.save(); c.beginPath(); c.rect(wx,wy,ww,wh); c.clip(); c.fillStyle="#1d2550"; c.fillRect(wx,wy,ww,wh);
+      for(let i=0;i<9;i++){ const bx=wx+i*ww/8-W*0.02, bh=wh*(0.3+rnd(i+70)*0.5), bw=ww*0.11; c.fillStyle=i%2?"#262c55":"#2e3564"; c.fillRect(bx,wy+wh-bh,bw,bh); for(let yy=wy+wh-bh+wh*0.03;yy<wy+wh;yy+=wh*0.05) for(let xx=bx+bw*0.15;xx<bx+bw*0.85;xx+=bw*0.25){ if(rnd(xx*0.3+yy*0.7)>0.55){ c.fillStyle=`rgba(255,${200+rnd(xx)*40|0},120,${0.6+0.3*Math.sin(t*0.8+xx)})`; c.fillRect(xx,yy,bw*0.1,wh*0.018); } } } c.restore();
+    c.strokeStyle="#3d3560"; c.lineWidth=W*0.012; c.strokeRect(wx,wy,ww,wh); c.beginPath(); c.moveTo(wx+ww/2,wy); c.lineTo(wx+ww/2,wy+wh); c.moveTo(wx,wy+wh/2); c.lineTo(wx+ww,wy+wh/2); c.stroke();
+    c.fillStyle="#3a2f4f"; c.fillRect(W*0.02,H*0.12,W*0.3,H*0.62); const bk=["#8a5a44","#5f7a8c","#a78a4f","#6b4f7a","#4f7a5f","#9a6b5a"]; for(let s=0;s<4;s++){ c.fillStyle="#2a2238"; c.fillRect(W*0.02,H*(0.24+s*0.14),W*0.3,H*0.012); for(let b=0;b<9;b++){ const bh=H*(0.08+rnd(b+s*11)*0.035); c.fillStyle=bk[(b+s)%6]; c.fillRect(W*(0.035+b*0.031),H*(0.24+s*0.14)-bh,W*0.026,bh); } }
+    c.fillStyle="#1f1a2e"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="#3b2f52"; c.beginPath(); c.ellipse(W*0.55,H*0.86,W*0.42,H*0.05,0,0,7); c.fill();
+    c.save(); c.globalCompositeOperation="lighter"; const lx=W*0.8, ly=H*0.56; const g=c.createRadialGradient(lx,ly,0,lx,ly,W*0.5); g.addColorStop(0,"rgba(255,190,110,.32)"); g.addColorStop(1,"rgba(255,190,110,0)"); c.fillStyle=g; c.fillRect(0,0,W,H); c.restore();
+    c.fillStyle="#5a4632"; c.fillRect(W*0.6,H*0.62,W*0.38,H*0.018); c.fillRect(W*0.62,H*0.638,W*0.015,H*0.12); c.fillRect(W*0.95,H*0.638,W*0.015,H*0.12); c.strokeStyle="#1b1726"; c.lineWidth=W*0.008; c.beginPath(); c.moveTo(W*0.84,H*0.62); c.lineTo(W*0.8,H*0.54); c.lineTo(W*0.76,H*0.555); c.stroke(); c.fillStyle="#1b1726"; c.beginPath(); c.moveTo(W*0.74,H*0.545); c.lineTo(W*0.79,H*0.56); c.lineTo(W*0.77,H*0.585); c.closePath(); c.fill(); },
+  aerial(c,W,H,t,time){ const P=SET_PAL(time); c.fillStyle=P.night?"#2c3b2e":"#8fb27a"; c.fillRect(0,0,W,H);
+    c.fillStyle=P.road; c.fillRect(W*0.44,0,W*0.12,H); c.fillStyle="rgba(255,255,255,.7)"; for(let y=0;y<H;y+=H*0.06) c.fillRect(W*0.497,y,W*0.006,H*0.03);
+    for(let r=0;r<9;r++) for(let k=0;k<2;k++){ const x=W*(0.06+k*0.18), y=H*(0.03+r*0.11); c.fillStyle="rgba(0,0,0,.15)"; c.fillRect(x+W*0.012,y+W*0.012,W*0.13,W*0.13); const s2=W*0.13; c.fillStyle=(r+k)%3?"#5b6475":"#7a5e4c"; c.fillRect(x,y,s2,s2); c.fillStyle="rgba(255,255,255,.12)"; c.fillRect(x,y,s2,s2/2); c.fillStyle="rgba(0,0,0,.25)"; c.fillRect(x,y+s2/2-W*0.002,s2,W*0.004); }
+    c.fillStyle="#5d8fa0"; c.beginPath(); c.roundRect(W*0.6,H*0.08,W*0.34,H*0.55,W*0.05); c.fill(); c.strokeStyle="rgba(255,255,255,.25)"; c.lineWidth=W*0.004; for(let i=0;i<4;i++){ const y=H*(0.15+i*0.12)+Math.sin(t+i)*H*0.005; c.beginPath(); c.moveTo(W*0.66,y); c.lineTo(W*0.88,y); c.stroke(); }
+    for(let i=0;i<12;i++){ c.fillStyle=i%2?"#4f7a45":"#5f8c50"; c.beginPath(); c.arc(W*(0.62+rnd(i+90)*0.34),H*(0.66+rnd(i+40)*0.32),W*0.035,0,7); c.fill(); } },
+  street(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.62);
+    const cols=["#d9c7a7","#c9b48f","#e3d5bb","#bfa98a"]; for(let i=0;i<5;i++){ const x=W*(-0.04+i*0.22), w=W*0.22, h=H*(0.3+rnd(i+5)*0.06), y=H*0.66; c.fillStyle=cols[i%4]; c.fillRect(x,y-h,w,h); c.fillStyle="rgba(0,0,0,.1)"; c.fillRect(x+w-W*0.006,y-h,W*0.006,h);
+      for(let f=0;f<2;f++){ c.fillStyle=P.glass; c.fillRect(x+w*0.15,y-h+H*(0.03+f*0.1),w*0.7,H*0.06); c.fillStyle="rgba(0,0,0,.2)"; c.fillRect(x+w*0.15,y-h+H*(0.03+f*0.1)+H*0.055,w*0.7,H*0.005); }
+      c.fillStyle=["#c8452f","#2f6fa8","#d9a23a","#2e7a4d","#6b4f7a"][i]; c.fillRect(x+w*0.08,y-H*0.105,w*0.84,H*0.025); c.fillStyle="#6c6458"; c.fillRect(x+w*0.08,y-H*0.08,w*0.84,H*0.08); for(let s=0;s<8;s++){ c.fillStyle="rgba(255,255,255,.12)"; c.fillRect(x+w*0.08,y-H*0.08+s*H*0.01,w*0.84,H*0.002); } }
+    c.strokeStyle="#3a352f"; c.lineWidth=W*0.012; [0.3,0.85].forEach(x=>{ c.beginPath(); c.moveTo(W*x,H*0.7); c.lineTo(W*x,H*0.15); c.stroke(); c.lineWidth=W*0.006; c.beginPath(); c.moveTo(W*x-W*0.05,H*0.18); c.lineTo(W*x+W*0.05,H*0.18); c.stroke(); c.lineWidth=W*0.012; });
+    c.strokeStyle="rgba(30,28,25,.75)"; c.lineWidth=Math.max(1,W*0.0025); for(let k=0;k<3;k++){ c.beginPath(); c.moveTo(-W*0.1,H*(0.17+k*0.012)); c.quadraticCurveTo(W*0.15,H*(0.24+k*0.012),W*0.3,H*(0.175+k*0.012)); c.quadraticCurveTo(W*0.58,H*(0.25+k*0.012),W*0.85,H*(0.175+k*0.012)); c.quadraticCurveTo(W*1.0,H*(0.22+k*0.012),W*1.1,H*(0.2+k*0.012)); c.stroke(); }
+    c.fillStyle="#b9b0a2"; c.fillRect(0,H*0.66,W,H*0.04); c.fillStyle=P.road; c.fillRect(0,H*0.7,W,H*0.3); c.fillStyle="rgba(255,255,255,.7)"; for(let x=0;x<W;x+=W*0.14) c.fillRect(x,H*0.85,W*0.07,H*0.005);
+    if(P.night){ c.fillStyle="rgba(14,18,38,.5)"; c.fillRect(0,0,W,H); c.fillStyle="rgba(255,206,130,.5)"; for(let i=0;i<5;i++) c.fillRect(W*(-0.04+i*0.22)+W*0.22*0.15,H*0.66-H*0.3+H*0.03,W*0.22*0.7,H*0.06); } },
   sky(c,W,H,t,time){ skyGrad(c,W,H,time,H*0.75); if(time==="night") starsField(c,W,H,t,70,.6);
     for(let i=0;i<4;i++){ const x=((rnd(i)*W*1.4 + t*W*0.02*(1+i*.3))%(W*1.4))-W*.2; cloudShape(c,x,H*(0.1+rnd(i+3)*0.25),W/720*(0.8+rnd(i+5)*.6),time==="night"?.25:.9); }
     hills(c,W,H,H*0.72,time==="night"?"#2b5a3e":"#7ccf6a",H*0.03,1); hills(c,W,H,H*0.8,time==="night"?"#1f4a31":"#5bb85a",H*0.025,3); },
@@ -2046,7 +2107,7 @@ class Renderer{
     if(bg3){ c.save(); const k=1+this.punch(idx,lt)*0.5+this.beatPulse((this.starts[idx]||0)+lt)*0.5; c.translate(W/2,H/2); c.scale(k,k); c.translate(-W/2,-H/2); c.drawImage(bg3,0,0,W,H); c.restore(); }
     else { c.save(); const bsc=1+(sc-1)*0.5+0.02; c.translate(W/2+dx*0.45,H/2+dy*0.6); c.scale(bsc,bsc); c.translate(-W/2,-H/2);
     (BG[s.bg]||BG.sky)(c,W,H,lt+idx*3,s.time); c.restore(); }
-    if(this.project.look==="cinematic") this.grade(c,W,H);
+    if(this.project.look==="cinematic") this.grade(c,W,H); else if(this.project.look==="doc") this.gradeDoc(c,W,H,lt);
     c.translate(W/2+dx,H/2+dy); c.scale(sc,sc); c.translate(-W/2,-H/2);
     // elements (props behind characters, text on top)
     const order=[...s.elements].sort((a,b)=>({prop:0,character:1,text:2}[a.type]-{prop:0,character:1,text:2}[b.type]));
@@ -2114,6 +2175,11 @@ class Renderer{
     return C[key]=R; }
   // on-screen labels move clear of the caption and of each other (earlier labels keep their place)
   // cinematic look: muted, cooler background with a darker frame, so characters and cards stand out
+  /* "doc" look: muted flat illustration with a little film grain and a soft vignette (viral reference style). */
+  gradeDoc(c,W,H,lt){ c.save(); c.globalCompositeOperation="saturation"; c.globalAlpha=0.22; c.fillStyle="#808080"; c.fillRect(0,0,W,H); c.globalCompositeOperation="multiply"; c.globalAlpha=0.12; c.fillStyle="#b89a70"; c.fillRect(0,0,W,H);
+    c.globalCompositeOperation="source-over"; c.globalAlpha=1; const v=c.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.35,W/2,H*0.45,Math.hypot(W,H)*0.62); v.addColorStop(0,"rgba(20,16,12,0)"); v.addColorStop(1,"rgba(20,16,12,.38)"); c.fillStyle=v; c.fillRect(0,0,W,H);
+    if(!Renderer._grain){ const g=document.createElement("canvas"); g.width=g.height=128; const x=g.getContext("2d"), d=x.createImageData(128,128); for(let i=0;i<d.data.length;i+=4){ const n=Math.random()*255; d.data[i]=d.data[i+1]=d.data[i+2]=n; d.data[i+3]=22; } x.putImageData(d,0,0); Renderer._grain=g; }
+    const pat=c.createPattern(Renderer._grain,"repeat"); c.translate(((lt*37)|0)%128,((lt*53)|0)%128); c.fillStyle=pat; c.globalCompositeOperation="overlay"; c.fillRect(-128,-128,W+256,H+256); c.restore(); }
   grade(c,W,H){ c.save(); c.globalCompositeOperation="saturation"; c.globalAlpha=0.5; c.fillStyle="#808080"; c.fillRect(0,0,W,H);
     c.globalCompositeOperation="multiply"; c.globalAlpha=0.5; c.fillStyle="#46597a"; c.fillRect(0,0,W,H); c.globalCompositeOperation="source-over"; c.globalAlpha=1;
     const v=c.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.3,W/2,H*0.45,Math.hypot(W,H)*0.6); v.addColorStop(0,"rgba(8,10,18,0)"); v.addColorStop(1,"rgba(8,10,18,.55)"); c.fillStyle=v; c.fillRect(0,0,W,H); c.restore(); }
@@ -2648,6 +2714,7 @@ const LAYOUT_RULES=`กฎการจัดภาพ:
 - การ์ดข้อมูล (type card) คือจุดเด่นของคลิปที่ไวรัล: ตัวเลขสำคัญทุกตัวให้ขึ้นเป็นการ์ด (stat = ตัวเลข+แถบ % , timer = เวลา, compare = เทียบ A vs B พร้อม good true/false) ตัวเลขจะวิ่งนับขึ้นเอง วางไว้ y 0.15-0.45 การ์ดละ 1-2 ใบต่อฉาก
 - เผยข้อมูลทีละชิ้นตามจังหวะบทพูดด้วย "at" (เช่น การ์ดใบแรก at 0.3 ใบที่สอง at 1.5) อย่าให้ทุกอย่างโผล่พร้อมกัน
 - สลับระยะภาพ: ภาพกว้าง (ตัวละครเต็มตัว scale 0.8-1) กับภาพใกล้ (ตัวละคร scale 2.2-2.6, y 1.2-1.3 ให้เห็นครึ่งตัวบน) อย่างน้อย 1-2 ช็อตใกล้ต่อคลิป
+- ฉากวาด 2 มิติตามสถานการณ์ (แบบคลิปไวรัล): beach ชายหาด, estate หมู่บ้านบ้านเดี่ยว+ถนน, school ทางเดิน/ห้องเรียน, nightroom ห้องกลางคืนมีหน้าต่างเมือง, aerial ภาพมุมสูงแบบแผนที่ (ไม่ใส่ตัวละคร ใช้การ์ด/ลูกศร), street ถนนตึกแถวเสาไฟ; ภาพกว้างให้ตัวละคร scale 0.5-0.7 ให้เห็นฉาก ภาพใกล้ scale 1.2-1.6
 - ฉากหลัง studio (ห้องมืดมีสปอตไลต์) เหมาะกับฉากการ์ดข้อมูลและข้อคิด, warehouse (โกดัง) เหมาะกับเรื่องงาน/ร้าน/โรงงาน; พร็อพสมจริง: machine boxes truck door gauge balance
 - ให้ตัวละครแสดงจริง ไม่ยืนนิ่ง: "point" ชี้ไปที่ของหรือตัวเลขสำคัญ (หันหน้าไปทางนั้นด้วย flip), "celebrate" ตอนดีใจหรือเฉลย, "shrug" ตอนสงสัย, "nod" ตอนยืนยัน, "run" ตอนหนีหรือรีบ (ใช้ toX), บทพากย์เป็นเสียงผู้บรรยายบุคคลที่สาม ตัวละครไม่ได้พูดบทนั้น จึงไม่ต้องใช้ "talk" ถ้าอยากให้ตัวละครพูดเอง ให้ใส่คำสั้นๆ ใน "say" (ปากจะขยับเฉพาะตอนบับเบิลขึ้น)
 - ฉากหลัง (bg) เป็นฉาก 3 มิติที่มีของประกอบครบแล้ว เช่น city มีตึกและรถวิ่ง forest มีต้นไม้ ocean มีคลื่นและชายหาด room มีโซฟาและหน้าต่าง จึงไม่ต้องใส่ prop ซ้ำกับฉาก ให้ใช้ prop เฉพาะสิ่งที่เล่าเรื่อง
@@ -3440,7 +3507,7 @@ const STEP_FN={
     return "ส่งบทให้น้องพิกเซลแล้ว"; },
   async animator(r){ const scr=String(r.out.creative).split(/```json/i)[0].slice(0,6000);
     const team=await staffWork(r,"animator",[{id:"shot",prompt:`บทคลิป (สัดส่วน ${r.aspect}):\n${scr}\n\nทำ shot list ทีละฉาก: ฉากหลัง เวลา กล้อง เอฟเฟกต์ และเหตุผลสั้นๆ`},{id:"acting",prompt:`บทคลิป:\n${scr}\n\nกำหนดทีละฉาก: ตัวละคร อารมณ์ ท่าทาง พร็อพ และคำพูดในบับเบิล (ถ้ามี)`}]);
-    const house=r.out.plan?.format==="whatif"?`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): subStyle "doc" พร้อม subEn ทุกฉาก (ซับเต็มประโยค ไม่ตัดเป็นเศษคำ), look "bright" หรือ "cinematic" ตามอารมณ์เรื่อง, ตัวเลขสำคัญทุกตัวเป็นการ์ดข้อมูล, ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้, ใช้พร็อพเฉพาะที่สื่อความหมายตรงบท (ถ้าไม่แน่ใจ ใช้การ์ดตัวเลขแทน)`:`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): look "cinematic", subStyle "doc" พร้อม subEn ทุกฉาก, ฉากหลังโทนมืด (studio, warehouse, city night, room night) ตัวเลขทุกตัวเป็นการ์ดข้อมูล ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้`;
+    const house=r.out.plan?.format==="whatif"?`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): subStyle "doc" พร้อม subEn ทุกฉาก (ซับเต็มประโยค ไม่ตัดเป็นเศษคำ), look "doc" (ภาพ 2 มิติแบนสีหม่น มีเกรน แบบคลิปไวรัล) ใช้ฉากวาดตามสถานการณ์ (beach, estate, school, nightroom, aerial, street) ก่อนฉาก 3 มิติ, ตัวเลขสำคัญทุกตัวเป็นการ์ดข้อมูล, ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้, ใช้พร็อพเฉพาะที่สื่อความหมายตรงบท (ถ้าไม่แน่ใจ ใช้การ์ดตัวเลขแทน)`:`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): look "doc", subStyle "doc" พร้อม subEn ทุกฉาก, ฉากวาดตามสถานการณ์จริงของเรื่อง (beach, estate, school, nightroom, aerial, street, studio, warehouse) เลือกเวลา day/sunset/night ตามเรื่อง ตัวเลขทุกตัวเป็นการ์ดข้อมูล ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้`;
     let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${house}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}\n\nเกณฑ์คุณภาพ: ภาพทุกฉากต้องเล่าเรื่องได้แม้ปิดเสียง ตัวละครแสดงอารมณ์ตรงกับบท มีพร็อพหรือข้อความที่สื่อตัวเลข/ข้อเท็จจริงสำคัญ ฉากหลังและมุมกล้องไม่ซ้ำติดกัน มีอย่างน้อย 1 ฉากมุมกว้าง (drone หรือ orbit):\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
     r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
