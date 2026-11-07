@@ -1751,7 +1751,7 @@ class Renderer{
     const text=s.narration||"", ranges=[];
     if(this.project.emphOn!==false) (s.emph||[]).forEach(ph=>{ let k=text.indexOf(ph); while(ph&&k>=0){ ranges.push([k,k+ph.length]); k=text.indexOf(ph,k+ph.length); } });
     const segs=segmenter?[...segmenter.segment(text)].map(x=>({w:x.segment,at:x.index})):(()=>{ const out=[]; let at=0; text.split(/(\s+)/).forEach(w=>{ if(w) out.push({w,at}); at+=w.length; }); return out; })();
-    const words=[]; segs.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } const end=t.at+t.w.length; words.push({text:t.w.trim(),at:t.at,end,emph:ranges.some(([a,b])=>t.at<b&&end>a),sp:/\s$/.test(t.w)}); });
+    const words=[]; segs.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } const end=t.at+t.w.length; const tw=t.w.trim(); if(words.length&&/^[!?,.…:;)\]"'”’ๆ]+$/.test(tw)){ const L=words[words.length-1]; L.text+=tw; L.end=end; L.sp=/\s$/.test(t.w); return; } words.push({text:tw,at:t.at,end,emph:ranges.some(([a,b])=>t.at<b&&end>a),sp:/\s$/.test(t.w)}); });
     const t0=0.15, t1=Math.max(t0+0.6,s.duration-0.35), lens=words.map(w=>Math.max(1,w.text.replace(/[ัิ-ฺ็-๎]/g,"").length)+(w.sp?2:0)), tot=lens.reduce((a,b)=>a+b,0)||1; let acc=0;
     words.forEach((w,k)=>{ w.from=t0+(acc/tot)*(t1-t0); acc+=lens[k]; w.to=t0+(acc/tot)*(t1-t0); });
     // real voiceover timings (ElevenLabs character alignment, scene-local seconds, voice starts at VOICE_LEAD)
