@@ -1904,12 +1904,8 @@ class Renderer{
     c.save(); c.font=`800 ${fs}px ${this.fam}`; const w=c.measureText(el.text).width+fs*0.32; c.restore();
     const k=Math.min(1,W*0.84/w), w2=w*k, X=el.x*W, lo=w2/2+W*0.06, hi=W-w2/2-W*0.06, dx=(lo>hi?W/2:clamp(X,lo,hi))-X; return C[key]={k,dx}; }
   textRect(s,el,dy=0){ const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,f=this.textFit(s,el),fs=m*0.09*el.scale*f.k; c.font=`800 ${fs}px ${this.fam}`; const w=c.measureText(el.text).width, X=el.x*W+f.dx, Y=(el.y+dy)*H; return {x0:X-w/2-fs*0.2,x1:X+w/2+fs*0.2,y0:Y-fs*0.75,y1:Y+fs*0.75,fs}; }
-  // lip sync: who speaks (a "talk" character, one with a speech bubble, or the only character in the scene) opens the mouth per syllable of the current word
-  talkLevel(s,el,lt,at){ const idx=this.project.scenes.indexOf(s), S=this.subs[idx]; const chars=s.elements.filter(e=>e.type==="character");
-    const speaks=el.motion==="talk"||(!!el.say&&el.motion==="none")||(chars.length===1&&!!s.narration);
-    if(!speaks||reduceMotion) return 0; if(!S||!S.words?.length) return el.motion==="talk"?true:0;
-    const w=S.words.find(x=>lt>=x.from&&lt<x.to); if(!w) return 0; const p=(lt-w.from)/Math.max(0.05,w.to-w.from);
-    const syl=clamp((w.text.match(/[ะาำิีึืุูเแโใไัaeiouAEIOU]/g)||[]).length||1,1,4); return Math.abs(Math.sin(Math.PI*syl*p))*0.85+0.1; }
+  // narration is a third-person voiceover, so mouths do not follow it; a character moves its mouth only for its own speech bubble
+  talkLevel(s,el,lt,at){ if(!el.say||reduceMotion) return 0; const t=lt-(at+0.3); if(t<0||t>1.4) return 0; return Math.abs(Math.sin(t*13))*0.75+0.2; }
   bubbleRects(s){ const key="b"+this.W+"|"+fontEpoch, C=this.rc(s); if(C[key]) return C[key]; const W=this.W,H=this.H,m=Math.min(W,H),c=this.c,R=[];
     s.elements.forEach(e=>{ if(e.type==="card"){ const z=cardSize(e,m), X=e.x*W, Y=e.y*H; R.push({x0:X-z.w/2-m*0.01,x1:X+z.w/2+m*0.01,y0:Y-z.h/2-m*0.01,y1:Y+z.h/2+m*0.01}); return; } if(e.type!=="character"||!e.say) return; const X=e.x*W, Y=e.y*H, fs=34*m/720, by=Y-m*0.0024*e.scale*240; c.font=`600 ${fs}px ${this.fam}`; const bw=Math.min(c.measureText(e.say).width+fs,W*0.8); R.push({x0:X-bw/2-fs*0.4,x1:X+bw/2+fs*0.4,y0:by-fs*1.9,y1:by+fs*0.7}); });
     return C[key]=R; }
@@ -2410,7 +2406,7 @@ const LAYOUT_RULES=`กฎการจัดภาพ:
 - เผยข้อมูลทีละชิ้นตามจังหวะบทพูดด้วย "at" (เช่น การ์ดใบแรก at 0.3 ใบที่สอง at 1.5) อย่าให้ทุกอย่างโผล่พร้อมกัน
 - สลับระยะภาพ: ภาพกว้าง (ตัวละครเต็มตัว scale 0.8-1) กับภาพใกล้ (ตัวละคร scale 2.2-2.6, y 1.2-1.3 ให้เห็นครึ่งตัวบน) อย่างน้อย 1-2 ช็อตใกล้ต่อคลิป
 - ฉากหลัง studio (ห้องมืดมีสปอตไลต์) เหมาะกับฉากการ์ดข้อมูลและข้อคิด, warehouse (โกดัง) เหมาะกับเรื่องงาน/ร้าน/โรงงาน; พร็อพสมจริง: machine boxes truck door gauge balance
-- ให้ตัวละครแสดงจริง ไม่ยืนนิ่ง: "point" ชี้ไปที่ของหรือตัวเลขสำคัญ (หันหน้าไปทางนั้นด้วย flip), "celebrate" ตอนดีใจหรือเฉลย, "shrug" ตอนสงสัย, "nod" ตอนยืนยัน, "run" ตอนหนีหรือรีบ (ใช้ toX), "talk" ตัวที่กำลังพูด ตัวละครที่พูดจะขยับปากตามบทพากย์ให้อัตโนมัติ
+- ให้ตัวละครแสดงจริง ไม่ยืนนิ่ง: "point" ชี้ไปที่ของหรือตัวเลขสำคัญ (หันหน้าไปทางนั้นด้วย flip), "celebrate" ตอนดีใจหรือเฉลย, "shrug" ตอนสงสัย, "nod" ตอนยืนยัน, "run" ตอนหนีหรือรีบ (ใช้ toX), บทพากย์เป็นเสียงผู้บรรยายบุคคลที่สาม ตัวละครไม่ได้พูดบทนั้น จึงไม่ต้องใช้ "talk" ถ้าอยากให้ตัวละครพูดเอง ให้ใส่คำสั้นๆ ใน "say" (ปากจะขยับเฉพาะตอนบับเบิลขึ้น)
 - ฉากหลัง (bg) เป็นฉาก 3 มิติที่มีของประกอบครบแล้ว เช่น city มีตึกและรถวิ่ง forest มีต้นไม้ ocean มีคลื่นและชายหาด room มีโซฟาและหน้าต่าง จึงไม่ต้องใส่ prop ซ้ำกับฉาก ให้ใช้ prop เฉพาะสิ่งที่เล่าเรื่อง
 - ห้ามใช้ชื่อที่ไม่อยู่ในรายการ`;
 
