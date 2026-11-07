@@ -1,6 +1,6 @@
 // Real end-to-end run: the app's Claude calls go to real Claude through the Claude Code CLI.
 const { chromium } = require('playwright'); const fs=require('fs'); const { spawn }=require('child_process');
-const SP=process.argv[2], OUT=SP+'/real2'; fs.mkdirSync(OUT,{recursive:true});
+const SP=process.argv[2], OUT=process.env.OUT||SP+'/real2'; fs.mkdirSync(OUT,{recursive:true});
 const log=(o)=>fs.appendFileSync(OUT+'/calls.jsonl',JSON.stringify(o)+'\n');
 function llm(msgs,imgs){ imgs=imgs||[]; return new Promise((res,rej)=>{
   const first=msgs[0].content, m=first.match(/^\[บทบาทและคำสั่งงานของคุณ\]\n([\s\S]*?)\n\[จบคำสั่งงาน\]\n\n/); const sys=m?m[1]:"คุณเป็นพนักงานในออฟฟิศ";
