@@ -1,0 +1,10 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+(async()=>{ const SP=process.argv[2]; const b=await chromium.launch(); const p=await b.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+  await p.addInitScript(()=>{ window.claude={use:async n=>null}; }); await p.goto('file://'+SP+'/wrapped.html'); await p.waitForTimeout(1000);
+  const proj=JSON.parse(fs.readFileSync(SP+'/hfvoice/voice/project_voiced.json','utf8'));
+  const r=await p.evaluate((proj)=>{ const P=normalizeProject(proj); const rr=new Renderer(document.createElement('canvas')); rr.load(P); const out={narr:[],bubble:[]};
+    P.scenes.forEach(s=>s.elements.filter(e=>e.type==="character").forEach(e=>{ for(let t=0.2;t<s.duration;t+=0.2) out.narr.push(rr.talkLevel(s,e,t,0)); }));
+    const S={elements:[]}, e={type:"character",say:"ว้าว!"}; for(let t=0;t<3;t+=0.2) out.bubble.push(+rr.talkLevel(S,e,t,0).toFixed(2));
+    return {narrMax:Math.max(...out.narr),bubble:out.bubble,aligned:P.scenes.map(s=>!!s.align)}; },proj);
+  const checks=[["mouths stay still during narration",r.narrMax===0],["speech bubble moves the mouth briefly",r.bubble.some(x=>x>0.3)&&r.bubble[r.bubble.length-1]===0],["voice timings still drive subtitles",r.aligned.every(Boolean)],["no page errors",errs.length===0]];
+  checks.forEach(([n,ok])=>console.log((ok?"PASS ":"FAIL ")+n)); await b.close(); })();
