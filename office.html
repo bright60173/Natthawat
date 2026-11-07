@@ -1170,7 +1170,8 @@ function normalizeProject(p){
       else if(type==="prop"){ o.name=pick(e.name,CAT.props,"star"); o.glow=!!e.glow; }
       else if(type==="emoji"){ o.char=str(e.char||e.text,8)||"✨"; }
       else if(type==="card"){ const side=v=>({label:str(v?.label,22),value:str(v?.value,12),unit:str(v?.unit,14),note:str(v?.note,20),good:v?.good===false?false:v?.good===true?true:null});
-        o.kind=pick(e.kind,["stat","timer","compare"],"stat"); o.label=str(e.label,28); o.labelEn=str(e.labelEn,30).toUpperCase(); o.value=str(e.value,16)||"0"; o.unit=str(e.unit,14);
+        o.kind=pick(e.kind,["stat","timer","compare","icons","bars","lesson"],"stat"); o.src=str(e.src,48); o.strike=str(e.strike,28); o.total=Math.round(num(e.total,2,20,10)); o.icon=pick(e.icon,["house","person","car","building","tree"],"person");
+        o.rows=(Array.isArray(e.rows)?e.rows:[]).slice(0,3).map(r=>({label:str(r?.label,16),value:str(r?.value,12),pct:num(r?.pct,0,100,50),good:r?.good===false?false:r?.good===true?true:null})); o.label=str(e.label,28); o.labelEn=o.kind==="lesson"?str(e.labelEn,60):str(e.labelEn,30).toUpperCase(); if(o.kind==="lesson") o.label=str(e.label,30); o.value=str(e.value,16)||(o.kind==="lesson"||o.kind==="bars"?"":"0"); o.unit=str(e.unit,14);
         o.pct=e.pct==null||e.pct===""?null:num(e.pct,0,100,0); o.note=str(e.note,24); o.good=e.good===false?false:e.good===true?true:null; if(o.kind==="compare"){ o.left=side(e.left); o.right=side(e.right); } }
       else { o.text=str(e.text,30)||"!"; o.color=/^#[0-9a-f]{3,8}$/i.test(e.color||"")?e.color:"#ffffff"; }
       return o;
@@ -1182,7 +1183,7 @@ function normalizeProject(p){
       bg:pick(s.bg,CAT.backgrounds,"sky"), time:pick(s.time,CAT.times,"day"),
       camera:pick(s.camera,CAT.cameras,"static"), effect:pick(s.effect,CAT.effects,"none"),
       transition:pick(s.transition,CAT.transitions,"fade"), sfx:pick(s.sfx,CAT.sfx,"none"),
-      caption:str(s.caption,40), narration, emph, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"),
+      caption:str(s.caption,40), narration, emph, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8),
       duration:al?clamp(minDur,1.2,20):clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15),
       voice:{ emotion:str(s.voice?.emotion,20), rate:num(s.voice?.rate,0.6,1.6,1), pitch:num(s.voice?.pitch,0.5,1.8,1) },
       elements:els,
@@ -1486,7 +1487,16 @@ function limb(c,pts,w,col){ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w
 function fillE(c,x,y,rx,ry,col,rot=0){ c.beginPath(); c.ellipse(x,y,Math.abs(rx),Math.abs(ry),rot,0,Math.PI*2); c.fillStyle=col; c.fill(); }
 /* Info cards (motion-graphics style): stat with optional progress bar, stopwatch timer, and A-vs-B comparison.
    Numbers count up after the card enters. Drawn centred at (0,0); size follows base (px for scale 1). */
-function cardSize(el,base){ const k=base*el.scale; if(el.kind==="compare") return {w:k*0.88,h:k*0.36}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)}; }
+function cardSize(el,base){ const k=base*el.scale, sr=el.src?k*0.04:0; if(el.kind==="compare") return {w:k*0.88,h:k*0.36+sr};
+  if(el.kind==="icons") return {w:k*0.7,h:k*(0.29+(el.total>10?0.07:0))+sr}; if(el.kind==="bars") return {w:k*0.72,h:k*(0.08+0.085*Math.max(1,el.rows?.length||1))+sr};
+  if(el.kind==="lesson") return {w:k*0.86,h:k*(el.strike?0.36:0.29)}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)+sr}; }
+/* Small flat pictograms for icon-array cards ("8 in 10 houses"). Centred at (x,y), size s. */
+function pictogram(c,kind,x,y,s,col){ c.fillStyle=col; c.beginPath();
+  if(kind==="house"){ c.moveTo(x-s*0.42,y-s*0.02); c.lineTo(x,y-s*0.45); c.lineTo(x+s*0.42,y-s*0.02); c.lineTo(x+s*0.32,y-s*0.02); c.lineTo(x+s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y-s*0.02); c.closePath(); c.fill(); c.fillStyle="rgba(255,255,255,.75)"; c.fillRect(x-s*0.08,y+s*0.14,s*0.16,s*0.26); return; }
+  if(kind==="building"){ c.roundRect(x-s*0.3,y-s*0.45,s*0.6,s*0.85,s*0.04); c.fill(); c.fillStyle="rgba(255,255,255,.7)"; for(let r=0;r<3;r++) for(let q=0;q<2;q++) c.fillRect(x-s*0.2+q*s*0.24,y-s*0.34+r*s*0.24,s*0.14,s*0.13); return; }
+  if(kind==="car"){ c.roundRect(x-s*0.45,y-s*0.08,s*0.9,s*0.3,s*0.08); c.fill(); c.beginPath(); c.roundRect(x-s*0.26,y-s*0.3,s*0.5,s*0.26,s*0.1); c.fill(); c.fillStyle="#3a332b"; c.beginPath(); c.arc(x-s*0.26,y+s*0.24,s*0.11,0,7); c.arc(x+s*0.26,y+s*0.24,s*0.11,0,7); c.fill(); return; }
+  if(kind==="tree"){ c.arc(x,y-s*0.15,s*0.3,0,7); c.fill(); c.fillRect(x-s*0.06,y,s*0.12,s*0.4); return; }
+  c.arc(x,y-s*0.28,s*0.15,0,7); c.fill(); c.beginPath(); c.roundRect(x-s*0.2,y-s*0.08,s*0.4,s*0.48,[s*0.18,s*0.18,s*0.04,s*0.04]); c.fill(); }
 function countUp(v,q){ v=String(v||""); if(q>=1) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
   const m=v.match(/\d[\d,]*(\.\d+)?/); if(!m) return v; const n=parseFloat(m[0].replace(/,/g,"")), dec=(m[1]||"").length?m[1].length-1:0, cur=n*q;
   let s=cur.toFixed(dec); if(m[0].includes(",")) s=Number(s).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}); return v.slice(0,m.index)+s+v.slice(m.index+m[0].length); }
@@ -1501,7 +1511,22 @@ function drawInfoCard(c,el,base,since,fam){ const {w,h}=cardSize(el,base), u=w/1
       c.font=`600 ${u*4.4}px ${fam}`; c.fillStyle=ink; c.fillText(d.unit,x0+cw/2,-h/2+u*26.5,cw*0.9);
       if(d.note){ c.font=`600 ${u*3.6}px ${fam}`; const tw=c.measureText(d.note).width+u*5.5; pill(x0+cw/2-tw/2,-h/2+u*32.5,(d.good===false?"✕ ":d.good===true?"✓ ":"")+d.note,d.good,u*3.6); } });
     c.fillStyle="#1f1c18"; c.beginPath(); c.arc(0,0,gap*0.62,0,7); c.fill(); c.fillStyle="#f5f0e6"; c.font=`800 ${gap*0.5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("VS",0,u*0.4); return; }
-  cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; let tx=x0;
+  const srcLine=()=>{ if(!el.src) return; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=soft; c.font=`500 ${u*2.9}px ${fam}`; c.fillText(el.src,-w/2+u*6,h/2-u*2.6,w-u*12); };
+  if(el.kind==="lesson"){ const a=easeOut(clamp(since/0.5,0,1)); cardPanel(c,-w/2,-h/2,w,h,u,"#2f5fa8"); c.fillStyle="#c8452f"; c.beginPath(); c.arc(0,-h/2,u*4.2,0,7); c.fill(); c.fillStyle="#fff"; c.font=`800 ${u*5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("!",0,-h/2+u*0.3);
+    let y=-h/2+u*12; if(el.strike){ c.font=`600 ${u*5}px ${fam}`; c.fillStyle=ink; c.fillText(el.strike,0,y,w*0.88); const sw=Math.min(c.measureText(el.strike).width,w*0.88)*clamp((since-0.35)/0.4,0,1); c.strokeStyle="#c8452f"; c.lineWidth=u*0.9; c.beginPath(); c.moveTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2,y+u*0.4); c.lineTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2+sw,y+u*0.4); c.stroke(); y+=u*11; }
+    const big=el.label||el.value; c.globalAlpha=clamp((since-(el.strike?0.7:0.1))/0.35,0,1); c.fillStyle="#2f5fa8"; c.font=`800 ${u*8.6}px ${fam}`; const ln=wrap(c,big,w*0.88).slice(0,2); ln.forEach((l,i)=>c.fillText(l,0,y+i*u*10,w*0.9)); y+=ln.length*u*10-u*1;
+    if(el.labelEn){ c.fillStyle="#5f5648"; c.font=`500 ${u*3.4}px ${fam}`; c.fillText(el.labelEn,0,y+u*2.5,w*0.9); } c.globalAlpha=1; return; }
+  if(el.kind==="icons"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(el.label,x0,-h/2+u*8.5,w-u*12);
+    const n=Math.round(clamp(parseFloat(String(el.value).replace(/,/g,""))||0,0,el.total)), per=Math.min(10,el.total), rows=Math.ceil(el.total/per), cell=(w-u*12)/per, sz=cell*0.78, hit=el.good===true?"#2e7a4d":"#c8452f";
+    for(let i=0;i<el.total;i++){ const r=Math.floor(i/per), k=i%per, on=i<n, pop=easeBack(clamp((since-0.15-i*0.05)/0.3,0,1)); if(pop<=0) continue; c.save(); c.translate(x0+cell*(k+0.5),-h/2+u*17+r*cell*1.05); c.scale(pop,pop); pictogram(c,el.icon,0,0,sz,on?hit:"#b9ae9c"); c.restore(); }
+    const vy=-h/2+u*17+(rows-1)*cell*1.05+cell*0.5+u*10; c.fillStyle=hit; c.font=`800 ${u*9}px ${fam}`; c.fillText(`${countUp(String(n),q)} ใน ${el.total}${el.unit?" "+el.unit:""}`,x0,vy,w-u*12); srcLine(); return; }
+  if(el.kind==="bars"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6, rw=w-u*12; let y=-h/2+u*(el.label?9:5); c.textBaseline="alphabetic";
+    if(el.label){ c.textAlign="left"; c.fillStyle=soft; c.font=`600 ${u*3.6}px ${fam}`; c.fillText(el.label,x0,y,rw); y+=u*3; }
+    (el.rows||[]).forEach((r,i)=>{ const col=r.good===false?"#c8452f":r.good===true?"#2e7a4d":"#2f5fa8", cy=y+u*5.5+i*u*8.5, bq=easeOut(clamp((since-0.2-i*0.15)/0.8,0,1));
+      c.textAlign="left"; c.textBaseline="middle"; c.fillStyle=col; c.font=`700 ${u*4.2}px ${fam}`; c.fillText(r.label,x0,cy,rw*0.24);
+      const bx=x0+rw*0.26, bw=rw*0.5; c.fillStyle="#e6dccb"; c.beginPath(); c.roundRect(bx,cy-u*2.2,bw,u*4.4,u*1.2); c.fill(); c.fillStyle=col; c.beginPath(); c.roundRect(bx,cy-u*2.2,Math.max(u*2,bw*r.pct/100*bq),u*4.4,u*1.2); c.fill();
+      c.textAlign="right"; c.font=`800 ${u*5.6}px ${fam}`; c.fillText(countUp(r.value,bq),x0+rw,cy+u*0.3,rw*0.22); }); srcLine(); return; }
+  cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6, hb=h/2-(el.src?u*6.25:0); let tx=x0;
   if(el.kind==="timer"){ const r=u*7.5, cx=x0+r, cy=-h/2+h*0.5; c.strokeStyle=ink; c.lineWidth=u*1.3; c.beginPath(); c.arc(cx,cy+u,r,0,7); c.stroke(); c.fillStyle=ink; c.fillRect(cx-u*1.6,cy-r-u*0.9,u*3.2,u*1.6);
     const a=since*5; c.strokeStyle="#c8452f"; c.lineWidth=u*1.1; c.beginPath(); c.moveTo(cx,cy+u); c.lineTo(cx+Math.sin(a)*r*0.75,cy+u-Math.cos(a)*r*0.75); c.stroke(); tx=x0+r*2+u*5; }
   c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*5.4}px ${fam}`; c.fillText(el.label,tx,-h/2+u*9.5,w-(tx-x0)-u*8);
@@ -1509,8 +1534,9 @@ function drawInfoCard(c,el,base,since,fam){ const {w,h}=cardSize(el,base), u=w/1
   c.fillStyle=ink; c.font=`800 ${u*16}px ${fam}`; const val=countUp(el.value,q); c.fillText(val,tx,-h/2+u*(el.labelEn?30:28),w-(tx-x0)-u*22);
   if(el.unit){ const vw=Math.min(c.measureText(val).width,w-(tx-x0)-u*22); c.font=`600 ${u*5.2}px ${fam}`; c.fillText(el.unit,tx+vw+u*2,-h/2+u*(el.labelEn?30:28)); }
   if(el.pct!=null){ const pq=el.pct*q; c.textAlign="right"; c.fillStyle="#2e7a4d"; c.font=`800 ${u*7}px ${fam}`; c.fillText(Math.round(pq)+"%",w/2-u*5,-h/2+u*28);
-    const by=h/2-u*7, bx=tx, bw=w/2-u*5-bx; c.fillStyle="#e6dccb"; c.beginPath(); c.roundRect(bx,by,bw,u*3.2,u*1.6); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.roundRect(bx,by,Math.max(u*3.2,bw*pq/100),u*3.2,u*1.6); c.fill(); }
-  else if(el.note) pill(tx,h/2-u*6.5,(el.good===false?"✕ ":el.good===true?"✓ ":"")+el.note,el.good,u*3.6);
+    const by=hb-u*7, bx=tx, bw=w/2-u*5-bx; c.fillStyle="#e6dccb"; c.beginPath(); c.roundRect(bx,by,bw,u*3.2,u*1.6); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.roundRect(bx,by,Math.max(u*3.2,bw*pq/100),u*3.2,u*1.6); c.fill(); }
+  else if(el.note) pill(tx,hb-u*6.5,(el.good===false?"✕ ":el.good===true?"✓ ":"")+el.note,el.good,u*3.6);
+  srcLine();
 }
 /* "Slim" character style (realistic proportions, small head, flat colours, simple face) for documentary-style clips.
    Same coordinate system as the cute style: feet at (0,0), about 290 units tall. Robot/cat/alien keep the cute drawing. */
@@ -2111,7 +2137,12 @@ class Renderer{
     c.translate(W/2,y0); c.scale(s,s); c.rotate(-0.03);
     lines.forEach((ln,i)=>{ const y=i*fs*1.15; c.lineWidth=fs*0.22; c.strokeStyle=OL; c.lineJoin="round"; c.strokeText(ln,0,y); c.fillStyle=i%2?"#ffd23f":"#ffffff"; c.fillText(ln,0,y); });
     c.restore(); }
-  drawSubs(c,i,lt){ const S=this.subs[i]; if(!S||!S.words.length) return; const st=this.project.subStyle;
+  /* Documentary chips: place/time tag top-left, live clock chip top-right (as in the viral reference clips). */
+  drawChips(c,s,lt){ if(!s||(!s.tag&&!s.clock)) return; const W=this.W,H=this.H,m=Math.min(W,H), fs=m*0.03, y=H*(W>H?0.07:0.075), a=reduceMotion||this._still?1:clamp(lt/0.3,0,1); c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.font=`600 ${fs}px ${this.fam}`;
+    if(s.tag){ const tw=c.measureText(s.tag).width+fs*1.4, x=W*0.06; c.fillStyle="rgba(245,240,230,.94)"; c.beginPath(); c.roundRect(x,y-fs*0.85,tw,fs*1.7,fs*0.85); c.fill(); c.strokeStyle="#1f1c18"; c.lineWidth=Math.max(1,fs*0.08); c.stroke(); c.fillStyle="#1f1c18"; c.textAlign="left"; c.fillText(s.tag,x+fs*0.7,y+fs*0.05); }
+    if(s.clock){ const tw=c.measureText(s.clock).width+fs*2.4, x=W*0.94-tw; c.fillStyle="rgba(20,18,16,.78)"; c.beginPath(); c.roundRect(x,y-fs*0.85,tw,fs*1.7,fs*0.85); c.fill(); c.fillStyle="#e2483d"; c.globalAlpha=a*(0.55+0.45*Math.abs(Math.sin(lt*3))); c.beginPath(); c.arc(x+fs*0.85,y,fs*0.28,0,7); c.fill(); c.globalAlpha=a; c.fillStyle="#fff"; c.textAlign="left"; c.fillText(s.clock,x+fs*1.45,y+fs*0.05); }
+    c.restore(); }
+  drawSubs(c,i,lt){ const S=this.subs[i]; if(S?.scene) this.drawChips(c,S.scene,lt); if(!S||!S.words.length) return; const st=this.project.subStyle;
     if(st==="doc") this.subDoc(c,S,lt); else if(st==="classic") this.subClassic(c,S,lt); else if(st==="karaoke") this.subKaraoke(c,S,lt); else if(st==="bounce") this.subBounce(c,S,lt); else this.subPop(c,S,lt,i); }
   outlined(c,text,x,y,f,fill,shadow=true){ c.lineJoin="round"; if(shadow){ c.fillStyle="rgba(10,6,20,.45)"; c.fillText(text,x+f*0.05,y+f*0.09); } c.lineWidth=f*0.2; c.strokeStyle="#1b1230"; c.strokeText(text,x,y); c.fillStyle=fill; c.fillText(text,x,y); }
   subPop(c,S,lt,i){
@@ -2148,8 +2179,9 @@ class Renderer{
   subDoc(c,S,lt){
     const W=this.W,m=Math.min(W,this.H), cfg=this.pageCfg("doc"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, en=S.scene?.subEn?this.enLines(S.scene.subEn):[];
     const th=p.lines.length*lh, eh=en.length?en.length*fs*0.62+fs*0.9:0, a=reduceMotion||this._still?1:clamp((lt-p.from)/0.18,0,1), y0=this.bandY(S)-(th+eh)/2+(1-easeOut(a))*fs*0.3;
-    c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.textAlign="left";
-    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+li*lh+lh/2; ln.items.forEach(it=>{ const f=it.w.emph?fs*1.08:fs; c.font=`700 ${f}px ${this.fam}`; c.fillStyle="rgba(0,0,0,.55)"; c.fillText(it.w.text,x+fs*0.04,y+fs*0.07); c.fillStyle=it.w.emph?"#f5c542":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
+    c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.textAlign="left"; const punch=!!S.scene?.punch;
+    if(punch){ const bw=Math.max(...p.lines.map(l=>l.w))+fs*0.9; c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(W/2-bw/2,y0-fs*0.12,bw,th+fs*0.24,fs*0.16); c.fill(); }
+    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+li*lh+lh/2; ln.items.forEach(it=>{ const f=it.w.emph&&!punch?fs*1.08:fs; if(punch){ c.font=`700 ${f}px ${this.fam}`; c.fillStyle="#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; return; } c.font=`700 ${f}px ${this.fam}`; c.fillStyle="rgba(0,0,0,.55)"; c.fillText(it.w.text,x+fs*0.04,y+fs*0.07); c.fillStyle=it.w.emph?"#f5c542":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
     if(en.length){ const efs=fs*0.46; c.font=`600 ${efs}px ${this.fam}`; const ew=Math.max(...en.map(l=>c.measureText(l).width))+efs*2, ey=y0+th+fs*0.3; c.fillStyle="rgba(18,20,26,.62)"; c.beginPath(); c.roundRect(W/2-ew/2,ey,ew,en.length*fs*0.62+efs*1.2,efs*0.5); c.fill();
       c.fillStyle="#f2f2f2"; c.textAlign="center"; en.forEach((l,k)=>c.fillText(l,W/2,ey+efs*0.95+k*fs*0.62)); }
     c.restore(); }
@@ -2584,6 +2616,9 @@ const SCHEMA=`{
     "subEn": "คำแปลภาษาอังกฤษสั้นๆ ของบทพูดฉากนี้ (ใช้กับ subStyle doc)",
     "emph": ["คำสำคัญ 1-2 คำที่ปรากฏในบทพูดตรงตัว เช่น 1,670 กม./ชม."],
     "subPos": "${CAT.subPos.join("|")}  (ตำแหน่งซับ auto = หลบตัวละครให้อัตโนมัติ)",
+    "punch": false,
+    "tag": "ป้ายสถานที่/เวลามุมซ้ายบน เช่น หาดบางแสน · ชลบุรี (ใส่เฉพาะฉากเปิดเรื่องหรือเปลี่ยนสถานที่)",
+    "clock": "นาฬิกามุมขวาบน เช่น 10:39 หรือ 00:10 (ใส่เมื่อเวลากดดัน นับถอยหลัง)",
     "duration": 3.5,
     "elements": [
       {"type":"character","look":"${CAT.characters.join("|")}","emotion":"${CAT.emotions.join("|")}","say":"คำพูดในบอลลูนสั้นๆ (ไม่ใส่ก็ได้)","x":0.5,"y":0.8,"scale":1,"enter":"${CAT.enters.join("|")}","at":0,"motion":"${CAT.motions.join("|")}","toX":0.8,"toY":0.8,"flip":false},
@@ -2592,7 +2627,10 @@ const SCHEMA=`{
       {"type":"emoji","char":"😱","x":0.8,"y":0.3,"scale":1,"enter":"pop","at":0.8,"motion":"pulse"},
       {"type":"card","kind":"stat","label":"ค่าซ่อมที่ได้","labelEn":"WHAT YOU GET PAID","value":"฿15,000","unit":"","pct":70,"note":"","good":null,"x":0.5,"y":0.3,"scale":1,"enter":"bottom","at":0.6},
       {"type":"card","kind":"timer","label":"ใช้เวลา","labelEn":"TIME TAKEN","value":"02:00","x":0.5,"y":0.18,"enter":"pop"},
-      {"type":"card","kind":"compare","x":0.5,"y":0.2,"enter":"top","left":{"label":"ช่าง 3 คน","value":"5","unit":"ชั่วโมง","note":"ยังไม่ติด","good":false},"right":{"label":"คุณ","value":"2","unit":"นาที","note":"ซ่อมได้","good":true}}
+      {"type":"card","kind":"compare","x":0.5,"y":0.2,"enter":"top","left":{"label":"ช่าง 3 คน","value":"5","unit":"ชั่วโมง","note":"ยังไม่ติด","good":false},"right":{"label":"คุณ","value":"2","unit":"นาที","note":"ซ่อมได้","good":true}},
+      {"type":"card","kind":"icons","label":"สึนามิ 2547 · บ้านไม้","icon":"house|person|car|building|tree","value":"8","total":10,"unit":"เสียหาย","good":false,"src":"ที่มา: Suppasri et al. 2011","x":0.5,"y":0.25,"enter":"pop"},
+      {"type":"card","kind":"bars","label":"ความเร็ว","rows":[{"label":"คุณวิ่ง","value":"~4 ม./วิ","pct":45,"good":null},{"label":"น้ำสึนามิ","value":"8 ม./วิ","pct":95,"good":false}],"src":"วัดจากสึนามิญี่ปุ่น 2554","x":0.5,"y":0.16,"enter":"top"},
+      {"type":"card","kind":"lesson","strike":"อย่าดูแค่ว่า ท่วมไหม","label":"ดูว่าน้ำจะไปไหน","labelEn":"Don't just ask if it floods. Ask where the water goes.","x":0.5,"y":0.42,"enter":"pop"}
     ]
   }]
 }`;
@@ -3276,8 +3314,21 @@ function mergeEdits(base,j,aspect){ const p=clone(base); if(!j||typeof j!=="obje
   const list=Array.isArray(j.scenes)?j.scenes:[], full=list.length===p.scenes.length&&list.every(x=>x&&Array.isArray(x.elements)&&x.bg);
   list.forEach((e,i)=>{ const k=full?i:(Number(e?.scene)||0)-1, x=p.scenes[k]; if(!x||!e) return; const {scene,...rest}=e; Object.assign(x,rest); });
   return normalizeProject({...p,aspect}); }
-const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล`;
-const WHATIF_FORMAT=`แนว "What if / ความรู้สนุก": hook คำถามช็อก เล่าเหตุและผลทีละขั้น มีตัวเลขน่าทึ่งที่ถูกต้อง จบด้วยคำถามชวนคอมเมนต์`;
+/* Lessons from the owner's viral reference clips (promptkub.ai style, studied Nov 2026). Applied to every format. */
+const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้าของส่งมา (ใช้ทุกคลิป):
+- เปิดด้วย "ถ้า..." พูดกับคนดูเป็น "คุณ" วางคนดูไว้ในสถานการณ์จริง มีสถานที่จริงและเวลาจริง (ใส่ tag เช่น "หาดบางแสน · ชลบุรี" และ clock เมื่อเวลากดดัน)
+- ทุกตัวเลขต้องมีการ์ด และใส่ src ที่มาของข้อมูลจริงทุกครั้งที่อ้างงานวิจัยหรือสถิติ ห้ามแต่งตัวเลข
+- เลือกการ์ดให้ตรงข้อมูล: สัดส่วน "X ใน 10" ใช้ kind icons, เทียบความเร็ว/ขนาด 2-3 อย่างใช้ kind bars, A ปะทะ B ใช้ compare, เวลาใช้ timer
+- ประโยคหักมุม/คำเตือนสำคัญ 2-4 ครั้งต่อคลิป ให้ตั้ง punch: true (ซับขึ้นในกล่องแดง) ประโยคอื่นใช้ emph เน้นคำสีเหลือง
+- ซับไทยสั้น 1 บรรทัดต่อช็อต (ไม่เกินราว 18 ตัวอักษร) ตัดภาพทุกประโยค
+- ฉากเดียวกันใช้ซ้ำได้แต่เปลี่ยนมุม: มุมกว้างตั้งเรื่อง แล้วตัดเข้าใกล้ของสำคัญ (ถังแก๊ส ป้าย ตัวเลข) หนึ่งจุดเด่นต่อช็อต
+- ปมคือ "สิ่งที่คนทั่วไปเชื่อ" แล้วหักด้วยข้อเท็จจริง เช่น วิ่งหนีน้ำ ผิด วิ่งหาบันได ถูก
+- ฉากสุดท้ายใช้การ์ด kind lesson: strike = ความเชื่อเดิมที่ขีดฆ่า, label = หลักคิดใหม่สั้นจำง่าย, labelEn = คำแปล
+- ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
+const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล
+${VIRAL_RULES}`;
+const WHATIF_FORMAT=`แนว "What if / ความรู้สนุก": hook คำถามช็อก เล่าเหตุและผลทีละขั้น มีตัวเลขน่าทึ่งที่ถูกต้อง จบด้วยคำถามชวนคอมเมนต์
+${VIRAL_RULES}`;
 const fmtGuide=r=>r.out?.plan?.format==="whatif"?WHATIF_FORMAT:STORY_FORMAT;
 const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุดเลื่อนจริง 2) มีข้อเท็จจริงหรือตัวเลขน่าทึ่งที่ถูกต้องอย่างน้อย 1 จุด 3) เรื่องไหลเป็นเหตุและผล มีจุดหักมุม 4) ประโยคสั้น พูดง่าย ไม่ซ้ำคำ 5) ทุกฉากมีภาพที่ชัดและทำเป็นอนิเมชันได้ 6) ตอนจบชวนคอมเมนต์ 7) ยาวรวม 35-50 วินาที 6-8 ฉาก บทพูดฉากแรกไม่เกิน 30 ตัวอักษร (ความยาวฉากคำนวณจากบทพูด)`;
 /* Director's pass: rule-based polish after editing, so every clip meets the house style even when a model slips. */
