@@ -590,6 +590,11 @@ h2,h3,h4{letter-spacing:0}
             <small>ใช้ฟังตอนพรีวิวเท่านั้น ฝังลงไฟล์วิดีโอไม่ได้ ถ้าไม่ได้ยิน: เปิดเสียงเครื่องและปิดโหมดเงียบ</small>
           </div>
           <div class="opt">
+            <label>เสียงพากย์ ElevenLabs</label>
+            <button class="btn primary" id="elGen" type="button">สร้างเสียงพากย์</button>
+            <small id="elInfo"></small>
+          </div>
+          <div class="opt">
             <label for="voiceFile">เสียงพากย์จริงของคุณ</label>
             <input type="file" id="voiceFile" accept="audio/*">
             <small id="voiceInfo">อัดเสียงอ่านตามซับด้วยมือถือ แล้วอัปโหลดตรงนี้ ระบบจะใส่ลงวิดีโอให้</small>
@@ -705,6 +710,20 @@ h2,h3,h4{letter-spacing:0}
     <option value="default" selected>ปกติ (สมดุล แนะนำ)</option>
     <option value="complex">ละเอียด (งานดีขึ้น รอนานขึ้น)</option>
   </select>
+  <h3 style="margin:16px 0 0;font-family:var(--display);font-size:16px">เสียงพากย์ ElevenLabs</h3>
+  <label for="elKey">ElevenLabs API key</label>
+  <input id="elKey" type="password" placeholder="sk_..." autocomplete="off">
+  <p>สร้างได้ที่ elevenlabs.io (รูปโปรไฟล์ › API Keys) คีย์จะเก็บไว้ในเครื่องนี้เท่านั้น และส่งตรงไปที่ ElevenLabs</p>
+  <label for="elVoice">เสียงผู้บรรยาย</label>
+  <select id="elVoice">
+    <option value="TX3LPaxmHKxFdv7VOQHJ">1 Liam · ชาย สายครีเอเตอร์</option>
+    <option value="JBFqnCBsd6RMkjVDRZzb">2 George · ชาย นักเล่าเรื่อง</option>
+    <option value="nPczCjzI2devNBz1zQrb">3 Brian · ชาย เสียงทุ้ม</option>
+    <option value="cgSgspJ2msm6clMCkdW9">4 Jessica · หญิง สดใส</option>
+    <option value="Xb7hH8MSUJpSbSDYk0k2">5 Alice · หญิง แนวครู</option>
+    <option value="onwK4e9ZLuTAKqWW03F9">6 Daniel · ชาย แนวผู้ประกาศ</option>
+  </select>
+  <label style="display:flex;gap:8px;align-items:center;font-weight:normal"><input type="checkbox" id="elAuto" style="width:auto"> สร้างเสียงพากย์ให้อัตโนมัติเมื่อทีมทำคลิปเสร็จ</label>
   <label for="boss">ชื่อเรียกคุณ</label>
   <input id="boss" placeholder="เช่น บอสณัฐวัฒน์">
   <div class="drow">
@@ -2028,7 +2047,7 @@ class AudioEngine{
     if(project.music!=="none") this.scheduleMusic(project.music, fromT, total);
     let st=0; if(!noSfx) project.scenes.forEach(s=>{ if(s.sfx!=="none" && st>=fromT-0.01) this.sfx(s.sfx,this.t0+st); st+=s.duration; });
     accents.forEach(a=>{ if(a>=fromT) this.osc("sine",900,this.t0+a,0.09,0.12,this.master,{glideTo:1500}); });
-    if(voice){ const src=ac.createBufferSource(); src.buffer=voice; const g=ac.createGain(); g.gain.value=1.0; src.connect(g).connect(this.master); if(fromT<voice.duration) src.start(this.t0+fromT, fromT); this.nodes.push(src); }
+    if(voice){ const src=ac.createBufferSource(); src.buffer=voice; const g=ac.createGain(); g.gain.value=voice._el?1.5:1.0; src.connect(g).connect(this.master); if(fromT<voice.duration) src.start(this.t0+fromT, fromT); this.nodes.push(src); }
     return this.dest?this.dest.stream:null;
   }
   now(){ return this.ac?this.ac.currentTime-this.t0:0; }
@@ -2094,6 +2113,7 @@ function loadProject(p, {switchTab=false}={}){
   $("projTitle").textContent=project.title; $("projExample").hidden=!project.example;
   $("musicSel").value=project.music; $("aspectStudio").value=project.aspect; $("bgMode").value=project.bg3d===false?"2d":"3d"; $("lookSel").value=project.look||"bright"; updateBgInfo();
   renderSceneList(); drawAt(0); setTimeout(()=>{ if(project) bg3dPrewarm(project,R.W,R.H); },60);
+  if(voiceBuf?._el) voiceBuf=null; if(project.scenes.some(s=>s.align)) genVoice({fetchOk:false,quiet:true}); updateElInfo();
   if(project.font&&project.font!=="Kanit"){ const f=project.font; ensureFont(f).then(()=>{ if(project?.font===f) onFontsChanged(); }); }
   if(switchTab) showTab("studio");
   return true;
@@ -2155,7 +2175,7 @@ function beginPreviewScene(i){ const s=project.scenes[i]; PV.scene=i; PV.done=fa
 function play(){
   if(!project) return; if(playT>=R.total-0.05) playT=0; playing=true; $("playBtn").textContent="⏸ หยุด";
   const paced=previewVoiceOn();
-  AU.start(project, playT, {voice:voiceBuf, accents:paced?[]:R.emphTimes(), noSfx:paced, length:paced?R.total*2+20:null, musicVol:paced?0.3:0.55});
+  AU.start(project, playT, {voice:voiceBuf, accents:paced?[]:R.emphTimes(), noSfx:paced, length:paced?R.total*2+20:null, musicVol:paced?0.3:voiceBuf?0.22:0.55});
   PV.held=0; PV.scene=-1; PV.done=true;
   if(paced&&playT<R.endStart){ const i0=R.sceneAt(playT); if(playT-R.starts[i0]<0.6) beginPreviewScene(i0); else { PV.scene=i0; PV.done=true; } }
   lastSpokenScene=PV.scene;
@@ -2186,6 +2206,32 @@ $("voicePick").onchange=e=>{ store.set("voiceName",e.target.value); speakText("�
 { const rr=$("ttsRate"), lbl=$("ttsRateLbl"); const show=()=>lbl.textContent=`(${Math.round(ttsRate()*100)}%)`; rr.value=ttsRate(); show(); rr.oninput=()=>{ store.set("ttsRate",Number(rr.value)); show(); }; rr.onchange=()=>speakText("ทดสอบความเร็วเสียงพากย์ภาษาไทย"); }
 $("recTest").onclick=()=>$("ttsTest").click();
 $("ttsTest").onclick=()=>{ if(!TTS.ok){ notice("เบราว์เซอร์นี้ไม่รองรับเสียงพากย์ ลองใช้ Safari หรือ Chrome",6000,"err"); return; } const i=project?R.sceneAt(Math.min(playT,R.endStart-0.01)):0; const ok=speakText(project?.scenes[i]?.narration||"สวัสดีครับ ทดสอบเสียงพากย์ภาษาไทย"); if(ok) notice(`กำลังพูดด้วยเสียง: ${pickVoice()?.name||"เสียงเริ่มต้นของเครื่อง"}`,4000,"info"); };
+/* ElevenLabs voiceover: one line per scene with character timings; audio is cached on this device so the same line is never paid for twice */
+const EL={model:"eleven_v4",db:null};
+function elDB(){ return EL.db ||= new Promise(res=>{ try{ const r=indexedDB.open("aioffice-voice",1); r.onupgradeneeded=()=>r.result.createObjectStore("clips"); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch{ res(null); } }); }
+async function elCache(key,val){ const db=await elDB(); if(!db) return null; return new Promise(res=>{ try{ const tx=db.transaction("clips",val?"readwrite":"readonly"), st=tx.objectStore("clips"); const r=val?st.put(val,key):st.get(key); r.onsuccess=()=>res(val||r.result||null); r.onerror=()=>res(null); }catch{ res(null); } }); }
+async function elLine(text,voice,{fetchOk=true}={}){ const key=voice+"|"+EL.model+"|"+text; const hit=await elCache(key); if(hit) return hit; if(!fetchOk) return null;
+  const k=store.get("el_key",""); if(!k){ const e=new Error("ยังไม่ได้ใส่ ElevenLabs API key ใส่ในหน้าตั้งค่าก่อนนะ"); e.code="nokey"; throw e; }
+  let r; try{ r=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`,{method:"POST",headers:{"xi-api-key":k,"Content-Type":"application/json"},body:JSON.stringify({text,model_id:EL.model})}); }
+  catch{ const e=new Error("แอปเชื่อมต่อ ElevenLabs ไม่ได้ (หน้าแอปอาจถูกบล็อกไม่ให้ต่ออินเทอร์เน็ตภายนอก) ให้ผมเรนเดอร์คลิปพร้อมเสียงให้ทางแชทแทนได้"); e.code="blocked"; throw e; }
+  const d=await r.json().catch(()=>({})); if(!r.ok){ const e=new Error(r.status===401?"ElevenLabs API key ไม่ถูกต้อง ตรวจในหน้าตั้งค่า":r.status===402||/quota|credit/i.test(JSON.stringify(d))?"โควตาตัวอักษรของ ElevenLabs เดือนนี้หมดแล้ว":`ElevenLabs ตอบกลับว่าผิดพลาด (${r.status})`); e.code="el"; throw e; }
+  const a=d.alignment||{}, val={b64:d.audio_base64,chars:(a.characters||[]).join(""),s:a.character_start_times_seconds||[],e:a.character_end_times_seconds||[]}; await elCache(key,val); return val; }
+function b64buf(b64){ const bin=atob(b64), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u.buffer; }
+async function genVoice({fetchOk=true,quiet=false}={}){ if(!project) return false; const voice=store.get("el_voice","TX3LPaxmHKxFdv7VOQHJ"), ac=AU.ensure(), btn=$("elGen"); const lines=[]; let chars=0, fetched=0;
+  btn.disabled=true; const old=btn.textContent;
+  try{ for(let i=0;i<project.scenes.length;i++){ const s=project.scenes[i]; if(!s.narration){ lines.push(null); continue; } btn.textContent=`กำลังสร้างเสียง ${i+1}/${project.scenes.length}...`;
+      const had=await elCache(voice+"|"+EL.model+"|"+s.narration); const v=await elLine(s.narration,voice,{fetchOk}); if(!v) return false; if(!had){ fetched++; chars+=s.narration.length; }
+      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+(VOICE_LEAD+Math.max(...v.e)+0.35).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
+      lines.push(buf); }
+    relayout(); const sr=ac.sampleRate, out=ac.createBuffer(2,Math.ceil((R.total+0.5)*sr),sr);
+    lines.forEach((b,i)=>{ if(!b) return; const off=Math.round((R.starts[i]+VOICE_LEAD)*sr); for(let ch=0;ch<2;ch++){ const src=b.getChannelData(Math.min(ch,b.numberOfChannels-1)), dst=out.getChannelData(ch); dst.set(src.subarray(0,Math.max(0,Math.min(src.length,dst.length-off))),off); } });
+    out._el=true; voiceBuf=out; persistOpen(); renderSceneList(); drawAt(0); updateElInfo(fetched?`สร้างเสียงแล้ว ใช้ไป ${chars} ตัวอักษร`:"ใส่เสียงที่เคยสร้างไว้แล้ว ไม่เสียโควตาเพิ่ม");
+    if(!quiet) notice("ใส่เสียงพากย์ ElevenLabs แล้ว ซับตรงกับเสียง กด ▶ ฟัง หรือ สร้างไฟล์วิดีโอ ได้เลย",7000,"ok"); return true; }
+  catch(e){ if(!quiet) notice(e.message||String(e),9000,"err"); updateElInfo(e.message); return false; }
+  finally{ btn.disabled=false; btn.textContent=old; } }
+function updateElInfo(msg){ const el=$("elInfo"); if(!el) return; const k=store.get("el_key","");
+  el.textContent=msg||(!k?"ใส่ API key ในหน้าตั้งค่าก่อน (ปุ่มเฟือง)":voiceBuf?._el?"คลิปนี้มีเสียงพากย์แล้ว ซับตรงกับเสียง":"สร้างเสียงผู้บรรยายภาษาไทยทุกฉาก ซับจะตรงกับเสียง และเสียงจะเข้าไปในไฟล์วิดีโอ"); }
+$("elGen").onclick=()=>genVoice();
 $("voiceFile").onchange=async e=>{
   const f=e.target.files[0]; if(!f) return; const ac=AU.ensure();
   try{ voiceBuf=await ac.decodeAudioData(await f.arrayBuffer()); $("voiceInfo").textContent=`ใส่เสียง "${f.name}" แล้ว (${voiceBuf.duration.toFixed(1)} วินาที, คลิปยาว ${R.total.toFixed(1)} วินาที) ตอนพรีวิวจะปิดเสียงสังเคราะห์ให้อัตโนมัติ`; }
@@ -2226,7 +2272,7 @@ function renderSceneList(){ renderSubStyles(); renderFonts();
     let tmr=0;
     const apply=(inp,final)=>{ const k=inp.dataset.k, v=inp.value;
       if(k==="caption") s.caption=cleanStar(v).slice(0,40);
-      else if(k==="narration"){ const r=parseEmph(v,s.emph); s.narration=r.text; s.emph=r.emph; s.duration=clamp(Math.max(2.2,speakSeconds(s.narration)+0.6),1.5,15); }
+      else if(k==="narration"){ const r=parseEmph(v,s.emph); const changed=r.text!==s.narration; s.narration=r.text; s.emph=r.emph; s.duration=clamp(Math.max(2.2,speakSeconds(s.narration)+0.6),1.5,15); if(changed){ delete s.align; if(voiceBuf?._el){ voiceBuf=null; updateElInfo("แก้บทแล้ว กด สร้างเสียงพากย์ ใหม่ (ฉากที่ไม่ได้แก้จะไม่เสียโควตา)"); } } }
       else if(k==="emph"){ s.emph=[...new Set(v.split(/[,，]/).map(x=>cleanStar(x)).filter(x=>x&&s.narration.includes(x)))].slice(0,4); }
       if(final){ if(k==="caption") inp.value=s.caption; else if(k==="narration") inp.value=s.narration; d.querySelector('[data-k=emph]').value=(s.emph||[]).join(", "); }
       relayout(); if(!playing) drawAt(Math.min(R.starts[i]+Math.max(0.4,s.duration*0.45),R.total-0.01));
@@ -2243,7 +2289,7 @@ $("exportBtn").onclick=async()=>{
   stopPlay(); if(!voiceBuf) notice("ไฟล์วิดีโอนี้จะมีเพลงและเสียงเอฟเฟกต์ แต่ยังไม่มีเสียงพากย์ ถ้าต้องการเสียงพากย์ ใช้ \"โหมดอัดหน้าจอ\" หรืออัดเสียงอ่านตามซับแล้วอัปโหลดในช่อง \"เสียงพากย์จริงของคุณ\"",9000,"info");
   await fontsReady(); onFontsChanged(); bg3dPrewarm(project,R.W,R.H); exporting=true; const mime=pickMime(); const btn=$("exportBtn"); btn.disabled=true; $("saveVideoBtn").hidden=true;
   const msg=$("exportMsg"), bar=$("exportBar"); msg.textContent="กำลังเรนเดอร์... อย่าสลับแท็บหรือย่อหน้าต่าง";
-  const vstream=videoCv.captureStream(30); const astream=AU.start(project,0,{record:true, voice:voiceBuf, accents:R.emphTimes()});
+  const vstream=videoCv.captureStream(30); const astream=AU.start(project,0,{record:true, voice:voiceBuf, accents:R.emphTimes(), musicVol:voiceBuf?0.22:0.55});
   const stream=new MediaStream([...vstream.getVideoTracks(),...astream.getAudioTracks()]);
   const rec=new MediaRecorder(stream,{mimeType:mime||undefined, videoBitsPerSecond:6_000_000});
   const parts=[]; rec.ondataavailable=e=>{ if(e.data.size) parts.push(e.data); };
@@ -3216,6 +3262,7 @@ async function runPipeline(r){
       const nx=S[S.indexOf(st)+1]; if(nx&&r.out[nx]==null&&STEP_WHO[nx]!==who) handoff(who,STEP_WHO[nx]); }
     r.runningAt=0; r.finishedAt=Date.now(); runningRec=null; logAct(r,"coord","ปิดงาน คลิปพร้อมโพสต์แล้ว 🎉"); saveRec(r); stats.clips++; addXP(50);
     openRec(r.id,{switchTab:true}); planLink(r);
+    if(store.get("el_key","")&&store.get("el_auto",true)) setTimeout(()=>genVoice(),500);
     notice(`คลิป "${r.title}" เสร็จแล้ว!${r.out.qa?` ผ่านการตรวจ ${r.out.qa.score}/10`:""}${r.out.approve?.approved?" พี่มายอนุมัติแล้ว":""} กด ▶ เล่น แล้วกด 🎬 สร้างไฟล์วิดีโอ`,9000);
   }catch(err){
     if(err===WAIT){ r.runningAt=0; r.waiting=true; runningRec=null; saveRec(r); showSteps(r); showAsk(r); notice("พี่มายมีคำถามก่อนเริ่มงาน ตอบในกล่องได้เลย",7000,"info"); return; }
@@ -3393,9 +3440,9 @@ async function initCloud(){
 
 /* Settings & theme */
 const dlg=$("settings");
-function openSettings(){ const s=settings(); $("keyBox").hidden=inViewer; $("forgetBtn").hidden=inViewer; $("claudeBox").hidden=!inViewer; $("apiKey").value=s.key; $("model").value=s.model; $("tier").value=s.tier; $("boss").value=s.boss; dlg.showModal(); }
+function openSettings(){ $("elKey").value=store.get("el_key",""); $("elVoice").value=store.get("el_voice","TX3LPaxmHKxFdv7VOQHJ"); $("elAuto").checked=store.get("el_auto",true); const s=settings(); $("keyBox").hidden=inViewer; $("forgetBtn").hidden=inViewer; $("claudeBox").hidden=!inViewer; $("apiKey").value=s.key; $("model").value=s.model; $("tier").value=s.tier; $("boss").value=s.boss; dlg.showModal(); }
 $("settingsBtn").onclick=openSettings; $("closeSettings").onclick=()=>dlg.close();
-$("saveSettings").onclick=()=>{ if(!inViewer){ store.set("key",$("apiKey").value.trim()); store.set("model",$("model").value); } store.set("tier",$("tier").value); store.set("boss",$("boss").value.trim()); dlg.close(); };
+$("saveSettings").onclick=()=>{ if(!inViewer){ store.set("key",$("apiKey").value.trim()); store.set("model",$("model").value); } store.set("tier",$("tier").value); store.set("boss",$("boss").value.trim()); store.set("el_key",$("elKey").value.trim()); store.set("el_voice",$("elVoice").value); store.set("el_auto",$("elAuto").checked); updateElInfo(); dlg.close(); };
 $("forgetBtn").onclick=()=>{ store.del("key"); $("apiKey").value=""; };
 const savedTheme=store.get("theme",null); if(savedTheme) document.documentElement.dataset.theme=savedTheme;
 $("themeBtn").onclick=()=>{ const cur=document.documentElement.dataset.theme; const dark=cur==="dark"; const next=dark?"light":"dark"; document.documentElement.dataset.theme=next; store.set("theme",next); };
