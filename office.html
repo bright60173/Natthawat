@@ -3182,7 +3182,14 @@ const STEP_FN={
     const p=r.project, total=p.scenes.reduce((a,x)=>a+x.duration,0);
     const draft=await staffWork(r,"approve",[{id:"post",prompt:`คลิป "${p.title}" (ยาว ${total.toFixed(0)} วินาที)\nบทพูด:\n${p.scenes.map((x,i)=>`${i+1}. ${x.narration}`).join("\n")}\n\nร่างแคปชันโพสต์ TikTok/Reels 2 แบบ พร้อมแฮชแท็ก 3-6 อัน`}]);
     const j=extractJSON(await ask("manager",`${draft?`น้องโพสต์ร่างแคปชันมาให้แล้ว เลือกหรือปรับให้ดีที่สุด:\n${draft}\n\n`:""}ขออนุมัติคลิป "${p.title}" (ยาว ${total.toFixed(0)} วินาที)\nผลตรวจจากน้องเช็ค: ${r.out.qa?`${r.out.qa.score}/10 ${r.out.qa.summary}`:"-"}\nบทพูด:\n${p.scenes.map((x,i)=>`${i+1}. ${x.narration.replace(/\*/g,"")}`).join("\n")}\n\nอนุมัติหรือไม่ และเขียนแคปชันโพสต์ TikTok ที่ชวนดูและชวนคอมเมนต์ พร้อมแฮชแท็ก 3-6 อัน ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"approved":true,"note":"ความเห็น 1 ประโยค","post":"แคปชันโพสต์ #แฮชแท็ก"}\n\`\`\``));
-    r.out.approve={approved:j?.approved!==false,note:str(j?.note,200),post:str(j?.post,700)};
+    let jj=j, extra=0;
+    while(jj&&jj.approved===false&&extra<1){ extra++; const note=str(jj.note,400); logAct(r,"manager",`ยังไม่อนุมัติ ส่งกลับให้น้องคัทแก้: ${note}`); handoff("manager","editor");
+      const p0=r.project, qaIss=(r.out.qa?.issues||[]).map(x=>`- ฉาก ${x.scene||"-"}: ${x.problem}`).join("\n");
+      const cut=extractJSON(await ask("editor",`พี่มาย (ผู้จัดการ) ยังไม่อนุมัติคลิปนี้ ขอให้แก้:\n${note}${qaIss?`\n\nประเด็นที่ฝ่ายตรวจสอบยังค้าง:\n${qaIss}`:""}\n\nคลิปตอนนี้:\n${scriptOf(p0)}\n${p0.scenes.map((x,i)=>`\nภาพปัจจุบันของฉาก ${i+1}: ${JSON.stringify(x.elements)}`).join("")}\n\n${EDIT_FORMAT}`));
+      try{ r.project=mergeEdits(p0,cut,r.aspect); staffFallbacks(r.project,r); directorPass(r.project); saveRec(r); logAct(r,"editor","แก้ตามที่พี่มายขอแล้ว ส่งให้อนุมัติอีกครั้ง"); handoff("editor","manager"); }catch{ break; }
+      const p1=r.project, t1=p1.scenes.reduce((a,x)=>a+x.duration,0);
+      jj=extractJSON(await ask("manager",`น้องคัทแก้ตามที่เธอขอแล้ว (ยาว ${t1.toFixed(0)} วินาที)\n${scriptOf(p1)}\n\nอนุมัติหรือยัง ตอบสั้นๆ แล้วตามด้วย JSON รูปแบบเดิม {"approved":true,"note":"...","post":"แคปชันโพสต์"}`))||jj; }
+    r.out.approve={approved:jj?.approved!==false,note:str(jj?.note,200),post:str(jj?.post||j?.post,700),rounds:extra}; r.title=r.project.title;
     return r.out.approve.approved?`อนุมัติแล้ว 🎉 ${r.out.approve.note}`:`อนุมัติแบบมีข้อสังเกต: ${r.out.approve.note}`;
   },
   async brief(r){
@@ -3223,7 +3230,7 @@ const STEP_FN={
     return "ส่งบทให้น้องพิกเซลแล้ว"; },
   async animator(r){ const scr=String(r.out.creative).split(/```json/i)[0].slice(0,6000);
     const team=await staffWork(r,"animator",[{id:"shot",prompt:`บทคลิป (สัดส่วน ${r.aspect}):\n${scr}\n\nทำ shot list ทีละฉาก: ฉากหลัง เวลา กล้อง เอฟเฟกต์ และเหตุผลสั้นๆ`},{id:"acting",prompt:`บทคลิป:\n${scr}\n\nกำหนดทีละฉาก: ตัวละคร อารมณ์ ท่าทาง พร็อพ และคำพูดในบับเบิล (ถ้ามี)`}]);
-    const house=r.out.plan?.format==="whatif"?"":`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): look "cinematic", subStyle "doc" พร้อม subEn ทุกฉาก, ฉากหลังโทนมืด (studio, warehouse, city night, room night) ตัวเลขทุกตัวเป็นการ์ดข้อมูล ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้`;
+    const house=r.out.plan?.format==="whatif"?`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): subStyle "doc" พร้อม subEn ทุกฉาก (ซับเต็มประโยค ไม่ตัดเป็นเศษคำ), look "bright" หรือ "cinematic" ตามอารมณ์เรื่อง, ตัวเลขสำคัญทุกตัวเป็นการ์ดข้อมูล, ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้, ใช้พร็อพเฉพาะที่สื่อความหมายตรงบท (ถ้าไม่แน่ใจ ใช้การ์ดตัวเลขแทน)`:`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): look "cinematic", subStyle "doc" พร้อม subEn ทุกฉาก, ฉากหลังโทนมืด (studio, warehouse, city night, room night) ตัวเลขทุกตัวเป็นการ์ดข้อมูล ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้`;
     let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${house}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}\n\nเกณฑ์คุณภาพ: ภาพทุกฉากต้องเล่าเรื่องได้แม้ปิดเสียง ตัวละครแสดงอารมณ์ตรงกับบท มีพร็อพหรือข้อความที่สื่อตัวเลข/ข้อเท็จจริงสำคัญ ฉากหลังและมุมกล้องไม่ซ้ำติดกัน มีอย่างน้อย 1 ฉากมุมกว้าง (drone หรือ orbit):\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
     r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
