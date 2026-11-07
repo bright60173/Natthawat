@@ -10,6 +10,36 @@ an iPad (and iPhone) only.
   (strip the first 5 lines, `</head><body>` and the closing `</body></html>`), published
   with capabilities `sample` (images), `db`, `downloads`, `user`.
 
+## Owner preferences (decided in earlier sessions; follow them)
+
+Working style
+- Reply in Thai. Act and decide on your own; do not stop to wait for answers ("ทำเองจัดการเอง").
+  Ask only for things only the owner can give (keys, taste choices), with clear options.
+- Be honest about what was and was not tested; test thoroughly ("ไม่ใช่เทสลวกๆ").
+- The owner has only an iPad and an iPhone (Safari / Claude app), no computer.
+- Goal: every clip 10/10, especially animation and graphics. Quality over speed.
+
+Clips
+- Channel formats: story + lesson (like the viral reference by @promptkub.ai) and what-if / science.
+- Use the viral editing style: info cards for numbers, documentary subtitles with English,
+  2-4 s shots, close-ups, muted cinematic look where it fits, one focal point per shot.
+- Characters keep the original cute cartoon style (do not switch to the "slim" style).
+  Clip characters have no outlines.
+- Narration is a third-person narrator: characters must NOT lip-sync to it.
+- No asterisks or markdown in on-screen text; subtitles must never overlap words or faces
+  and must stay in the social safe zone (IG/TikTok UI covers the bottom ~30%).
+- Graphics must look professional; the owner called simple shapes "ห่วย". Illustrations,
+  not emoji, for the main subject.
+- Voice: ElevenLabs Thai; narrator voice not chosen yet (default Liam). Music: lower under
+  the voice; the owner may add trending music when posting.
+- Font for clip text: picker in Studio (default Kanit).
+
+App UI
+- No gradients, no glow, no emoji in UI chrome; must look human-designed, not "AI-made".
+  Warm paper theme with one solid accent, line icons, IBM Plex Sans Thai.
+- Side navigation rail; office is a flat 2D illustration with outlined cartoon staff (no pixel art).
+- Each department has a head and staff.
+
 ## What is in the app
 
 - **Team**: 7 departments, each with a head and 1-2 staff (`DEPTS`, `EMPLOYEES`, `STAFF`).
