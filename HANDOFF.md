@@ -1,5 +1,7 @@
 # AI Office — handoff notes
 
+Read CONVERSATION_LOG.md too: it records everything the owner asked, chose and criticised.
+
 Personal AI office web app (Thai) where a team of 20 AI employees plans, writes,
 animates, edits, voices, checks and approves short vertical videos. The owner uses
 an iPad (and iPhone) only.
