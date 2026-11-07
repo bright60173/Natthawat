@@ -1550,7 +1550,7 @@ function fillE(c,x,y,rx,ry,col,rot=0){ c.beginPath(); c.ellipse(x,y,Math.abs(rx)
    Numbers count up after the card enters. Drawn centred at (0,0); size follows base (px for scale 1). */
 function cardSize(el,base){ const k=base*el.scale, sr=el.src?k*0.04:0; if(el.kind==="compare") return {w:k*0.88,h:k*0.36+sr};
   if(el.kind==="icons") return {w:k*0.7,h:k*(0.29+(el.total>10?0.07:0))+sr}; if(el.kind==="bars") return {w:k*0.72,h:k*(0.08+0.085*Math.max(1,el.rows?.length||1))+sr};
-  if(el.kind==="lesson") return {w:k*0.86,h:k*(el.strike?0.36:0.29)}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)+sr}; }
+  if(el.kind==="lesson") return {w:k*0.86,h:k*(el.strike?0.42:0.34)}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)+sr}; }
 /* Small flat pictograms for icon-array cards ("8 in 10 houses"). Centred at (x,y), size s. */
 function pictogram(c,kind,x,y,s,col){ c.fillStyle=col; c.beginPath();
   if(kind==="house"){ c.moveTo(x-s*0.42,y-s*0.02); c.lineTo(x,y-s*0.45); c.lineTo(x+s*0.42,y-s*0.02); c.lineTo(x+s*0.32,y-s*0.02); c.lineTo(x+s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y-s*0.02); c.closePath(); c.fill(); c.fillStyle="rgba(255,255,255,.75)"; c.fillRect(x-s*0.08,y+s*0.14,s*0.16,s*0.26); return; }
@@ -1558,7 +1558,7 @@ function pictogram(c,kind,x,y,s,col){ c.fillStyle=col; c.beginPath();
   if(kind==="car"){ c.roundRect(x-s*0.45,y-s*0.08,s*0.9,s*0.3,s*0.08); c.fill(); c.beginPath(); c.roundRect(x-s*0.26,y-s*0.3,s*0.5,s*0.26,s*0.1); c.fill(); c.fillStyle="#3a332b"; c.beginPath(); c.arc(x-s*0.26,y+s*0.24,s*0.11,0,7); c.arc(x+s*0.26,y+s*0.24,s*0.11,0,7); c.fill(); return; }
   if(kind==="tree"){ c.arc(x,y-s*0.15,s*0.3,0,7); c.fill(); c.fillRect(x-s*0.06,y,s*0.12,s*0.4); return; }
   c.arc(x,y-s*0.28,s*0.15,0,7); c.fill(); c.beginPath(); c.roundRect(x-s*0.2,y-s*0.08,s*0.4,s*0.48,[s*0.18,s*0.18,s*0.04,s*0.04]); c.fill(); }
-function countUp(v,q){ v=String(v||""); if(q>=1) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
+function countUp(v,q){ v=String(v||""); if(q>=1||/\d\s*[-–]\s*\d/.test(v)) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
   const m=v.match(/\d[\d,]*(\.\d+)?/); if(!m) return v; const n=parseFloat(m[0].replace(/,/g,"")), dec=(m[1]||"").length?m[1].length-1:0, cur=n*q;
   let s=cur.toFixed(dec); if(m[0].includes(",")) s=Number(s).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}); return v.slice(0,m.index)+s+v.slice(m.index+m[0].length); }
 function cardPanel(c,x,y,w,h,u,accent){ c.save(); c.shadowColor="rgba(0,0,0,.35)"; c.shadowBlur=u*5; c.shadowOffsetY=u*1.6; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.fill(); c.restore();
@@ -1575,7 +1575,7 @@ function drawInfoCard(c,el,base,since,fam){ const {w,h}=cardSize(el,base), u=w/1
   const srcLine=()=>{ if(!el.src) return; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=soft; c.font=`500 ${u*2.9}px ${fam}`; c.fillText(el.src,-w/2+u*6,h/2-u*2.6,w-u*12); };
   if(el.kind==="lesson"){ const a=easeOut(clamp(since/0.5,0,1)); cardPanel(c,-w/2,-h/2,w,h,u,"#2f5fa8"); c.fillStyle="#c8452f"; c.beginPath(); c.arc(0,-h/2,u*4.2,0,7); c.fill(); c.fillStyle="#fff"; c.font=`800 ${u*5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("!",0,-h/2+u*0.3);
     let y=-h/2+u*12; if(el.strike){ c.font=`600 ${u*5}px ${fam}`; c.fillStyle=ink; c.fillText(el.strike,0,y,w*0.88); const sw=Math.min(c.measureText(el.strike).width,w*0.88)*clamp((since-0.35)/0.4,0,1); c.strokeStyle="#c8452f"; c.lineWidth=u*0.9; c.beginPath(); c.moveTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2,y+u*0.4); c.lineTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2+sw,y+u*0.4); c.stroke(); y+=u*11; }
-    const big=el.label||el.value; c.globalAlpha=clamp((since-(el.strike?0.7:0.1))/0.35,0,1); c.fillStyle="#2f5fa8"; c.font=`800 ${u*8.6}px ${fam}`; const ln=wrap(c,big,w*0.88).slice(0,2); ln.forEach((l,i)=>c.fillText(l,0,y+i*u*10,w*0.9)); y+=ln.length*u*10-u*1;
+    const big=el.label||el.value; c.globalAlpha=clamp((since-(el.strike?0.7:0.1))/0.35,0,1); c.fillStyle="#2f5fa8"; c.font=`800 ${u*7.4}px ${fam}`; const ln=wrap(c,big,w*0.86).slice(0,2); ln.forEach((l,i)=>c.fillText(l,0,y+i*u*9.2,w*0.9)); y+=ln.length*u*9.2-u*1;
     if(el.labelEn){ c.fillStyle="#5f5648"; c.font=`500 ${u*3.4}px ${fam}`; c.fillText(el.labelEn,0,y+u*2.5,w*0.9); } c.globalAlpha=1; return; }
   if(el.kind==="icons"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(el.label,x0,-h/2+u*8.5,w-u*12);
     const n=Math.round(clamp(parseFloat(String(el.value).replace(/,/g,""))||0,0,el.total)), per=Math.min(10,el.total), rows=Math.ceil(el.total/per), cell=(w-u*12)/per, sz=cell*0.78, hit=el.good===true?"#2e7a4d":"#c8452f";
@@ -2016,6 +2016,8 @@ class Renderer{
     if(s.caption){ const fs=Math.round(m*0.085); c.font=`800 ${fs}px ${this.fam}`; const lines=wrap(c,s.caption,W*0.88).slice(0,2); const y0=H*(W>H?0.13:0.12), w=Math.max(...lines.map(l=>c.measureText(l).width));
       R.push({x0:W/2-w/2-fs*0.3,x1:W/2+w/2+fs*0.3,y0:y0-fs*0.8,y1:y0+(lines.length-1)*fs*1.15+fs*0.85,w:100}); }
     for(const e of s.elements){ const pts=[[e.x,e.y]]; if(e.motion==="move"||e.motion==="walk"){ pts.push([e.toX,e.toY]); pts.push([(e.x+e.toX)/2,(e.y+e.toY)/2]); }
+      if(e.motion==="jump"||e.motion==="celebrate") pts.push([e.x,e.y-0.06]);
+      if(e.motion==="rise"||e.motion==="fall"){ const y2=e.motion==="rise"?(e.toY<e.y?e.toY:e.y-0.5):e.y-0.7; for(let k=1;k<=4;k++) pts.push([e.x,e.y+(y2-e.y)*k/4]); }
       for(const [x,y] of pts){ const X=x*W, Y=y*H;
         if(e.type==="character"){ const h=m*0.58*e.scale, w=m*0.32*e.scale; R.push({x0:X-w/2,x1:X+w/2,y0:Y-h,y1:Y,w:4}); const k=m*0.0024*e.scale, slim=s&&this.project.charStyle==="slim"&&!["robot","cat","alien"].includes(e.look), hy=Y-k*(slim?266:188), hr=k*(slim?30:52); R.push({x0:X-hr,x1:X+hr,y0:hy-hr,y1:hy+hr*1.1,w:100});
           if(e.say){ const fs=34*m/720, by=Y-m*0.0024*e.scale*240; c.font=`600 ${fs}px ${this.fam}`; const bw=Math.min(c.measureText(e.say).width+fs,W*0.8); R.push({x0:X-bw/2,x1:X+bw/2,y0:by-fs*1.8,y1:by+fs*0.6,w:100}); R.push({x0:X-bw-m*0.11*e.scale,x1:X+bw+m*0.11*e.scale,y0:by,y1:by+m*0.11*e.scale+fs*1.7,w:6}); } }
@@ -2023,6 +2025,9 @@ class Renderer{
         else if(e.type==="emoji"){ const r=m*0.1*e.scale; R.push({x0:X-r,x1:X+r,y0:Y-r,y1:Y+r,w:10}); }
         else if(e.type==="card"){ const z=cardSize(e,m); R.push({x0:X-z.w/2,x1:X+z.w/2,y0:Y-z.h/2,y1:Y+z.h/2,w:100}); }
         else { const r=m*0.11*e.scale; R.push({x0:X-r,x1:X+r,y0:Y-r,y1:Y+r,w:2.5}); } } }
+    // the camera scales the scene (not the subtitles) by up to ~14% around the centre: grow each scene obstacle to cover that
+    const cam=s.camera, k=cam==="zoom-in"||cam==="zoom-out"||cam==="drone"?1.14:cam==="pan-left"||cam==="pan-right"?1.12:cam==="orbit"?1.1:1.06, ox=cam==="orbit"||cam.startsWith("pan")?W*0.05:W*0.01;
+    const n0=s.caption?1:0; for(let i=n0;i<R.length;i++){ const o=R[i], sx=v=>W/2+(v-W/2)*k, sy=v=>H/2+(v-H/2)*k; R[i]={...o,x0:Math.min(o.x0,sx(o.x0))-ox,x1:Math.max(o.x1,sx(o.x1))+ox,y0:Math.min(o.y0,sy(o.y0)),y1:Math.max(o.y1,sy(o.y1))}; }
     return R;
   }
   /* Pop style: fit a chunk on one line (shrinking up to 28%), wrap only if it still does not fit */
@@ -3341,6 +3346,9 @@ function applyTextEdits(p,j){ let applied=0; if(!j) return 0;
     if(typeof e.caption==="string"&&e.caption.trim()&&e.caption.trim()!==x.caption){ x.caption=str(e.caption,40); applied++; }
     if(typeof e.narration==="string"&&cleanStar(e.narration)&&cleanStar(e.narration)!==x.narration){ setNarration(x,e.narration,e.emph); applied++; } });
   return applied; }
+/* Numbers on a scene's cards must be the numbers the narrator says (clip #4 showed 42 min while the voice said 38). */
+function numsIn(t){ return (String(t||"").match(/\d[\d,]*(\.\d+)?/g)||[]).map(x=>x.replace(/,/g,"")); }
+function cardNums(x){ const out=[]; x.elements.filter(e=>e.type==="card").forEach(e=>{ const vals=e.kind==="compare"?[e.left?.value,e.right?.value]:e.kind==="bars"?(e.rows||[]).map(r=>r.value):e.kind==="timer"?[]:[e.value]; vals.forEach(v=>numsIn(v).forEach(n=>out.push(n))); }); return out; }
 function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
   if(total<20) out.push(`คลิปสั้นไป (${total.toFixed(0)} วินาที)`); if(total>65) out.push(`คลิปยาวไป (${total.toFixed(0)} วินาที)`);
   if(p.scenes.length<3) out.push("มีน้อยกว่า 3 ฉาก");
@@ -3348,6 +3356,7 @@ function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
   p.scenes.forEach((x,i)=>{ if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(p.emphOn!==false&&!(x.emph||[]).length) out.push(`ฉาก ${i+1} ไม่มีคำเน้น (emph)`);
     if(x.caption.length>18) out.push(`ฉาก ${i+1} ข้อความบนจอยาว ${x.caption.length} ตัวอักษร (ควรไม่เกิน 18)`);
     if(x.elements.length<2) out.push(`ฉาก ${i+1} มีองค์ประกอบภาพน้อย (${x.elements.length})`);
+    { const said=numsIn(x.narration), cn=cardNums(x); if(said.length&&cn.length&&!cn.some(n=>said.includes(n))) out.push(`ฉาก ${i+1} ตัวเลขบนการ์ด (${cn.join(", ")}) ไม่ตรงกับบทพูด (${said.join(", ")}) ต้องใช้ตัวเลขเดียวกัน`); }
     const nt=x.elements.filter(e=>e.type==="text").length; if(nt>2) out.push(`ฉาก ${i+1} มีข้อความในภาพ ${nt} อัน รกเกินไป (ควรไม่เกิน 2 รวมกับซับ)`);
     if(x.elements.length>6) out.push(`ฉาก ${i+1} มีของในภาพ ${x.elements.length} ชิ้น แน่นเกินไป (ควรไม่เกิน 5)`);
     if(x.elements.some(e=>e.enter==="none"&&e.motion!=="move"&&e.motion!=="walk"&&(e.x<0.04||e.x>0.96))) out.push(`ฉาก ${i+1} มีของหลุดขอบจอ`); });
@@ -3379,7 +3388,10 @@ const EDIT_FORMAT=`ส่งเฉพาะสิ่งที่เปลี่�
 function mergeEdits(base,j,aspect){ const p=clone(base); if(!j||typeof j!=="object") throw new Error("no edits");
   ["title","music","subStyle","look","endCard","emphOn"].forEach(k=>{ if(j[k]!=null&&j[k]!=="") p[k]=j[k]; });
   const list=Array.isArray(j.scenes)?j.scenes:[], full=list.length===p.scenes.length&&list.every(x=>x&&Array.isArray(x.elements)&&x.bg);
-  list.forEach((e,i)=>{ const k=full?i:(Number(e?.scene)||0)-1, x=p.scenes[k]; if(!x||!e) return; const {scene,...rest}=e; Object.assign(x,rest); });
+  list.forEach((e,i)=>{ const k=full?i:(Number(e?.scene)||0)-1, x=p.scenes[k]; if(!x||!e) return; const {scene,...rest}=e;
+    // a fix that rewrites a scene's elements must not silently drop its info cards (clip #4 lost all 8 cards this way)
+    if(Array.isArray(rest.elements)&&!rest.removeCards){ const old=(x.elements||[]).filter(o=>o.type==="card"); if(old.length&&!rest.elements.some(o=>o?.type==="card")) rest.elements=[...rest.elements,...old]; }
+    delete rest.removeCards; Object.assign(x,rest); });
   return normalizeProject({...p,aspect}); }
 /* Lessons from the owner's viral reference clips (promptkub.ai style, studied Nov 2026). Applied to every format. */
 const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้าของส่งมา (ใช้ทุกคลิป):
@@ -3401,6 +3413,18 @@ const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุด
 /* Director's pass: rule-based polish after editing, so every clip meets the house style even when a model slips. */
 const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
 function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","zoom-in","pan-left","drone","zoom-out"];
+  // house style chosen by the owner from the viral references: documentary subtitles and the muted "doc" look, always
+  if(p.subStyle!=="doc"){ p.subStyle="doc"; fixes.push("ใช้ซับแบบสารคดี (สไตล์ช่อง)"); } if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน (สไตล์ช่อง)"); }
+  // viral layout: one focal point. No big captions, no emoji; a scene with a card shows only that card (the best match to the narration) and no extra text.
+  S.forEach((x,i)=>{ if(x.caption){ x.caption=""; fixes.push("เอาหัวข้อใหญ่ออก ให้ซับกับการ์ดเล่าเรื่อง"); }
+    const n0=x.elements.length; x.elements=x.elements.filter(e=>e.type!=="emoji"); const cards=x.elements.filter(e=>e.type==="card");
+    if(cards.length){ const said=numsIn(x.narration), score=e=>cardNums({elements:[e]}).filter(n=>said.includes(n)).length; const keep=cards.slice().sort((a,b)=>score(b)-score(a))[0];
+      x.elements=x.elements.filter(e=>e.type!=="text"&&(e.type!=="card"||e===keep)); }
+    else { let t=0; x.elements=x.elements.filter(e=>e.type!=="text"||++t<=1); }
+    // a prop hidden behind a card only adds noise
+    const ar=p.aspect==="16:9"?16/9:9/16; x.elements.filter(e=>e.type==="card").forEach(cd=>{ const z=cardSize(cd,1), hw=z.w/2*(ar<1?1:1/ar), hh=z.h/2*(ar<1?ar:1); x.elements=x.elements.filter(e=>{ if(e.type!=="prop") return true; const r=0.07*e.scale; return Math.abs(e.x-cd.x)>hw+r||Math.abs(e.y-cd.y)>hh+r*(ar<1?ar:1); }); });
+    if(x.elements.length<n0) fixes.push(`ฉาก ${i+1} ลดของรก ให้เหลือจุดเด่นเดียว`);
+    if(x.subPos!=="auto"){ x.subPos="auto"; fixes.push(`ฉาก ${i+1} ให้ซับหาที่ว่างเอง ไม่ทับหน้าและการ์ด`); } });
   if(S[0]&&S[0].camera==="static"){ S[0].camera="zoom-in"; fixes.push("ฉากแรกใช้กล้องซูมเข้าให้ hook มีพลัง"); }
   for(let i=1;i<S.length;i++){ if(S[i].camera===S[i-1].camera&&S[i].camera!=="shake"){ const nx=S[i+1]?.camera; const c=rot.find(x=>x!==S[i-1].camera&&x!==nx&&(x!=="drone"||OUTDOOR.includes(S[i].bg))); if(c){ S[i].camera=c; fixes.push(`ฉาก ${i+1} เปลี่ยนมุมกล้องไม่ให้ซ้ำฉากก่อน`); } } }
   if(S.length>=4&&!S.some(x=>x.camera==="drone"||x.camera==="orbit")){ const k=S.findIndex((x,i)=>i>0&&i<S.length-1&&OUTDOOR.includes(x.bg)); const i=k>0?k:1; S[i].camera=OUTDOOR.includes(S[i].bg)?"drone":"orbit"; fixes.push(`ฉาก ${i+1} ใช้มุมกว้าง${S[i].camera==="drone"?"แบบโดรน":"แบบโคจร"}ให้ฉากมีมิติ`); }
