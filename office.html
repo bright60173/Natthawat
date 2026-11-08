@@ -614,7 +614,7 @@ h2,h3,h4{letter-spacing:0}
           </div>
           <div class="opt">
             <label for="lookSel">โทนภาพ</label>
-            <select id="lookSel"><option value="bright">สดใส</option><option value="cinematic">ภาพยนตร์ (สีหม่น ขอบมืด ตัวละครเด่น)</option></select>
+            <select id="lookSel"><option value="doc">แบบ promptkub (ภาพแบนสีหม่น มีเกรน)</option><option value="bright">สดใส</option><option value="cinematic">ภาพยนตร์ (สีหม่น ขอบมืด ตัวละครเด่น)</option></select>
           </div>
           <div class="opt">
             <label for="aspectStudio">สัดส่วนวิดีโอ</label>
@@ -1194,8 +1194,8 @@ function normalizeProject(p){
     title:str(p.title,80)||"คลิปใหม่",
     aspect:p.aspect==="16:9"?"16:9":"9:16",
     music:pick(p.music,CAT.music,"upbeat"),
-    subStyle:pick(p.subStyle,CAT.subStyles,"pop"),
-    look:pick(p.look,["bright","cinematic","doc"],"bright"),
+    subStyle:pick(p.subStyle,CAT.subStyles,"doc"),
+    look:pick(p.look,["bright","cinematic","doc"],"doc"),
     charStyle:pick(p.charStyle,["cute","slim","pk"],"pk"),
     font:pick(p.font,FONT_IDS,pick(store.get("clipFont","Kanit"),FONT_IDS,"Kanit")),
     emphOn:p.emphOn!==false,
@@ -2068,6 +2068,9 @@ class Renderer{
     const text=s.narration||"", ranges=[];
     if(this.project.emphOn!==false) (s.emph||[]).forEach(ph=>{ let k=text.indexOf(ph); while(ph&&k>=0){ ranges.push([k,k+ph.length]); k=text.indexOf(ph,k+ph.length); } });
     const segs=segmenter?[...segmenter.segment(text)].map(x=>({w:x.segment,at:x.index})):(()=>{ const out=[]; let at=0; text.split(/(\s+)/).forEach(w=>{ if(w) out.push({w,at}); at+=w.length; }); return out; })();
+    // cut word pieces at the edges of emphasised phrases, so a highlight (or the red keyword box) never covers half a word
+    if(ranges.length){ const cuts=new Set(ranges.flat()); for(let i=segs.length-1;i>=0;i--){ const t=segs[i], inner=[...cuts].filter(c=>c>t.at&&c<t.at+t.w.length).sort((a,b)=>a-b); if(!inner.length) continue;
+        const parts=[]; let from=t.at; [...inner,t.at+t.w.length].forEach(c=>{ parts.push({w:text.slice(from,c),at:from,glue:c<t.at+t.w.length}); from=c; }); segs.splice(i,1,...parts); } }
     const words=[]; segs.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } const end=t.at+t.w.length; const tw=t.w.trim(); if(words.length&&/^[!?,.…:;)\]"'”’ๆ]+$/.test(tw)){ const L=words[words.length-1]; L.text+=tw; L.end=end; L.sp=/\s$/.test(t.w); return; } words.push({text:tw,at:t.at,end,emph:ranges.some(([a,b])=>t.at<b&&end>a),sp:/\s$/.test(t.w)}); });
     const t0=0.15, t1=Math.max(t0+0.6,s.duration-0.35), lens=words.map(w=>Math.max(1,w.text.replace(/[ัิ-ฺ็-๎]/g,"").length)+(w.sp?2:0)), tot=lens.reduce((a,b)=>a+b,0)||1; let acc=0;
     words.forEach((w,k)=>{ w.from=t0+(acc/tot)*(t1-t0); acc+=lens[k]; w.to=t0+(acc/tot)*(t1-t0); });
@@ -2141,7 +2144,7 @@ class Renderer{
   beatPulse(t){ const m=this.project.music; if(m==="none"||m==="calm"||reduceMotion) return 0; const bps=(MOODS[m]||MOODS.upbeat).bpm/60; return 0.012*Math.exp(-((t*bps)%1)*7); }
   emphTimes(){ if(this.project.emphOn===false) return []; const out=[]; this.subs.forEach((S,i)=>S.emphStarts.forEach(f=>out.push(this.starts[i]+f))); return out; }
   pages(c,S,fs,maxW,weight){ const key=fs+"|"+maxW+"|"+weight+"|"+fontEpoch; if(S._pk===key) return S._pages; const lines=[]; let line=[],lw=0;
-    S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*1.15:fs}px ${this.fam}`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
+    const emK=this.project.subStyle==="doc"?1:1.15; S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*emK:fs}px ${this.fam}`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
     if(line.length) lines.push({items:line,w:lw}); const pages=[]; for(let k=0;k<lines.length;k+=2){ const ls=lines.slice(k,k+2); pages.push({lines:ls,from:ls[0].items[0].w.from}); }
     S._pk=key; S._pages=pages; return pages; }
   curPage(pages,lt){ let k=0; pages.forEach((p,j)=>{ if(lt>=p.from-0.05) k=j; }); return {p:pages[k],k}; }
@@ -2348,8 +2351,16 @@ class Renderer{
     c.save(); c.globalAlpha=a; c.fillStyle="rgba(20,14,28,.72)"; c.beginPath(); c.roundRect(W/2-w/2,y0,w,h,fs*0.4); c.fill(); c.textBaseline="middle"; c.textAlign="left";
     p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+fs*0.45+li*lh+lh/2; ln.items.forEach(it=>{ c.font=`600 ${it.w.emph?fs*1.15:fs}px ${this.fam}`; c.fillStyle=it.w.emph?"#ffd23f":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
     c.restore(); }
-  drawProgress(c,t){ c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(0,0,this.W,6); c.fillStyle="#ff5d8f"; c.fillRect(0,0,this.W*clamp(t/this.total,0,1),6); }
-  drawEnd(c,lt){ const W=this.W,H=this.H,u=Math.min(W,H)/720; BG.abstract(c,W,H,lt); const P=this.project; const p=easeBack(clamp(lt/0.5,0,1));
+  drawProgress(c,t){ if(this.project.look==="doc") return; c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(0,0,this.W,6); c.fillStyle="#ff5d8f"; c.fillRect(0,0,this.W*clamp(t/this.total,0,1),6); }
+  drawEnd(c,lt){ const W=this.W,H=this.H,u=Math.min(W,H)/720;
+    if(this.project.look==="doc"){ // promptkub-style ending: flat dark navy, small "next" chip, the question in white, one red line
+      const m=Math.min(W,H), a=easeOut(clamp(lt/0.5,0,1)), P=this.project; c.fillStyle="#141821"; c.fillRect(0,0,W,H); c.save(); c.globalAlpha=a; c.textAlign="center"; c.textBaseline="middle";
+      const y=H*0.42-(1-a)*m*0.03; c.font=`600 ${m*0.028}px ${this.fam}`; const chip="• ตอนต่อไป", cw=c.measureText(chip).width+m*0.05; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(W/2-cw/2,y-m*0.13,cw,m*0.05,m*0.025); c.fill(); c.fillStyle="#141821"; c.fillText(chip,W/2,y-m*0.105);
+      c.fillStyle="#ffffff"; c.font=`700 ${m*0.07}px ${this.fam}`; const ls=wrap(c,P.endCard.text,W*0.8).slice(0,2); ls.forEach((l,i)=>c.fillText(l,W/2,y+i*m*0.085)); const yb=y+(ls.length-1)*m*0.085;
+      c.fillStyle="#c8352b"; c.fillRect(W/2-m*0.12,yb+m*0.065,m*0.24,m*0.006);
+      if(P.endCard.sub){ c.fillStyle="#9aa3b2"; c.font=`500 ${m*0.032}px ${this.fam}`; c.fillText(P.endCard.sub,W/2,yb+m*0.12,W*0.8); }
+      c.restore(); return; }
+    BG.abstract(c,W,H,lt); const P=this.project; const p=easeBack(clamp(lt/0.5,0,1));
     c.save(); c.translate(W/2,H*0.42); c.scale(p,p); c.font=`800 ${Math.round(Math.min(W,H)*0.09)}px ${this.fam}`; c.textAlign="center"; c.textBaseline="middle"; c.lineJoin="round";
     wrap(c,P.endCard.text,W*0.85).slice(0,2).forEach((l,i)=>{ const y=i*Math.min(W,H)*0.11; c.lineWidth=18*u; c.strokeStyle=OL; c.strokeText(l,0,y); c.fillStyle="#fff"; c.fillText(l,0,y); });
     if(P.endCard.sub){ c.font=`600 ${Math.round(Math.min(W,H)*0.045)}px ${this.fam}`; c.fillStyle="#2b2140"; c.fillText(P.endCard.sub,0,Math.min(W,H)*0.25,W*0.85); } c.restore();
@@ -2437,19 +2448,24 @@ class AudioEngine{
    Studio (player, editing, export)
    ========================================================= */
 const videoCv=$("video"), R=new Renderer(videoCv), AU=new AudioEngine();
-const DEMO={ example:true, title:"What if โลกหยุดหมุน 1 วินาที", aspect:"9:16", music:"tense", subStyle:"pop",
-  endCard:{text:"อยากรู้ What if เรื่องไหนต่อ?", sub:"คอมเมนต์ไว้เลย!"},
+/* Example clip in the owner's chosen house style (promptkub look, guide format). Facts: Thai EMS 1669; CPR 100-120/min,
+   5-6 cm deep (AHA 2020 guidelines). */
+const DEMO={ example:true, title:"ถ้ามีคนหมดสติตรงหน้าคุณ", aspect:"9:16", music:"tense", subStyle:"doc", look:"doc", charStyle:"pk", endCard:{text:"ถ้าเขาสำลักอาหารล่ะ ต้องทำยังไง?",sub:"คอมเมนต์ไว้ ตอนหน้ามาเฉลย"},
   scenes:[
-    {bg:"space",time:"night",camera:"zoom-in",effect:"sparkles",transition:"cut",sfx:"whoosh",caption:"ถ้าโลกหยุดหมุน 1 วิ?!",narration:"ถ้าวันหนึ่งโลก *หยุดหมุน* แค่ *หนึ่งวินาที* จะเกิดอะไรขึ้น?",duration:3.8,subPos:"bottom",
-     elements:[{type:"prop",name:"earth",x:0.5,y:0.45,scale:2.2,enter:"pop",motion:"float"},{type:"prop",name:"question",x:0.8,y:0.3,scale:0.9,enter:"pop",at:0.6,motion:"pulse"},{type:"emoji",char:"😱",x:0.2,y:0.32,scale:0.9,enter:"pop",at:1.2,motion:"pulse"}]},
-    {bg:"city",time:"day",camera:"shake",effect:"speedlines",transition:"slide",sfx:"boom",caption:"1,670 กม./ชม.",narration:"ทุกอย่างบนพื้นโลกยังพุ่งไปข้างหน้า ด้วยความเร็ว *1,670 กิโลเมตรต่อชั่วโมง*",duration:4.6,subPos:"top",
-     elements:[{type:"character",look:"boy",emotion:"shocked",x:0.3,y:0.78,scale:1.1,enter:"left",motion:"move",toX:1.2,toY:0.7},{type:"prop",name:"car",x:0.7,y:0.82,scale:1.1,enter:"right",motion:"move",toX:1.3,toY:0.75},{type:"prop",name:"building",x:0.15,y:0.62,scale:1.2,enter:"none",motion:"shake"}]},
-    {bg:"ocean",time:"sunset",camera:"orbit",effect:"bubbles",transition:"whip",sfx:"rumble",caption:"สึนามิทั่วโลก",narration:"น้ำทะเลก็ไม่หยุดตาม กลายเป็น *คลื่นยักษ์* ถล่มทุกชายฝั่ง",duration:4,
-     elements:[{type:"prop",name:"wave",x:0.55,y:0.6,scale:3,enter:"right",motion:"move",toX:0.35,toY:0.6},{type:"character",look:"cat",emotion:"scared",x:0.2,y:0.8,scale:0.9,enter:"pop",motion:"jump",say:"เมี้ยววว!"}]},
-    {bg:"lab",time:"day",camera:"zoom-in",effect:"none",transition:"glitch",sfx:"ding",caption:"แต่ข่าวดีคือ...",narration:"แต่ข่าวดีคือ นักวิทยาศาสตร์บอกว่ามัน *แทบเป็นไปไม่ได้* เลย",duration:3.8,
-     elements:[{type:"character",look:"scientist",emotion:"thinking",x:0.5,y:0.8,scale:1.3,enter:"pop",motion:"talk"},{type:"prop",name:"lightbulb",x:0.78,y:0.35,scale:1,enter:"pop",at:1.2,motion:"float",glow:true}]},
-    {bg:"sky",time:"day",camera:"drone",effect:"confetti",transition:"zoom",sfx:"magic",caption:"โลกยังหมุนปกติ!",narration:"เพราะโลก *หนักมาก* ไม่มีแรงไหนหยุดมันได้ในพริบตา *สบายใจได้!*",duration:3.8,
-     elements:[{type:"character",look:"girl",emotion:"excited",x:0.35,y:0.8,scale:1.1,enter:"bottom",motion:"jump"},{type:"character",look:"robot",emotion:"happy",x:0.68,y:0.8,scale:1.1,enter:"bottom",at:0.3,motion:"wave",flip:true},{type:"prop",name:"sun",x:0.8,y:0.22,scale:1,enter:"fade",motion:"none"}]},
+    {bg:"street",time:"day",camera:"zoom-in",transition:"cut",sfx:"whoosh",narration:"ถ้ามีคนล้มหมดสติตรงหน้าคุณ",subEn:"If someone collapses in front of you",emph:["หมดสติ"],punch:true,tag:"ป้ายรถเมล์ · กรุงเทพฯ",clock:"12:05",
+      elements:[{type:"character",look:"girl",pin:"คุณ",emotion:"shocked",x:0.3,y:0.84,scale:0.75,enter:"left"},{type:"character",look:"scientist",emotion:"scared",x:0.68,y:0.84,scale:0.75,enter:"pop",motion:"shake"}]},
+    {bg:"street",time:"day",camera:"pan-right",transition:"slide",narration:"ตบไหล่แรงๆ แล้วเรียกเสียงดัง",subEn:"Tap the shoulders hard and shout",emph:["เรียกเสียงดัง"],
+      elements:[{type:"character",look:"girl",emotion:"scared",x:0.5,y:1.06,scale:1.6,enter:"bottom"}]},
+    {bg:"street",time:"day",camera:"zoom-in",transition:"whip",sfx:"ding",narration:"ไม่ตอบ ไม่หายใจปกติ โทร 1669 ทันที",subEn:"No response, not breathing normally: call 1669 now",emph:["1669"],
+      elements:[{type:"card",kind:"phone",value:"1669",label:"การแพทย์ฉุกเฉิน",x:0.5,y:0.42,enter:"bottom"}]},
+    {bg:"street",time:"day",camera:"static",transition:"fade",narration:"บอกจุดที่อยู่ อาการ และเบอร์ติดต่อกลับ",subEn:"Say where you are, what happened, and your number",emph:["จุดที่อยู่"],
+      elements:[{type:"card",kind:"note",tag:"บอกเจ้าหน้าที่ · TELL",label:"จุดที่อยู่",labelEn:"WHERE YOU ARE",x:0.5,y:0.16,enter:"left"},{type:"card",kind:"note",tag:"บอกเจ้าหน้าที่ · TELL",label:"อาการ",labelEn:"WHAT HAPPENED",x:0.5,y:0.29,enter:"left",at:0.4},{type:"card",kind:"note",tag:"บอกเจ้าหน้าที่ · TELL",label:"เบอร์ติดต่อกลับ",labelEn:"CALLBACK NUMBER",x:0.5,y:0.42,enter:"left",at:0.8}]},
+    {bg:"studio",time:"day",camera:"zoom-in",transition:"slide",sfx:"pop",narration:"กดกลางหน้าอก 100 ถึง 120 ครั้งต่อนาที",subEn:"Push on the centre of the chest, 100 to 120 times a minute",emph:["100 ถึง 120"],
+      elements:[{type:"card",kind:"stat",label:"กดหน้าอก",labelEn:"CHEST COMPRESSIONS",value:"100-120",unit:"ครั้ง/นาที",src:"ที่มา: AHA Guidelines 2020",x:0.5,y:0.28,enter:"top"}]},
+    {bg:"studio",time:"day",camera:"orbit",transition:"zoom",narration:"ลึกราว 5 ถึง 6 เซนติเมตร อย่ากลัวกดแรง",subEn:"About 5 to 6 cm deep. Don't be afraid to push hard",emph:["5 ถึง 6 เซนติเมตร"],punch:true,
+      elements:[{type:"card",kind:"bars",label:"ความลึกที่กด",rows:[{label:"เบาไป",value:"2 ซม.",pct:35,good:false},{label:"ที่ถูก",value:"5-6 ซม.",pct:95,good:true}],src:"ที่มา: AHA Guidelines 2020",x:0.5,y:0.26,enter:"top"}]},
+    {bg:"street",time:"day",camera:"zoom-out",transition:"fade",sfx:"magic",narration:"กดต่อไป จนทีมแพทย์มาถึง",subEn:"Keep pushing until the medical team arrives",emph:["จนทีมแพทย์มาถึง"],
+      elements:[{type:"card",kind:"lesson",strike:"รอหมอมาก่อน",label:"กดหน้าอกทันที จนหมอมาถึง",labelEn:"Start compressions now, keep going until help arrives.",x:0.5,y:0.3,enter:"pop"}]}
   ]};
 let openRecId=store.get("openRec",null);
 let project=null, playing=false, playT=0, rafId=0, voiceBuf=null, lastSpokenScene=-1, exported=null;
