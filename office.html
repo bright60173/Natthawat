@@ -1126,7 +1126,7 @@ const CF={ff:famOf("Kanit"),cs:"cute"};
 const CAT = {
   backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint"],
   times:["day","sunset","night"],
-  characters:["boy","girl","scientist","robot","cat","alien"],
+  characters:["boy","girl","kid","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry"],
   props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd"],
   motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave"],
@@ -1168,6 +1168,7 @@ function normalizeProject(p){
         toX:num(e.toX,-0.5,1.5,num(e.x,-0.3,1.3,0.5)), toY:num(e.toY,-0.5,1.5,num(e.y,-0.3,1.3,0.6)), flip:!!e.flip };
       if(type==="character"){ o.look=pick(e.look,CAT.characters,"boy"); o.emotion=pick(e.emotion,CAT.emotions,"happy"); o.say=str(e.say,24); }
       else if(type==="prop"){ o.name=pick(e.name,CAT.props,"star"); o.glow=!!e.glow; }
+      if(type==="character") o.pin=str(e.pin,16);
       else if(type==="emoji"){ o.char=str(e.char||e.text,8)||"✨"; }
       else if(type==="card"){ const side=v=>({label:str(v?.label,22),value:str(v?.value,12),unit:str(v?.unit,14),note:str(v?.note,20),good:v?.good===false?false:v?.good===true?true:null});
         o.kind=pick(e.kind,["stat","timer","compare","icons","bars","lesson","note","phone","plan"],"stat"); o.tag=str(e.tag,28); o.src=str(e.src,48); o.strike=str(e.strike,28); o.total=Math.round(num(e.total,2,20,10)); o.icon=pick(e.icon,["house","person","car","building","tree"],"person");
@@ -1195,7 +1196,7 @@ function normalizeProject(p){
     music:pick(p.music,CAT.music,"upbeat"),
     subStyle:pick(p.subStyle,CAT.subStyles,"pop"),
     look:pick(p.look,["bright","cinematic","doc"],"bright"),
-    charStyle:"cute",
+    charStyle:pick(p.charStyle,["cute","slim","pk"],"pk"),
     font:pick(p.font,FONT_IDS,pick(store.get("clipFont","Kanit"),FONT_IDS,"Kanit")),
     emphOn:p.emphOn!==false,
     bg3d:p.bg3d!==false,
@@ -1261,7 +1262,7 @@ const BG={
     c.fillStyle=P.night?"#3b3832":"#ddd3c0"; c.fillRect(0,H*0.5,W,H*0.24); c.fillStyle="#9a3b2c"; c.fillRect(0,H*0.18,W,H*0.012); c.fillRect(0,H*0.5,W,H*0.01);
     for(let i=0;i<4;i++){ const x=W*(0.04+i*0.25), y=H*0.22; c.fillStyle="#8e3426"; c.fillRect(x,y,W*0.2,H*0.24); c.save(); c.beginPath(); c.rect(x+W*0.012,y+H*0.008,W*0.176,H*0.224); c.clip(); setSky(c,W,H,P,H*0.5); c.fillStyle=P.hill; c.fillRect(x,y+H*0.16,W*0.2,H*0.1); c.restore(); c.fillStyle="#8e3426"; c.fillRect(x+W*0.097,y,W*0.006,H*0.24); c.fillRect(x,y+H*0.115,W*0.2,H*0.006); }
     c.fillStyle="#2f5d46"; c.fillRect(W*0.32,H*0.53,W*0.36,H*0.15); c.strokeStyle="#a37548"; c.lineWidth=W*0.008; c.strokeRect(W*0.32,H*0.53,W*0.36,H*0.15); c.fillStyle="rgba(255,255,255,.55)"; c.fillRect(W*0.36,H*0.57,W*0.18,H*0.004); c.fillRect(W*0.36,H*0.6,W*0.25,H*0.004);
-    c.fillStyle="#efe7d6"; c.font=`600 ${W*0.03}px sans-serif`; c.fillStyle="#3d3a35"; c.fillRect(W*0.08,H*0.12,W*0.12,H*0.035); c.fillStyle="#efe7d6"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("ม.4/2",W*0.14,H*0.138);
+    
     c.fillStyle=P.night?"#5b554c":"#c9bda6"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(0,0,0,.08)"; for(let y=H*0.74;y<H;y+=H*0.045) c.fillRect(0,y,W,H*0.003); },
   nightroom(c,W,H,t,time){ c.fillStyle="#2a2440"; c.fillRect(0,0,W,H); c.fillStyle="#241f38"; for(let x=0;x<W;x+=W*0.1) c.fillRect(x,0,W*0.05,H*0.74);
     const wx=W*0.42,wy=H*0.1,ww=W*0.52,wh=H*0.42; c.fillStyle="#141a33"; c.fillRect(wx,wy,ww,wh); c.save(); c.beginPath(); c.rect(wx,wy,ww,wh); c.clip(); c.fillStyle="#1d2550"; c.fillRect(wx,wy,ww,wh);
@@ -1668,7 +1669,46 @@ function drawSlim(c,el,lt,talking){ const L=LOOKS[el.look]||LOOKS.boy, T=SLIM_TO
   const front=run?[-18,shoulder+6,-18+sw*24,-180,-18+sw*32,-150]:mo==="shrug"?[-18,shoulder+6,-44,-200,-58,-216]:pt?[-18,shoulder+6,lerp(-24,-52,pt),lerp(-180,-232,pt),lerp(-22,-86,pt),lerp(-136,-246,pt)]:emo==="thinking"?[-18,shoulder+6,-26,-196,-4,-222]:armUp?[-18,shoulder+6,-38,-262,-46,-292]:[-18,shoulder+6,-24,-180,-22,-136+Math.sin(lt*2.2+1)*2];
   limb2(front,12,top); c.fillStyle=L.skin; c.beginPath(); c.arc(front[front.length-2],front[front.length-1],6.5,0,7); c.fill(); if(pt>0.6) limb2([front[4],front[5],front[4]-12,front[5]-3],4,L.skin);
   c.restore(); }
-function drawCharacter(c,el,lt,talking){ if(CF.cs==="slim"&&!["robot","cat","alien"].includes(el.look)) return drawSlim(c,el,lt,talking);
+/* promptkub-style people (the owner asked to copy that channel's animation): tall flat figures, small round head,
+   dot eyes, thin straight limbs, flat muted colours, no outlines. Feet at (0,0), about 300 units tall. */
+const PK_TONES={boy:{top:"#3f6fb0",bottom:"#2a2f3c",hair:"#1d1b1a",skin:"#e2ae86"},girl:{top:"#f1f0ec",bottom:"#283457",hair:"#151413",skin:"#ecbf98",skirt:true},
+  scientist:{top:"#f3f3f0",bottom:"#3b4050",hair:"#cfcac2",skin:"#dcaa82",coat:true,glasses:true},kid:{top:"#f1f0ec",bottom:"#2b3550",hair:"#1d1b1a",skin:"#e6b48c"}};
+function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=el.emotion, mo=el.motion, run=mo==="run", walk=mo==="walk"||mo==="move"||run, sw=walk?Math.sin(lt*(run?14:7.5)):0;
+  const lift=mo==="jump"||mo==="celebrate"||emo==="excited"?-Math.abs(Math.sin(lt*6))*14:run?-Math.abs(Math.sin(lt*14))*5:0, breath=Math.sin(lt*2)*0.8, armsUp=emo==="shocked"||emo==="scared"||mo==="celebrate"||emo==="excited";
+  const ln=(pts,w,col)=>{ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w; c.strokeStyle=col; c.beginPath(); c.moveTo(pts[0],pts[1]); for(let k=2;k<pts.length;k+=2) c.lineTo(pts[k],pts[k+1]); c.stroke(); };
+  c.save(); if(run) c.rotate(0.12); c.translate(0,lift);
+  const hip=-140, sh=-236, legW=11;
+  // legs: straight, swing from the hip; skirt for the girl look
+  const leg=(x,ph,col)=>{ const a=ph*(run?0.55:0.35), fx=x+Math.sin(a)*140, fy=hip+Math.cos(a)*140; ln([x,hip,fx,fy-4],legW,col); c.fillStyle="#f2f2ee"; c.fillRect(fx-5,fy-16,10,12); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(fx+5,fy-3,11,5,0,0,7); c.fill(); };
+  leg(5,-sw,T.skirt?T.skin:T.bottom); leg(-5,sw,T.skirt?shade(T.skin,-0.06):shade(T.bottom,-0.12));
+  c.translate(0,breath);
+  if(T.skirt){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-17,hip-14); c.lineTo(17,hip-14); c.lineTo(25,hip+44); c.lineTo(-25,hip+44); c.closePath(); c.fill(); }
+  else { c.fillStyle=T.bottom; c.fillRect(-15,hip-14,30,22); }
+  // arms (thin, sleeve then skin)
+  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=armsUp?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
+    ln(a.slice(0,4),10,T.coat?T.top:T.top); ln(a.slice(2),8.5,T.skin); };
+  arm(-16,-1,-sw); 
+  // torso: flat shirt block (lab coat longer)
+  c.fillStyle=T.top; c.beginPath(); c.roundRect(-18,sh,36,T.coat?120:102,[9,9,3,3]); c.fill(); c.fillStyle="rgba(0,0,0,.06)"; c.fillRect(-18,sh+(T.coat?108:90),36,12);
+  if(T.skirt||el.look==="kid"){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-4,sh+2); c.lineTo(4,sh+2); c.lineTo(2,sh+34); c.lineTo(-2,sh+34); c.fill(); }
+  if(T.coat){ c.strokeStyle="rgba(0,0,0,.12)"; c.lineWidth=2; c.beginPath(); c.moveTo(0,sh+6); c.lineTo(0,sh+118); c.stroke(); }
+  arm(16,1,sw);
+  // neck + head
+  c.fillStyle=shade(T.skin,-0.08); c.fillRect(-5,sh-12,10,14);
+  const tilt=(emo==="thinking"?-0.12:0)+(mo==="nod"?Math.sin(lt*5)*0.08:0); c.save(); c.translate(0,sh-30); c.rotate(tilt);
+  c.fillStyle=T.skin; c.beginPath(); c.arc(0,0,21,0,7); c.fill();
+  c.fillStyle=T.hair; if(el.look==="girl"){ c.beginPath(); c.arc(0,-3,23,Math.PI*0.95,Math.PI*2.05); c.lineTo(23,14); c.lineTo(15,14); c.lineTo(15,-6); c.lineTo(-15,-6); c.lineTo(-15,14); c.lineTo(-23,14); c.closePath(); c.fill(); }
+  else if(el.look==="scientist"){ c.beginPath(); c.arc(0,-4,22,Math.PI*1.05,Math.PI*1.95); c.fill(); fillE(c,-19,0,5,9,T.hair); fillE(c,19,0,5,9,T.hair); }
+  else { c.beginPath(); c.arc(0,-3,22,Math.PI*1.02,Math.PI*1.98); c.lineTo(20,-8); c.lineTo(-20,-8); c.closePath(); c.fill(); if(el.look==="boy") for(let i=-3;i<=3;i++){ c.beginPath(); c.moveTo(i*6-4,-20); c.lineTo(i*6+1,-31-Math.abs(i)%2*4); c.lineTo(i*6+5,-19); c.fill(); } }
+  const blink=(lt+el.x*3)%3.8<0.12, big=emo==="shocked"||emo==="scared", ey=3;
+  if(big){ c.fillStyle="#fbfaf6"; c.beginPath(); c.arc(-7,ey,5,0,7); c.arc(7,ey,5,0,7); c.fill(); }
+  c.fillStyle="#1b1a1c"; if(blink){ c.fillRect(-10,ey,6,1.8); c.fillRect(4,ey,6,1.8); } else { c.beginPath(); c.arc(-7,ey,big?2.4:2.2,0,7); c.arc(7,ey,big?2.4:2.2,0,7); c.fill(); }
+  if(T.glasses){ c.strokeStyle="#1b1a1c"; c.lineWidth=1.4; c.beginPath(); c.arc(-7,ey,5.5,0,7); c.moveTo(12.5,ey); c.arc(7,ey,5.5,0,7); c.stroke(); }
+  const ta=typeof talking==="number"?talking:0, my=12; c.fillStyle="#8a3b3b";
+  if(ta>0.02){ c.beginPath(); c.ellipse(0,my,3,1+ta*3.5,0,0,7); c.fill(); } else if(big){ c.beginPath(); c.ellipse(0,my+1,2.6,3.4,0,0,7); c.fill(); } else { c.strokeStyle="#8a3b3b"; c.lineWidth=1.6; c.beginPath(); if(emo==="sad"||emo==="angry"){ c.moveTo(-4,my+2); c.quadraticCurveTo(0,my-1,4,my+2); } else if(emo==="happy"||emo==="excited"){ c.moveTo(-4,my-1); c.quadraticCurveTo(0,my+3,4,my-1); } else { c.moveTo(-3,my); c.lineTo(3,my); } c.stroke(); }
+  if(emo==="scared"||emo==="sad"){ c.fillStyle="#9fd0ff"; c.beginPath(); c.moveTo(18,-14); c.quadraticCurveTo(24,-4,18,-2); c.quadraticCurveTo(13,-4,18,-14); c.fill(); }
+  c.restore(); c.restore(); }
+function drawCharacter(c,el,lt,talking){ if(CF.cs==="pk"&&!["robot","cat","alien"].includes(el.look)) return drawPK(c,el,lt,talking); if(CF.cs==="slim"&&!["robot","cat","alien"].includes(el.look)) return drawSlim(c,el,lt,talking);
   const L=LOOKS[el.look]||LOOKS.boy, emo=el.emotion, mo=el.motion, running=mo==="run", walking=mo==="walk"||mo==="move"||running, waving=mo==="wave";
   // talking: a 0..1 mouth level from the spoken words (lip sync), or a loop when no timing is known
   const talkAmt=typeof talking==="number"?talking:(talking?Math.abs(Math.sin(lt*13))*0.75+0.25:0); talking=talkAmt>0.02;
@@ -2051,7 +2091,8 @@ class Renderer{
       if(e.motion==="jump"||e.motion==="celebrate") pts.push([e.x,e.y-0.06]);
       if(e.motion==="rise"||e.motion==="fall"){ const y2=e.motion==="rise"?(e.toY<e.y?e.toY:e.y-0.5):e.y-0.7; for(let k=1;k<=4;k++) pts.push([e.x,e.y+(y2-e.y)*k/4]); }
       for(const [x,y] of pts){ const X=x*W, Y=y*H;
-        if(e.type==="character"){ const h=m*0.58*e.scale, w=m*0.32*e.scale; R.push({x0:X-w/2,x1:X+w/2,y0:Y-h,y1:Y,w:4}); const k=m*0.0024*e.scale, slim=s&&this.project.charStyle==="slim"&&!["robot","cat","alien"].includes(e.look), hy=Y-k*(slim?266:188), hr=k*(slim?30:52); R.push({x0:X-hr,x1:X+hr,y0:hy-hr,y1:hy+hr*1.1,w:100});
+        if(e.type==="character"){ const h=m*(this.project.charStyle==="pk"?0.72:0.58)*e.scale, w=m*0.32*e.scale; R.push({x0:X-w/2,x1:X+w/2,y0:Y-h,y1:Y,w:4}); const k=m*0.0024*e.scale, pkS=this.project.charStyle==="pk"&&!["robot","cat","alien"].includes(e.look), slim=s&&this.project.charStyle==="slim"&&!["robot","cat","alien"].includes(e.look), hy=Y-k*(pkS?266:slim?266:188), hr=k*(pkS?26:slim?30:52); R.push({x0:X-hr,x1:X+hr,y0:hy-hr,y1:hy+hr*1.1,w:100});
+          if(e.pin){ const top=Y-k*(pkS?300:250), py=top-m*0.07, fs=m*0.026; R.push({x0:X-fs*4,x1:X+fs*4,y0:py-fs,y1:top,w:100}); }
           if(e.say){ const fs=34*m/720, by=Y-m*0.0024*e.scale*240; c.font=`600 ${fs}px ${this.fam}`; const bw=Math.min(c.measureText(e.say).width+fs,W*0.8); R.push({x0:X-bw/2,x1:X+bw/2,y0:by-fs*1.8,y1:by+fs*0.6,w:100}); R.push({x0:X-bw-m*0.11*e.scale,x1:X+bw+m*0.11*e.scale,y0:by,y1:by+m*0.11*e.scale+fs*1.7,w:6}); } }
         else if(e.type==="text"){ const r=this.textRect(s,e,this.textShift(s,e)+(y-e.y)); R.push({x0:r.x0,x1:r.x1,y0:r.y0,y1:r.y1,w:100}); }
         else if(e.type==="emoji"){ const r=m*0.1*e.scale; R.push({x0:X-r,x1:X+r,y0:Y-r,y1:Y+r,w:10}); }
@@ -2143,7 +2184,9 @@ class Renderer{
     const bg3=this.project.bg3d!==false?bg3dFrame(s,lt,idx,W,H):null;
     if(bg3){ c.save(); const k=1+this.punch(idx,lt)*0.5+this.beatPulse((this.starts[idx]||0)+lt)*0.5; c.translate(W/2,H/2); c.scale(k,k); c.translate(-W/2,-H/2); c.drawImage(bg3,0,0,W,H); c.restore(); }
     else { c.save(); const bsc=1+(sc-1)*0.5+0.02; c.translate(W/2+dx*0.45,H/2+dy*0.6); c.scale(bsc,bsc); c.translate(-W/2,-H/2);
-    (BG[s.bg]||BG.sky)(c,W,H,lt+idx*3,s.time); c.restore(); }
+    // promptkub close-ups: the set goes soft (shallow depth of field) when a character or object is shot close
+    const close=this.project.look==="doc"&&s.elements.some(e=>(e.type==="character"&&e.scale>=1.15)||(e.type==="prop"&&e.scale>=1.6)||(e.type==="card"&&(e.kind==="phone"||e.kind==="plan")));
+    if(close) c.filter=`blur(${Math.round(Math.min(W,H)*0.007)}px)`; (BG[s.bg]||BG.sky)(c,W,H,lt+idx*3,s.time); c.filter="none"; c.restore(); }
     if(this.project.look==="cinematic") this.grade(c,W,H); else if(this.project.look==="doc") this.gradeDoc(c,W,H,lt);
     c.translate(W/2+dx,H/2+dy); c.scale(sc,sc); c.translate(-W/2,-H/2);
     // elements (props behind characters, text on top)
@@ -2185,7 +2228,13 @@ class Renderer{
       if(ep<1&&["left","right","top","bottom"].includes(el.enter)){ const dir={left:[-1,0],right:[1,0],top:[0,-1],bottom:[0,1]}[el.enter]; const cy=el.type==="character"?Y-base*0.25*el.scale:Y;
         c.save(); c.globalAlpha=(1-ep)*0.6; c.strokeStyle="#ffffff"; c.lineCap="round"; for(let i=-1;i<=1;i++){ c.lineWidth=base*0.006; const ox=dir[1]?i*base*0.05:0, oy=dir[0]?i*base*0.06:0, L0=base*0.12, L1=base*0.32; c.beginPath(); c.moveTo(X+ox+dir[0]*L0,cy+oy+dir[1]*L0); c.lineTo(X+ox+dir[0]*L1,cy+oy+dir[1]*L1); c.stroke(); } c.restore(); } }
     c.save(); c.globalAlpha=alpha; c.translate(X,Y); c.rotate(rot); c.scale(sx,sy);
-    if(el.type==="character"){ const k=base*0.0024*sc; c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,this.talkLevel(s,el,lt,at)); c.restore();
+    if(el.type==="character"){ const k=base*0.0024*sc; c.save(); c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,this.talkLevel(s,el,lt,at)); c.restore();
+      // promptkub pin label: a small pill above the head with a dotted leader ("คุณ", "ต้น", "ฟ้า · หัวหน้าห้อง")
+      if(el.pin){ const top=-(this.project.charStyle==="pk"?300:250)*k, fs=base*0.026, py=top-base*0.07, q=easeBack(clamp((lt-at-0.3)/0.35,0,1)); c.save(); c.globalAlpha=clamp(q,0,1); c.strokeStyle="rgba(30,26,22,.8)"; c.lineWidth=Math.max(1,fs*0.1); c.setLineDash([fs*0.15,fs*0.25]); c.beginPath(); c.moveTo(0,py+fs*0.9); c.lineTo(0,top-fs*0.2); c.stroke(); c.setLineDash([]);
+        c.fillStyle="#1e1a16"; c.beginPath(); c.arc(0,top-fs*0.2,fs*0.18,0,7); c.fill(); c.font=`700 ${fs}px ${this.fam}`; const tw=c.measureText(el.pin).width, bw=tw+fs*2.6; c.translate(0,py); c.scale(q,q);
+        c.fillStyle="#f5f0e6"; c.shadowColor="rgba(0,0,0,.3)"; c.shadowBlur=fs*0.5; c.beginPath(); c.roundRect(-bw/2,-fs*0.85,bw,fs*1.7,fs*0.85); c.fill(); c.shadowBlur=0; c.strokeStyle="#1e1a16"; c.lineWidth=Math.max(1,fs*0.08); c.stroke();
+        c.fillStyle="#e2b33a"; c.beginPath(); c.arc(-bw/2+fs*0.95,0,fs*0.5,0,7); c.fill(); c.fillStyle="#1e1a16"; c.beginPath(); c.arc(-bw/2+fs*0.95,-fs*0.05,fs*0.18,0,7); c.fill(); c.textAlign="left"; c.textBaseline="middle"; c.fillText(el.pin,-bw/2+fs*1.75,fs*0.05); c.restore(); }
+      c.restore();
       if(el.say && lt>=at+0.3) this.drawBubble(c,el.say,X,Y-base*0.0024*sc*250,u,s,sc);
       return; }
     if(el.type==="card"){ drawInfoCard(c,el,base*sc/Math.max(0.01,el.scale),lt-at,this.fam); c.restore(); return; }
@@ -2282,9 +2331,14 @@ class Renderer{
   subDoc(c,S,lt){
     const W=this.W,m=Math.min(W,this.H), cfg=this.pageCfg("doc"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, en=S.scene?.subEn?this.enLines(S.scene.subEn):[];
     const th=p.lines.length*lh, eh=en.length?en.length*fs*0.62+fs*0.9:0, a=reduceMotion||this._still?1:clamp((lt-p.from)/0.18,0,1), y0=this.bandY(S)-(th+eh)/2+(1-easeOut(a))*fs*0.3;
-    c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.textAlign="left"; const punch=!!S.scene?.punch;
-    if(punch){ const bw=Math.max(...p.lines.map(l=>l.w))+fs*0.9; c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(W/2-bw/2,y0-fs*0.12,bw,th+fs*0.24,fs*0.16); c.fill(); }
-    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+li*lh+lh/2; ln.items.forEach(it=>{ const f=it.w.emph&&!punch?fs*1.08:fs; if(punch){ c.font=`700 ${f}px ${this.fam}`; c.fillStyle="#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; return; } c.font=`700 ${f}px ${this.fam}`; c.fillStyle="rgba(0,0,0,.55)"; c.fillText(it.w.text,x+fs*0.04,y+fs*0.07); c.fillStyle=it.w.emph?"#f5c542":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
+    c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.textAlign="left"; const punch=!!S.scene?.punch, anyEmph=p.lines.some(l=>l.items.some(it=>it.w.emph)), wholeBox=punch&&!anyEmph;
+    // promptkub: white text with a soft dark glow; on a punch line the key phrase sits in a red box (whole line only when no key phrase)
+    if(wholeBox){ const bw=Math.max(...p.lines.map(l=>l.w))+fs*0.9; c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(W/2-bw/2,y0-fs*0.12,bw,th+fs*0.24,fs*0.16); c.fill(); }
+    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+li*lh+lh/2;
+      if(punch&&!wholeBox){ let x2=x; ln.items.forEach((it,k)=>{ if(it.w.emph&&!ln.items[k-1]?.w.emph){ let ww=0; for(let j=k;j<ln.items.length&&ln.items[j].w.emph;j++) ww+=ln.items[j].width; c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(x2-fs*0.2,y-lh*0.5,ww+fs*0.3,lh,fs*0.14); c.fill(); } x2+=it.width; }); }
+      ln.items.forEach(it=>{ const f=fs; c.font=`700 ${f}px ${this.fam}`; const boxed=wholeBox||(punch&&it.w.emph);
+        if(!boxed){ c.save(); c.shadowColor="rgba(10,8,6,.6)"; c.shadowBlur=fs*0.35; c.shadowOffsetY=fs*0.04; c.fillStyle="rgba(0,0,0,.25)"; c.fillText(it.w.text,x,y); c.restore(); }
+        c.fillStyle=boxed?"#ffffff":it.w.emph?"#f5c542":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
     if(en.length){ const efs=fs*0.46; c.font=`600 ${efs}px ${this.fam}`; const ew=Math.max(...en.map(l=>c.measureText(l).width))+efs*2, ey=y0+th+fs*0.3; c.fillStyle="rgba(18,20,26,.62)"; c.beginPath(); c.roundRect(W/2-ew/2,ey,ew,en.length*fs*0.62+efs*1.2,efs*0.5); c.fill();
       c.fillStyle="#f2f2f2"; c.textAlign="center"; en.forEach((l,k)=>c.fillText(l,W/2,ey+efs*0.95+k*fs*0.62)); }
     c.restore(); }
@@ -2724,7 +2778,7 @@ const SCHEMA=`{
     "clock": "นาฬิกามุมขวาบน เช่น 10:39 หรือ 00:10 (ใส่เมื่อเวลากดดัน นับถอยหลัง)",
     "duration": 3.5,
     "elements": [
-      {"type":"character","look":"${CAT.characters.join("|")}","emotion":"${CAT.emotions.join("|")}","say":"คำพูดในบอลลูนสั้นๆ (ไม่ใส่ก็ได้)","x":0.5,"y":0.8,"scale":1,"enter":"${CAT.enters.join("|")}","at":0,"motion":"${CAT.motions.join("|")}","toX":0.8,"toY":0.8,"flip":false},
+      {"type":"character","look":"${CAT.characters.join("|")}","pin":"ชื่อบนหมุดเหนือหัว (ไม่ใส่ก็ได้)","emotion":"${CAT.emotions.join("|")}","say":"คำพูดในบอลลูนสั้นๆ (ไม่ใส่ก็ได้)","x":0.5,"y":0.8,"scale":1,"enter":"${CAT.enters.join("|")}","at":0,"motion":"${CAT.motions.join("|")}","toX":0.8,"toY":0.8,"flip":false},
       {"type":"prop","name":"${CAT.props.join("|")}","x":0.5,"y":0.4,"scale":1,"enter":"pop","at":0.5,"motion":"float","glow":false},
       {"type":"text","text":"ตัวเลข/คำเด่น เช่น 1,670 กม./ชม.","color":"#ffd23f","x":0.5,"y":0.35,"scale":1,"enter":"pop","at":1},
       {"type":"emoji","char":"😱","x":0.8,"y":0.3,"scale":1,"enter":"pop","at":0.8,"motion":"pulse"},
@@ -3443,6 +3497,10 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ต้องบอกตำแหน่งในบ้าน/อาคาร ใช้ bg "blueprint" กับการ์ด kind plan (บ้านผ่าครึ่ง ไฮไลต์ห้องที่ปลอดภัย)
 - ข้อมูลสั้นที่ต้องจำ (เบอร์โทร ข้อห้าม) ใช้การ์ด kind note มี tag; ฉากสรุปท้ายเรียงการ์ด note 2-3 ใบ
 - เรื่องภัยพิบัติ/กลางคืน: เวลา night + effect rain หรือ darken ให้บรรยากาศ ภาพใกล้ตัวละครครึ่งตัวสื่ออารมณ์
+- ภาพแบบ promptkub (เจ้าของสั่งให้ลอกการทำอนิเมชันและตัดต่อของ promptkub ทั้งหมด): ตัวละครคนตัวสูงหัวเล็กสีแบน (ระบบวาดให้เอง) ภาพกว้างให้ตัวละคร scale 0.6-0.8 ยืน y 0.8-0.85 ยืนเรียงในฉากจริง; ภาพใกล้ scale 1.4-1.8 วาง y 1.0-1.1 ให้ล้นขอบล่าง ฉากหลังจะเบลอเอง
+- ตั้งชื่อคนในเรื่องด้วย "pin" บนตัวละคร เช่น "คุณ", "ต้น", "ฟ้า · หัวหน้าห้อง" (ป้ายหมุดเหนือหัว) ใช้ตอนแนะนำตัวละครครั้งแรก
+- ประโยค punch ให้ใส่ emph เป็นคำสำคัญ 1 วลี (จะขึ้นกล่องแดงเฉพาะวลีนั้น) ห้ามใช้อีโมจิ ห้ามใช้ caption
+- ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
 - ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
 const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล
 ${VIRAL_RULES}`;
@@ -3463,7 +3521,8 @@ const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุด
 const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
 function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","zoom-in","pan-left","drone","zoom-out"];
   // house style chosen by the owner from the viral references: documentary subtitles and the muted "doc" look, always
-  if(p.subStyle!=="doc"){ p.subStyle="doc"; fixes.push("ใช้ซับแบบสารคดี (สไตล์ช่อง)"); } if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน (สไตล์ช่อง)"); }
+  if(p.subStyle!=="doc"){ p.subStyle="doc"; fixes.push("ใช้ซับแบบสารคดี (สไตล์ช่อง)"); } if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน (สไตล์ช่อง)"); } if(p.charStyle!=="pk"){ p.charStyle="pk"; fixes.push("ใช้ตัวละครแบบ promptkub"); }
+  const MAP2D={classroom:"school",city:"street",ocean:"beach",room:"nightroom"}; S.forEach((x,i)=>{ if(MAP2D[x.bg]){ x.bg=MAP2D[x.bg]; fixes.push(`ฉาก ${i+1} ใช้ฉากวาด 2 มิติแทนฉาก 3 มิติ`); } });
   // viral layout: one focal point. No big captions, no emoji; a scene with a card shows only that card (the best match to the narration) and no extra text.
   S.forEach((x,i)=>{ if(x.caption){ x.caption=""; fixes.push("เอาหัวข้อใหญ่ออก ให้ซับกับการ์ดเล่าเรื่อง"); }
     const n0=x.elements.length; x.elements=x.elements.filter(e=>e.type!=="emoji"); const cards=x.elements.filter(e=>e.type==="card");
@@ -3496,7 +3555,7 @@ const STEP_FN={
   async plan(r){
     const past=Object.values(recs).filter(x=>x.id!==r.id&&(x.title||x.topic)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20).map(x=>"- "+(x.title||x.topic)).join("\n")||"- (ยังไม่มี)";
     // alternate the owner's two main formats: whichever was used less recently goes next
-    const lastFmt=Object.values(recs).filter(x=>x.id!==r.id&&x.out?.plan?.format).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0]?.out.plan.format, nextFmt=lastFmt==="guide"?"scenario":"guide";
+    const lastFmt=Object.values(recs).filter(x=>x.id!==r.id&&x.out?.plan?.format).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0]?.out.plan.format, nextFmt=lastFmt==="scenario"?"guide":"scenario";
     const todo=plan.filter(it=>!it.recId||!recs[it.recId]).slice(0,6).map(it=>`- ${it.topic}${it.hook?` (hook: ${it.hook})`:""}`).join("\n");
     const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว guide: สถานการณ์จริงที่คนไทยเจอได้ (ภัยธรรมชาติ อุบัติเหตุ สุขภาพฉุกเฉิน มิจฉาชีพ ในบ้าน บนถนน) แล้วสอนว่าต้องทำอะไรทีละขั้น";
     const trendTxt=await staffWork(r,"plan",[{id:"trend",prompt:`${r.topic?`หัวข้อที่กำหนดมา: "${r.topic}" เสนอมุมเล่า 3 แบบที่น่าดูที่สุด`:`${src}\n\nเสนอหัวข้อคลิปสั้น 3 หัวข้อที่น่าจะคนดูเยอะ`} แต่ละข้อมี hook 1 บรรทัดและเหตุผลสั้นๆ\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}`}]);
