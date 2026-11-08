@@ -2791,7 +2791,7 @@ ${STYLE}` },
 เข้มงวดแต่ยุติธรรม แก้ข้อความเล็กๆ ได้เอง ส่วนปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ส่งกลับให้ทีมแก้
 ${STYLE}` },
   { id:"creative", name:"น้องครีม", role:"นักเขียนบท / ครีเอทีฟ", px:{hair:"#ff5d8f",shirt:"#ffd34d",skin:"#ffd7b5"}, bubble:"💡",
-    quick:["คิดหัวข้อคลิป What if 5 หัวข้อ","เขียนบทคลิป 45 วินาที เรื่อง...","เขียนแคปชัน TikTok + แฮชแท็ก"],
+    quick:["คิดหัวข้อคลิป ถ้าเจอ...ต้องทำยังไง 5 หัวข้อ","เขียนบทคลิป 45 วินาที เรื่อง...","เขียนแคปชัน TikTok + แฮชแท็ก"],
     system:`คุณคือ "น้องครีม" นักเขียนบทและครีเอทีฟของออฟฟิศ AI ส่วนตัว เชี่ยวชาญคลิปสั้นแนว What if/ความรู้สนุกๆ สำหรับ TikTok/Reels
 หลักการเขียนบทที่ดี:
 - 3 วินาทีแรกต้องเป็น hook ที่ทำให้หยุดเลื่อน (คำถามช็อก ตัวเลขเกินคาด หรือภาพแปลก)
@@ -2855,7 +2855,7 @@ const STAFF=[
     quick:["เขียนแคปชันโพสต์ให้คลิปล่าสุด","แฮชแท็กไหนกำลังมาแรง","โพสต์เวลาไหนคนดูเยอะ"],
     system:`คุณคือ "น้องโพสต์" แอดมินโซเชียลในฝ่ายบริหาร (หัวหน้าแผนก: พี่มาย) ร่างแคปชัน TikTok/Reels ที่ชวนดูจนจบและชวนคอมเมนต์ พร้อมแฮชแท็ก 3-6 อันที่เกี่ยวข้องจริง ส่งให้พี่มายอนุมัติ\n${STAFF_STYLE}` },
   { id:"trend", dept:"coord", name:"น้องเทรนด์", role:"นักวิจัยเทรนด์", task:"หาเทรนด์และเสนอหัวข้อ", px:{hair:"#e0a030",shirt:"#3fc1a5",skin:"#f2c9a0",headset:true}, bubble:"📈",
-    quick:["หัวข้อแนว What if ที่กำลังมาแรง","คนไทยชอบดูคลิปความรู้แบบไหน","เสนอหัวข้อ 5 หัวข้อ"],
+    quick:["เหตุการณ์ฉุกเฉินที่คนไทยเจอบ่อยช่วงนี้","คนไทยชอบดูคลิปความรู้แบบไหน","เสนอหัวข้อ 5 หัวข้อ"],
     system:`คุณคือ "น้องเทรนด์" นักวิจัยเทรนด์ในฝ่ายประสานงาน (หัวหน้าแผนก: น้องโฟลว์) เสนอหัวข้อคลิปสั้นที่คนไทยน่าจะหยุดดู มี hook แรง ไม่ซ้ำของเดิม และมีข้อเท็จจริงจริงรองรับ\n${STAFF_STYLE}` },
   { id:"fact", dept:"coord", name:"น้องข้อมูล", role:"นักค้นข้อมูล", task:"รวบรวมข้อเท็จจริงและตัวเลข", px:{hair:"#5a4636",shirt:"#a7e8d6",skin:"#e0ac80",glasses:true}, bubble:"📚",
     quick:["ข้อเท็จจริงน่าทึ่งเกี่ยวกับอวกาศ","ตรวจตัวเลขนี้ให้หน่อย","สรุปข้อมูลเรื่องนี้แบบเข้าใจง่าย"],
@@ -3448,7 +3448,12 @@ const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิ�
 ${VIRAL_RULES}`;
 const WHATIF_FORMAT=`แนว "What if / ความรู้สนุก": hook คำถามช็อก เล่าเหตุและผลทีละขั้น มีตัวเลขน่าทึ่งที่ถูกต้อง จบด้วยคำถามชวนคอมเมนต์
 ${VIRAL_RULES}`;
-const fmtGuide=r=>r.out?.plan?.format==="whatif"?WHATIF_FORMAT:STORY_FORMAT;
+/* The owner's main format from Nov 2026 (after the Sigma Lens storm-safety reference): a practical "what to do when..." guide. */
+const GUIDE_FORMAT=`แนว "ถ้าเจอ...ต้องทำยังไง" (แบบคลิป Sigma Lens ที่เจ้าของช่องเลือก): 1) hook วางคนดูกลางเหตุการณ์ทันที พูดกับ "คุณ" เช่น "แผ่นหลังคาปลิวต่อหน้าคุณ" ฉากแรกต้องเห็นอันตรายชัด 2) บอกความเสี่ยงต่อไปสั้นๆ 1 ประโยค 3) ขั้นตอนทำทีละอย่าง ประโยคละขั้น เป็นคำสั่งสั้น (พาคนในบ้าน... / ไปชั้นล่าง / หมอบให้ต่ำ ใช้แขนป้องศีรษะ) ภาพแต่ละช็อตแสดงท่าทางนั้นตรงๆ 4) จุดที่คนมักพลาด เช่น "ลมเงียบแล้วก็ยังต้องรอ" 5) หลังเหตุการณ์: อันตรายที่ซ่อนอยู่ (สายไฟตก น้ำขัง) 6) เบอร์ฉุกเฉินไทยที่ถูกต้อง (1669 การแพทย์ฉุกเฉิน, 1784 สาธารณภัย, 191 ตำรวจ, 199 ดับเพลิง, 1129 การไฟฟ้า เฉพาะที่เกี่ยวข้อง) แสดงเป็นการ์ด phone ตอนโทร และบอกว่าต้องพูดอะไร 7) ฉากจบสรุปด้วยการ์ด note 2-3 ใบ (สิ่งที่ต้องจำ) ไม่ต้องมีการ์ด lesson
+ยาว 45-60 วินาที ช็อตละ 2-4 วินาที ทุกขั้นต้องถูกต้องตามคำแนะนำของหน่วยงานจริง (ปภ., สพฉ., กรมอุตุฯ, การไฟฟ้า) ห้ามแต่งขั้นตอนเอง
+ภาพ: ตัวละครครึ่งตัวสื่ออารมณ์ (กังวล ตกใจ) ฉากตามสถานการณ์จริง เวลาและเอฟเฟกต์ตามบรรยากาศ (พายุ = night + rain)
+${VIRAL_RULES}`;
+const fmtGuide=r=>r.out?.plan?.format==="whatif"?WHATIF_FORMAT:r.out?.plan?.format==="story"?STORY_FORMAT:GUIDE_FORMAT;
 const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุดเลื่อนจริง 2) มีข้อเท็จจริงหรือตัวเลขน่าทึ่งที่ถูกต้องอย่างน้อย 1 จุด 3) เรื่องไหลเป็นเหตุและผล มีจุดหักมุม 4) ประโยคสั้น พูดง่าย ไม่ซ้ำคำ 5) ทุกฉากมีภาพที่ชัดและทำเป็นอนิเมชันได้ 6) ตอนจบชวนคอมเมนต์ 7) ยาวรวม 35-50 วินาที 6-8 ฉาก บทพูดฉากแรกไม่เกิน 30 ตัวอักษร (ความยาวฉากคำนวณจากบทพูด)`;
 /* Director's pass: rule-based polish after editing, so every clip meets the house style even when a model slips. */
 const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
@@ -3487,13 +3492,13 @@ const STEP_FN={
   async plan(r){
     const past=Object.values(recs).filter(x=>x.id!==r.id&&(x.title||x.topic)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20).map(x=>"- "+(x.title||x.topic)).join("\n")||"- (ยังไม่มี)";
     const todo=plan.filter(it=>!it.recId||!recs[it.recId]).slice(0,6).map(it=>`- ${it.topic}${it.hook?` (hook: ${it.hook})`:""}`).join("\n");
-    const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว What if / ความรู้สนุกๆ ที่คนไทยอยากดู";
+    const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว guide: สถานการณ์จริงที่คนไทยเจอได้ (ภัยธรรมชาติ อุบัติเหตุ สุขภาพฉุกเฉิน มิจฉาชีพ ในบ้าน บนถนน) แล้วสอนว่าต้องทำอะไรทีละขั้น";
     const trendTxt=await staffWork(r,"plan",[{id:"trend",prompt:`${r.topic?`หัวข้อที่กำหนดมา: "${r.topic}" เสนอมุมเล่า 3 แบบที่น่าดูที่สุด`:`${src}\n\nเสนอหัวข้อคลิปสั้น 3 หัวข้อที่น่าจะคนดูเยอะ`} แต่ละข้อมี hook 1 บรรทัดและเหตุผลสั้นๆ\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}`}]);
-    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}${trendTxt?`\n\nข้อเสนอจากทีมประสานงาน:\n${trendTxt}`:""}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกแนวคลิป (story = เล่าเรื่อง+ข้อคิด แบบคลิปที่ไวรัล เหมาะกับเรื่องงาน เงิน ชีวิต ธุรกิจ จิตวิทยา / whatif = คำถามสมมติ ความรู้วิทยาศาสตร์) เลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","format":"story|whatif","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
+    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}${trendTxt?`\n\nข้อเสนอจากทีมประสานงาน:\n${trendTxt}`:""}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกแนวคลิป (guide = "ถ้าเจอเหตุการณ์นี้ ต้องทำยังไง" สอนเอาตัวรอด/รับมือทีละขั้น แนวที่เจ้าของช่องต้องการเป็นหลัก ใช้เป็นค่าเริ่มต้น / story = เล่าเรื่อง+ข้อคิด เรื่องงาน เงิน ชีวิต / whatif = คำถามสมมติ ความรู้วิทยาศาสตร์) เลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","format":"guide|story|whatif","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
     const topic=r.topic||str(j?.topic,140); if(!topic) throw new Error("น้องโฟลว์ยังเลือกหัวข้อไม่ได้ ลองกดทำต่ออีกครั้ง");
     r.topic=topic; if(!r.title) r.title=topic;
     const notes={}; ["creative","animator","editor","voice"].forEach(k=>{ const v=str(j?.notes?.[k],300); if(v) notes[k]=v; });
-    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["story","whatif"],"story"),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
+    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["guide","story","whatif"],"guide"),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
     r.out.brief={text:r.out.plan.brief,music:r.out.plan.music};
     try{ const f=await staffWork(r,"facts",[{id:"fact",prompt:`หัวข้อคลิป: "${topic}"\nบรีฟ: ${r.out.plan.brief}\n\nรวบรวมข้อเท็จจริงและตัวเลขที่ถูกต้อง 5-8 ข้อสำหรับใช้ในคลิปนี้ บอกด้วยว่าข้อไหนเป็นการประมาณหรือสมมติ และเรื่องที่คนมักเข้าใจผิด`}]); if(f) r.out.plan.facts=f.replace(/^\[งานจาก[^\]]*\]\n/,""); }catch{ logAct(r,"coord","ค้นข้อมูลไม่สำเร็จ ให้ทีมเขียนบทตามบรีฟไปก่อน"); }
     const it=plan.find(x=>!x.recId&&x.topic===topic); if(it){ it.recId=r.id; savePlan(); }
@@ -3748,7 +3753,7 @@ function renderPlan(){ const box=$("planBox"); if(!box) return; box.innerHTML=""
     else if(r){ b.textContent=st.k==="ask"?"ตอบคำถาม":"▶ ทำต่อ"; b.onclick=()=>st.k==="ask"?(showAsk(r),$("askBox").scrollIntoView({block:"center"})):runPipeline(r); b.disabled=!!runningRec&&st.k!=="ask"; }
     else { b.textContent="สั่งทำ"; b.disabled=!!runningRec; b.onclick=()=>{ const nr=newRec(it.topic+(it.hook?` (hook: ${it.hook})`:""),$("aspect").value); nr.title=it.topic; it.recId=nr.id; savePlan(); runPipeline(nr); }; }
     tools.appendChild(b); box.appendChild(row); }); }
-$("planAsk").onclick=()=>{ select("manager"); showTab("chat"); input.value="วางแผนคอนเทนต์ 7 วันสำหรับ TikTok ช่องความรู้สนุกๆ แนว What if"; input.focus(); };
+$("planAsk").onclick=()=>{ select("manager"); showTab("chat"); input.value="วางแผนคอนเทนต์ 7 วันสำหรับ TikTok แนว ถ้าเจอเหตุการณ์นี้ต้องทำยังไง (เอาตัวรอด รับมือเหตุฉุกเฉิน)"; input.focus(); };
 const planClear=$("planClear"); planClear.onclick=()=>{ if(planClear.dataset.armed!=="1"){ planClear.dataset.armed="1"; planClear.textContent="กดอีกครั้งเพื่อล้าง"; setTimeout(()=>{ planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; },3000); return; } planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; plan=[]; savePlan(); };
 $("demoBtn").onclick=()=>{ openRecId=null; store.set("openRec",null); loadProject(DEMO,{switchTab:true}); renderLibrary(); renderReview(); };
 
