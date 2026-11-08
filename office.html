@@ -1124,7 +1124,7 @@ const FONT_IDS=CLIP_FONTS.map(f=>f[0]);
 const famOf=f=>`"${FONT_IDS.includes(f)?f:"Kanit"}", Kanit, sans-serif`;
 const CF={ff:famOf("Kanit"),cs:"cute"};
 const CAT = {
-  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street"],
+  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint"],
   times:["day","sunset","night"],
   characters:["boy","girl","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry"],
@@ -1170,8 +1170,8 @@ function normalizeProject(p){
       else if(type==="prop"){ o.name=pick(e.name,CAT.props,"star"); o.glow=!!e.glow; }
       else if(type==="emoji"){ o.char=str(e.char||e.text,8)||"✨"; }
       else if(type==="card"){ const side=v=>({label:str(v?.label,22),value:str(v?.value,12),unit:str(v?.unit,14),note:str(v?.note,20),good:v?.good===false?false:v?.good===true?true:null});
-        o.kind=pick(e.kind,["stat","timer","compare","icons","bars","lesson"],"stat"); o.src=str(e.src,48); o.strike=str(e.strike,28); o.total=Math.round(num(e.total,2,20,10)); o.icon=pick(e.icon,["house","person","car","building","tree"],"person");
-        o.rows=(Array.isArray(e.rows)?e.rows:[]).slice(0,3).map(r=>({label:str(r?.label,16),value:str(r?.value,12),pct:num(r?.pct,0,100,50),good:r?.good===false?false:r?.good===true?true:null})); o.label=str(e.label,28); o.labelEn=o.kind==="lesson"?str(e.labelEn,60):str(e.labelEn,30).toUpperCase(); if(o.kind==="lesson") o.label=str(e.label,30); o.value=str(e.value,16)||(o.kind==="lesson"||o.kind==="bars"?"":"0"); o.unit=str(e.unit,14);
+        o.kind=pick(e.kind,["stat","timer","compare","icons","bars","lesson","note","phone","plan"],"stat"); o.tag=str(e.tag,28); o.src=str(e.src,48); o.strike=str(e.strike,28); o.total=Math.round(num(e.total,2,20,10)); o.icon=pick(e.icon,["house","person","car","building","tree"],"person");
+        o.rows=(Array.isArray(e.rows)?e.rows:[]).slice(0,3).map(r=>({label:str(r?.label,16),value:str(r?.value,12),pct:num(r?.pct,0,100,50),good:r?.good===false?false:r?.good===true?true:null})); o.label=str(e.label,28); o.labelEn=o.kind==="lesson"?str(e.labelEn,60):str(e.labelEn,30).toUpperCase(); if(o.kind==="lesson") o.label=str(e.label,30); o.value=str(e.value,16)||(["lesson","bars","note","phone","plan"].includes(o.kind)?"":"0"); o.unit=str(e.unit,14);
         o.pct=e.pct==null||e.pct===""?null:num(e.pct,0,100,0); o.note=str(e.note,24); o.good=e.good===false?false:e.good===true?true:null; if(o.kind==="compare"){ o.left=side(e.left); o.right=side(e.right); } }
       else { o.text=str(e.text,30)||"!"; o.color=/^#[0-9a-f]{3,8}$/i.test(e.color||"")?e.color:"#ffffff"; }
       return o;
@@ -1237,6 +1237,7 @@ function tree2d(c,x,y,r,P){ c.fillStyle="#5a4632"; c.fillRect(x-r*0.08,y-r*0.6,r
 const BG={
   /* Illustrated flat 2D sets per situation (muted documentary palette, as in the owner's viral references).
      Ground line near 0.78H so characters (y 0.75-0.85) stand on it. time: day | sunset | night. */
+  blueprint(c,W,H){ c.fillStyle="#1f4a73"; c.fillRect(0,0,W,H); c.strokeStyle="rgba(255,255,255,.06)"; c.lineWidth=1; const g=W/18; c.beginPath(); for(let x=0;x<W;x+=g){ c.moveTo(x,0); c.lineTo(x,H); } for(let y=0;y<H;y+=g){ c.moveTo(0,y); c.lineTo(W,y); } c.stroke(); },
   beach(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.5);
     c.fillStyle=P.hill; c.beginPath(); c.moveTo(W*0.45,H*0.5); c.bezierCurveTo(W*0.6,H*0.36,W*0.78,H*0.33,W*0.92,H*0.4); c.bezierCurveTo(W*1.0,H*0.43,W*1.05,H*0.46,W*1.1,H*0.5); c.closePath(); c.fill();
     c.fillStyle=P.hill2; c.beginPath(); c.moveTo(W*0.62,H*0.5); c.bezierCurveTo(W*0.72,H*0.42,W*0.84,H*0.41,W*0.98,H*0.46); c.lineTo(W*1.05,H*0.5); c.closePath(); c.fill();
@@ -1550,7 +1551,8 @@ function fillE(c,x,y,rx,ry,col,rot=0){ c.beginPath(); c.ellipse(x,y,Math.abs(rx)
    Numbers count up after the card enters. Drawn centred at (0,0); size follows base (px for scale 1). */
 function cardSize(el,base){ const k=base*el.scale, sr=el.src?k*0.04:0; if(el.kind==="compare") return {w:k*0.88,h:k*0.36+sr};
   if(el.kind==="icons") return {w:k*0.7,h:k*(0.29+(el.total>10?0.07:0))+sr}; if(el.kind==="bars") return {w:k*0.72,h:k*(0.08+0.085*Math.max(1,el.rows?.length||1))+sr};
-  if(el.kind==="lesson") return {w:k*0.86,h:k*(el.strike?0.42:0.34)}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)+sr}; }
+  if(el.kind==="lesson") return {w:k*0.86,h:k*(el.strike?0.42:0.34)};
+  if(el.kind==="note") return {w:k*0.7,h:k*0.2}; if(el.kind==="phone") return {w:k*0.62,h:k*1.25}; if(el.kind==="plan") return {w:k*0.86,h:k*0.82}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)+sr}; }
 /* Small flat pictograms for icon-array cards ("8 in 10 houses"). Centred at (x,y), size s. */
 function pictogram(c,kind,x,y,s,col){ c.fillStyle=col; c.beginPath();
   if(kind==="house"){ c.moveTo(x-s*0.42,y-s*0.02); c.lineTo(x,y-s*0.45); c.lineTo(x+s*0.42,y-s*0.02); c.lineTo(x+s*0.32,y-s*0.02); c.lineTo(x+s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y-s*0.02); c.closePath(); c.fill(); c.fillStyle="rgba(255,255,255,.75)"; c.fillRect(x-s*0.08,y+s*0.14,s*0.16,s*0.26); return; }
@@ -1577,6 +1579,36 @@ function drawInfoCard(c,el,base,since,fam){ const {w,h}=cardSize(el,base), u=w/1
     let y=-h/2+u*12; if(el.strike){ c.font=`600 ${u*5}px ${fam}`; c.fillStyle=ink; c.fillText(el.strike,0,y,w*0.88); const sw=Math.min(c.measureText(el.strike).width,w*0.88)*clamp((since-0.35)/0.4,0,1); c.strokeStyle="#c8452f"; c.lineWidth=u*0.9; c.beginPath(); c.moveTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2,y+u*0.4); c.lineTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2+sw,y+u*0.4); c.stroke(); y+=u*11; }
     const big=el.label||el.value; c.globalAlpha=clamp((since-(el.strike?0.7:0.1))/0.35,0,1); c.fillStyle="#2f5fa8"; c.font=`800 ${u*7.4}px ${fam}`; const ln=wrap(c,big,w*0.86).slice(0,2); ln.forEach((l,i)=>c.fillText(l,0,y+i*u*9.2,w*0.9)); y+=ln.length*u*9.2-u*1;
     if(el.labelEn){ c.fillStyle="#5f5648"; c.font=`500 ${u*3.4}px ${fam}`; c.fillText(el.labelEn,0,y+u*2.5,w*0.9); } c.globalAlpha=1; return; }
+  /* note: small labelled sticky card (tag chip + coloured title + English line), stacks well for recaps */
+  if(el.kind==="note"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="middle"; let y=-h/2+u*6;
+    if(el.tag){ c.font=`600 ${u*3.2}px ${fam}`; const tw=c.measureText(el.tag).width+u*7; c.fillStyle="#1f1c18"; c.beginPath(); c.roundRect(x0,y-u*2.4,tw,u*4.8,u*2.4); c.fill(); c.fillStyle="#e2483d"; c.beginPath(); c.arc(x0+u*2.4,y,u*0.9,0,7); c.fill(); c.fillStyle="#fff"; c.fillText(el.tag,x0+u*4.4,y+u*0.2); }
+    y+=u*7.5; c.fillStyle=el.good===false?"#c8452f":el.good===true?"#2e7a4d":"#b5851f"; c.font=`800 ${u*7}px ${fam}`; const t=[el.value,el.label].filter(Boolean).join(" "); c.fillText(t,x0,y,w-u*12);
+    if(el.labelEn){ c.fillStyle=soft; c.font=`600 ${u*2.8}px ${fam}`; c.fillText(el.labelEn,x0,y+u*5.6,w-u*12); } return; }
+  /* phone: a hand holding a phone in point-of-view. With value it is a call screen (number + label + running timer), else a notice screen. */
+  if(el.kind==="phone"){ const pw=w*0.52, ph=h*0.52, px=-pw/2-u*2, py=-h/2+u*4, skin="#c98b62", skin2="#b47650";
+    const OL2="rgba(60,30,15,.35)", cap=(x,y,cw,chh,r,col)=>{ c.fillStyle=col; c.beginPath(); c.roundRect(x,y,cw,chh,r); c.fill(); c.strokeStyle=OL2; c.lineWidth=Math.max(1,u*0.5); c.stroke(); };
+    // forearm with a sleeve cuff, coming up from the bottom of the frame
+    const yb=h*0.9; c.fillStyle=skin2; c.beginPath(); c.moveTo(-pw*0.3,yb); c.quadraticCurveTo(-pw*0.36,py+ph*1.25,-pw*0.42,py+ph*0.9); c.lineTo(pw*0.46,py+ph*0.9); c.quadraticCurveTo(pw*0.44,py+ph*1.3,pw*0.55,yb); c.closePath(); c.fill();
+    const cy=py+ph*1.45; c.fillStyle="#2f6b6a"; c.beginPath(); c.moveTo(-pw*0.38,yb); c.lineTo(-pw*0.34,cy); c.lineTo(pw*0.5,cy); c.lineTo(pw*0.64,yb); c.closePath(); c.fill(); c.fillStyle="#285c5b"; c.fillRect(-pw*0.35,cy,pw*0.86,u*3.4);
+    // palm behind the lower half of the phone
+    cap(px-u*5,py+ph*0.46,pw+u*11,ph*0.6,u*14,skin);
+    c.save(); c.shadowColor="rgba(0,0,0,.45)"; c.shadowBlur=u*6; c.fillStyle="#15181d"; c.beginPath(); c.roundRect(px,py,pw,ph,u*7); c.fill(); c.restore();
+    const call=!!el.value; c.fillStyle=call?"#173a2f":"#1d3a48"; c.beginPath(); c.roundRect(px+u*1.6,py+u*1.6,pw-u*3.2,ph-u*3.2,u*5.6); c.fill(); c.fillStyle="#0b0d10"; c.beginPath(); c.roundRect(-pw*0.17,py+u*3.2,pw*0.34,u*3.4,u*1.7); c.fill();
+    c.textAlign="center"; c.textBaseline="middle";
+    if(call){ c.fillStyle="#cfe9dc"; c.font=`600 ${u*3.4}px ${fam}`; c.fillText(el.tag||"กำลังโทร · CALLING",0,py+ph*0.2,pw*0.9); c.fillStyle="#fff"; c.font=`800 ${u*13}px ${fam}`; c.fillText(el.value,0,py+ph*0.33,pw*0.9);
+      c.fillStyle="#cfe9dc"; c.font=`600 ${u*3.6}px ${fam}`; c.fillText(el.label||"",0,py+ph*0.43,pw*0.9); const sec=Math.max(0,Math.floor(since)); c.fillStyle="#5fd38d"; c.font=`700 ${u*5}px ${fam}`; c.fillText(`00:${String(sec%60).padStart(2,"0")}`,0,py+ph*0.52);
+      c.fillStyle="#e2483d"; c.beginPath(); c.arc(0,py+ph*0.8,u*6,0,7); c.fill(); c.strokeStyle="#fff"; c.lineWidth=u*1.4; c.lineCap="round"; c.beginPath(); c.arc(0,py+ph*0.8+u*2.2,u*3,Math.PI*1.15,Math.PI*1.85); c.stroke(); }
+    else { c.textAlign="left"; const x1=px+pw*0.14; c.fillStyle="#f2c94c"; c.font=`600 ${u*4}px ${fam}`; c.fillText(el.tag||"ประกาศ",x1,py+ph*0.22,pw*0.75); c.fillStyle="#fff"; c.font=`800 ${u*7}px ${fam}`; wrap(c,el.label||"",pw*0.72).slice(0,3).forEach((l,i)=>c.fillText(l,x1,py+ph*0.33+i*u*8.4));
+      if(el.note){ c.fillStyle="#a9c1cc"; c.font=`500 ${u*3.2}px ${fam}`; c.fillText(el.note,x1,py+ph*0.62,pw*0.75); } }
+    // four fingers wrap round the right edge (front of the phone), thumb over the left edge
+    for(let k=0;k<4;k++){ const fy=py+ph*(0.36+k*0.13), fl=u*(16-Math.abs(k-1.2)*1.8); cap(px+pw-fl*0.5,fy,fl,u*10.5,u*5.2,skin); c.fillStyle="rgba(255,255,255,.18)"; c.beginPath(); c.roundRect(px+pw-fl*0.55+u*1.4,fy+u*1.4,fl*0.42,u*2,u*1); c.fill(); }
+    c.save(); c.translate(px+u*1.5,py+ph*0.62); c.rotate(-0.4); cap(-u*6,-u*17,u*12,u*28,u*6,skin); c.fillStyle="rgba(255,255,255,.22)"; c.beginPath(); c.roundRect(-u*3.2,-u*14.5,u*6.4,u*5,u*2.5); c.fill(); c.restore(); return; }
+  /* plan: a house cut in half (blueprint lines) with the safe room highlighted and labelled. Put it over bg "blueprint". */
+  if(el.kind==="plan"){ const L="rgba(235,244,255,.85)", lw=Math.max(1.5,u*0.9), x0=-w*0.42, x1=w*0.42, y0=-h*0.12, y1=h*0.46, mid=(y0+y1)/2, q=easeOut(clamp(since/0.8,0,1));
+    c.strokeStyle=L; c.lineWidth=lw; c.lineCap="round"; c.beginPath(); c.moveTo(x0-w*0.06,y0); c.lineTo(0,y0-h*0.3*q); c.lineTo(x1+w*0.06,y0); c.stroke(); c.strokeRect(x0,y0,x1-x0,y1-y0); c.beginPath(); c.moveTo(x0,mid); c.lineTo(x1,mid); c.moveTo(w*0.04,mid); c.lineTo(w*0.04,y1); c.moveTo(w*0.04,y0); c.lineTo(w*0.04,mid); c.stroke();
+    c.beginPath(); for(let k=0;k<5;k++){ const sx=x0+w*0.08+k*w*0.05, sy=y1-k*(y1-mid)/5.5; c.lineTo(sx,sy); c.lineTo(sx+w*0.05,sy); } c.stroke(); c.lineWidth=lw*2; c.beginPath(); c.moveTo(x0+u*3,y0+(mid-y0)*0.3); c.lineTo(x0+u*3,y0+(mid-y0)*0.7); c.moveTo(x1-u*3,mid+(y1-mid)*0.3); c.lineTo(x1-u*3,mid+(y1-mid)*0.7); c.stroke();
+    const a=clamp((since-0.6)/0.4,0,1), rx=w*0.1, rw=x1-rx-u*7, ry=mid+u*3, rh=y1-mid-u*6; c.globalAlpha=a; c.fillStyle="rgba(95,211,141,.25)"; c.strokeStyle="#7fe0a6"; c.lineWidth=lw*1.4; c.beginPath(); c.roundRect(rx,ry,rw,rh,u*2); c.fill(); c.stroke();
+    c.fillStyle="#d8f5e3"; c.textAlign="center"; c.textBaseline="middle"; c.font=`700 ${u*3.8}px ${fam}`; const pl=wrap(c,el.label||"ห้องปลอดภัย",rw*0.86).slice(0,3); pl.forEach((l,i)=>c.fillText(l,rx+rw/2,ry+rh*0.5-(pl.length-1)*u*2.4-u*3+i*u*4.8)); c.fillStyle="#7fe0a6"; c.beginPath(); c.arc(rx+rw/2,ry+rh*0.84,u*1.8+Math.sin(since*5)*u*0.5,0,7); c.fill(); c.globalAlpha=1; return; }
   if(el.kind==="icons"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(el.label,x0,-h/2+u*8.5,w-u*12);
     const n=Math.round(clamp(parseFloat(String(el.value).replace(/,/g,""))||0,0,el.total)), per=Math.min(10,el.total), rows=Math.ceil(el.total/per), cell=(w-u*12)/per, sz=cell*0.78, hit=el.good===true?"#2e7a4d":"#c8452f";
     for(let i=0;i<el.total;i++){ const r=Math.floor(i/per), k=i%per, on=i<n, pop=easeBack(clamp((since-0.15-i*0.05)/0.3,0,1)); if(pop<=0) continue; c.save(); c.translate(x0+cell*(k+0.5),-h/2+u*17+r*cell*1.05); c.scale(pop,pop); pictogram(c,el.icon,0,0,sz,on?hit:"#b9ae9c"); c.restore(); }
@@ -2701,6 +2733,10 @@ const SCHEMA=`{
       {"type":"card","kind":"compare","x":0.5,"y":0.2,"enter":"top","left":{"label":"ช่าง 3 คน","value":"5","unit":"ชั่วโมง","note":"ยังไม่ติด","good":false},"right":{"label":"คุณ","value":"2","unit":"นาที","note":"ซ่อมได้","good":true}},
       {"type":"card","kind":"icons","label":"สึนามิ 2547 · บ้านไม้","icon":"house|person|car|building|tree","value":"8","total":10,"unit":"เสียหาย","good":false,"src":"ที่มา: Suppasri et al. 2011","x":0.5,"y":0.25,"enter":"pop"},
       {"type":"card","kind":"bars","label":"ความเร็ว","rows":[{"label":"คุณวิ่ง","value":"~4 ม./วิ","pct":45,"good":null},{"label":"น้ำสึนามิ","value":"8 ม./วิ","pct":95,"good":false}],"src":"วัดจากสึนามิญี่ปุ่น 2554","x":0.5,"y":0.16,"enter":"top"},
+      {"type":"card","kind":"note","tag":"สายด่วน · EMERGENCY","value":"1669","label":"การแพทย์ฉุกเฉิน","labelEn":"EMERGENCY MEDICAL SERVICES","good":false,"x":0.5,"y":0.2,"enter":"left"},
+      {"type":"card","kind":"phone","value":"1669","label":"การแพทย์ฉุกเฉิน","x":0.5,"y":0.42,"enter":"bottom"},
+      {"type":"card","kind":"phone","tag":"ประกาศพื้นที่","label":"รอประกาศปลอดภัย","note":"ติดตามข่าวทางการ","x":0.5,"y":0.42,"enter":"bottom"},
+      {"type":"card","kind":"plan","label":"ห้องเล็กด้านใน ชั้นล่าง","x":0.5,"y":0.45,"enter":"pop"},
       {"type":"card","kind":"lesson","strike":"อย่าดูแค่ว่า ท่วมไหม","label":"ดูว่าน้ำจะไปไหน","labelEn":"Don't just ask if it floods. Ask where the water goes.","x":0.5,"y":0.42,"enter":"pop"}
     ]
   }]
@@ -3403,6 +3439,10 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ฉากเดียวกันใช้ซ้ำได้แต่เปลี่ยนมุม: มุมกว้างตั้งเรื่อง แล้วตัดเข้าใกล้ของสำคัญ (ถังแก๊ส ป้าย ตัวเลข) หนึ่งจุดเด่นต่อช็อต
 - ปมคือ "สิ่งที่คนทั่วไปเชื่อ" แล้วหักด้วยข้อเท็จจริง เช่น วิ่งหนีน้ำ ผิด วิ่งหาบันได ถูก
 - ฉากสุดท้ายใช้การ์ด kind lesson: strike = ความเชื่อเดิมที่ขีดฆ่า, label = หลักคิดใหม่สั้นจำง่าย, labelEn = คำแปล
+- เรื่องที่ต้องทำอะไรกับมือถือ (โทรสายด่วน อ่านประกาศ) ใช้การ์ด kind phone เป็นมือถือมุมมองคนดู ไม่ต้องมีตัวละคร
+- ต้องบอกตำแหน่งในบ้าน/อาคาร ใช้ bg "blueprint" กับการ์ด kind plan (บ้านผ่าครึ่ง ไฮไลต์ห้องที่ปลอดภัย)
+- ข้อมูลสั้นที่ต้องจำ (เบอร์โทร ข้อห้าม) ใช้การ์ด kind note มี tag; ฉากสรุปท้ายเรียงการ์ด note 2-3 ใบ
+- เรื่องภัยพิบัติ/กลางคืน: เวลา night + effect rain หรือ darken ให้บรรยากาศ ภาพใกล้ตัวละครครึ่งตัวสื่ออารมณ์
 - ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
 const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล
 ${VIRAL_RULES}`;
@@ -3418,8 +3458,9 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
   // viral layout: one focal point. No big captions, no emoji; a scene with a card shows only that card (the best match to the narration) and no extra text.
   S.forEach((x,i)=>{ if(x.caption){ x.caption=""; fixes.push("เอาหัวข้อใหญ่ออก ให้ซับกับการ์ดเล่าเรื่อง"); }
     const n0=x.elements.length; x.elements=x.elements.filter(e=>e.type!=="emoji"); const cards=x.elements.filter(e=>e.type==="card");
-    if(cards.length){ const said=numsIn(x.narration), score=e=>cardNums({elements:[e]}).filter(n=>said.includes(n)).length; const keep=cards.slice().sort((a,b)=>score(b)-score(a))[0];
-      x.elements=x.elements.filter(e=>e.type!=="text"&&(e.type!=="card"||e===keep)); }
+    if(cards.length){ const said=numsIn(x.narration), score=e=>cardNums({elements:[e]}).filter(n=>said.includes(n)).length; const main=cards.filter(e=>e.kind!=="note"), keep=(main.length?main:cards).slice().sort((a,b)=>score(b)-score(a))[0]; let nn=0;
+      // one main card; small note labels may sit beside it (up to 3, as in the reference recap)
+      x.elements=x.elements.filter(e=>e.type!=="text"&&(e.type!=="card"||e===keep||(e.kind==="note"&&++nn<=3))); }
     else { let t=0; x.elements=x.elements.filter(e=>e.type!=="text"||++t<=1); }
     // a prop hidden behind a card only adds noise
     const ar=p.aspect==="16:9"?16/9:9/16; x.elements.filter(e=>e.type==="card").forEach(cd=>{ const z=cardSize(cd,1), hw=z.w/2*(ar<1?1:1/ar), hh=z.h/2*(ar<1?ar:1); x.elements=x.elements.filter(e=>{ if(e.type!=="prop") return true; const r=0.07*e.scale; return Math.abs(e.x-cd.x)>hw+r||Math.abs(e.y-cd.y)>hh+r*(ar<1?ar:1); }); });
