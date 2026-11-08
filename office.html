@@ -3453,7 +3453,11 @@ const GUIDE_FORMAT=`แนว "ถ้าเจอ...ต้องทำยัง�
 ยาว 45-60 วินาที ช็อตละ 2-4 วินาที ทุกขั้นต้องถูกต้องตามคำแนะนำของหน่วยงานจริง (ปภ., สพฉ., กรมอุตุฯ, การไฟฟ้า) ห้ามแต่งขั้นตอนเอง
 ภาพ: ตัวละครครึ่งตัวสื่ออารมณ์ (กังวล ตกใจ) ฉากตามสถานการณ์จริง เวลาและเอฟเฟกต์ตามบรรยากาศ (พายุ = night + rain)
 ${VIRAL_RULES}`;
-const fmtGuide=r=>r.out?.plan?.format==="whatif"?WHATIF_FORMAT:r.out?.plan?.format==="story"?STORY_FORMAT:GUIDE_FORMAT;
+/* The owner's second main format: promptkub.ai style (tsunami at Bang Saen, school dog, flood estate references). */
+const SCENARIO_FORMAT=`แนว "ถ้า... สถานการณ์จริง + ความเชื่อผิด vs ข้อเท็จจริง" (แบบคลิป promptkub.ai ที่เจ้าของช่องเลือก): 1) hook "ถ้า..." วางคนดูในสถานที่จริงของไทย มีเวลาจริง (tag + clock) เช่น "ตอนคุณอยู่บางแสน" 2) สิ่งที่คนส่วนใหญ่จะทำโดยสัญชาตญาณ แล้วหักด้วยตัวเลขจริง (การ์ด bars/icons/compare พร้อม src) เช่น คุณวิ่ง 4 ม./วิ น้ำ 8 ม./วิ 3) สิ่งที่ควรทำแทน และเหตุผล 4) รายละเอียดที่คนไม่รู้ ทำให้ร้ายแรงขึ้น (ถังแก๊สลอยมา ไฟไหม้ซ้ำ) 5) ตัวอย่างจริงจากเหตุการณ์ในอดีต พร้อมปีและตัวเลข 6) ฉากจบการ์ด lesson: ความเชื่อเดิมขีดฆ่า + หลักคิดใหม่ 1 ประโยค + คำแปลอังกฤษ
+ยาว 60-90 วินาที ช็อตละ 3-4 วินาที ฉากวาด 2 มิติตามสถานที่จริง (beach, school, estate, street, aerial, nightroom) look doc ตัวเลขทุกตัวต้องมีที่มาจริง
+${VIRAL_RULES}`;
+const fmtGuide=r=>({whatif:WHATIF_FORMAT,story:STORY_FORMAT,scenario:SCENARIO_FORMAT}[r.out?.plan?.format]||GUIDE_FORMAT);
 const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุดเลื่อนจริง 2) มีข้อเท็จจริงหรือตัวเลขน่าทึ่งที่ถูกต้องอย่างน้อย 1 จุด 3) เรื่องไหลเป็นเหตุและผล มีจุดหักมุม 4) ประโยคสั้น พูดง่าย ไม่ซ้ำคำ 5) ทุกฉากมีภาพที่ชัดและทำเป็นอนิเมชันได้ 6) ตอนจบชวนคอมเมนต์ 7) ยาวรวม 35-50 วินาที 6-8 ฉาก บทพูดฉากแรกไม่เกิน 30 ตัวอักษร (ความยาวฉากคำนวณจากบทพูด)`;
 /* Director's pass: rule-based polish after editing, so every clip meets the house style even when a model slips. */
 const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
@@ -3491,14 +3495,16 @@ const scriptOf=p=>p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)
 const STEP_FN={
   async plan(r){
     const past=Object.values(recs).filter(x=>x.id!==r.id&&(x.title||x.topic)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20).map(x=>"- "+(x.title||x.topic)).join("\n")||"- (ยังไม่มี)";
+    // alternate the owner's two main formats: whichever was used less recently goes next
+    const lastFmt=Object.values(recs).filter(x=>x.id!==r.id&&x.out?.plan?.format).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0]?.out.plan.format, nextFmt=lastFmt==="guide"?"scenario":"guide";
     const todo=plan.filter(it=>!it.recId||!recs[it.recId]).slice(0,6).map(it=>`- ${it.topic}${it.hook?` (hook: ${it.hook})`:""}`).join("\n");
     const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว guide: สถานการณ์จริงที่คนไทยเจอได้ (ภัยธรรมชาติ อุบัติเหตุ สุขภาพฉุกเฉิน มิจฉาชีพ ในบ้าน บนถนน) แล้วสอนว่าต้องทำอะไรทีละขั้น";
     const trendTxt=await staffWork(r,"plan",[{id:"trend",prompt:`${r.topic?`หัวข้อที่กำหนดมา: "${r.topic}" เสนอมุมเล่า 3 แบบที่น่าดูที่สุด`:`${src}\n\nเสนอหัวข้อคลิปสั้น 3 หัวข้อที่น่าจะคนดูเยอะ`} แต่ละข้อมี hook 1 บรรทัดและเหตุผลสั้นๆ\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}`}]);
-    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}${trendTxt?`\n\nข้อเสนอจากทีมประสานงาน:\n${trendTxt}`:""}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกแนวคลิป (guide = "ถ้าเจอเหตุการณ์นี้ ต้องทำยังไง" สอนเอาตัวรอด/รับมือทีละขั้น แนวที่เจ้าของช่องต้องการเป็นหลัก ใช้เป็นค่าเริ่มต้น / story = เล่าเรื่อง+ข้อคิด เรื่องงาน เงิน ชีวิต / whatif = คำถามสมมติ ความรู้วิทยาศาสตร์) เลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","format":"guide|story|whatif","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
+    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}${trendTxt?`\n\nข้อเสนอจากทีมประสานงาน:\n${trendTxt}`:""}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกแนวคลิป (เจ้าของช่องต้องการ 2 แนวหลักสลับกัน: guide = "ถ้าเจอเหตุการณ์นี้ ต้องทำยังไง" สอนเอาตัวรอด/รับมือทีละขั้น แบบ Sigma Lens / scenario = "ถ้าคุณอยู่ที่... ตอน..." สถานการณ์จริง ความเชื่อผิดหักด้วยตัวเลขจริง จบด้วยหลักคิด แบบ promptkub; ครั้งนี้ให้ใช้ ${nextFmt} ยกเว้นหัวข้อไม่เหมาะ / story = เล่าเรื่อง+ข้อคิด เรื่องงาน เงิน ชีวิต / whatif = คำถามสมมติ ความรู้วิทยาศาสตร์) เลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","format":"guide|scenario|story|whatif","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
     const topic=r.topic||str(j?.topic,140); if(!topic) throw new Error("น้องโฟลว์ยังเลือกหัวข้อไม่ได้ ลองกดทำต่ออีกครั้ง");
     r.topic=topic; if(!r.title) r.title=topic;
     const notes={}; ["creative","animator","editor","voice"].forEach(k=>{ const v=str(j?.notes?.[k],300); if(v) notes[k]=v; });
-    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["guide","story","whatif"],"guide"),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
+    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["guide","scenario","story","whatif"],nextFmt),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
     r.out.brief={text:r.out.plan.brief,music:r.out.plan.music};
     try{ const f=await staffWork(r,"facts",[{id:"fact",prompt:`หัวข้อคลิป: "${topic}"\nบรีฟ: ${r.out.plan.brief}\n\nรวบรวมข้อเท็จจริงและตัวเลขที่ถูกต้อง 5-8 ข้อสำหรับใช้ในคลิปนี้ บอกด้วยว่าข้อไหนเป็นการประมาณหรือสมมติ และเรื่องที่คนมักเข้าใจผิด`}]); if(f) r.out.plan.facts=f.replace(/^\[งานจาก[^\]]*\]\n/,""); }catch{ logAct(r,"coord","ค้นข้อมูลไม่สำเร็จ ให้ทีมเขียนบทตามบรีฟไปก่อน"); }
     const it=plan.find(x=>!x.recId&&x.topic===topic); if(it){ it.recId=r.id; savePlan(); }
