@@ -1,0 +1,888 @@
+<title>Iron Protocol</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: HUD cockpit — one-screen game grid (enemy row / command strip / own row / hand), menus are stacked panels. Deliberately single dark theme. */
+:root{
+  color-scheme:dark;
+  --bg:#080c12; --panel:#101823; --panel2:#162130; --line:#26364a; --fg:#e4ecf5; --dim:#8396ad;
+  --accent:#8fb3ff; --hp:#ff5470; --atk:#ffb648; --ok:#5ee0a0;
+  --plasma:#ff6b3d; --cryo:#4fd2ff; --volt:#ffd23f; --neutral:#a8b5c6;
+  --art-bg:#0c131d; --mech:#c3cfdd; --mech2:#6f8199;
+  --display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai","Chakra Petch",system-ui,sans-serif;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;-webkit-tap-highlight-color:transparent;overflow:hidden;
+  background-image:radial-gradient(ellipse at 50% -10%,#14233a 0%,transparent 60%),linear-gradient(var(--bg),var(--bg))}
+#app{height:100%;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));box-sizing:border-box}
+button{font-family:var(--display);cursor:pointer;color:var(--fg)}
+button:focus-visible,[data-act]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.wrap{max-width:980px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:12px 18px;font-size:16px;font-weight:600;letter-spacing:.03em;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:#06101f;border-color:var(--accent)}
+.btn.warn{border-color:var(--hp);color:var(--hp)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sm{padding:8px 12px;font-size:14px}
+.label{font-family:var(--display);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+select{font-family:var(--body);font-size:16px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:10px;max-width:100%}
+input[type=text]{font-family:var(--body);font-size:16px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:10px;min-width:0}
+.num{font-family:var(--display);font-variant-numeric:tabular-nums}
+.ico{width:1em;height:1em;vertical-align:-.12em;fill:currentColor}
+
+/* ---------- MENU ---------- */
+.hero{display:flex;flex-direction:column;gap:6px;padding-block:28px 8px}
+.hero h1{font-size:clamp(40px,9vw,76px);font-weight:700;letter-spacing:.04em;line-height:.95}
+.hero h1 span{color:var(--accent)}
+.hero p{color:var(--dim);margin:0;font-size:16px}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.menu-item{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:6px;font-family:var(--body)}
+.menu-item:hover{border-color:var(--accent)}
+.menu-item b{font-family:var(--display);font-size:20px}
+.menu-item small{color:var(--dim);font-size:14px}
+.fan{display:flex;justify-content:center;gap:0;padding-block:10px;overflow:hidden}
+.fan .card{width:min(26vw,150px);flex:none;margin:0 -14px;box-shadow:0 10px 30px #0008}
+.fan .card:nth-child(1){transform:rotate(-12deg) translateY(16px)}
+.fan .card:nth-child(2){transform:rotate(-4deg) translateY(2px);z-index:1}
+.fan .card:nth-child(3){transform:rotate(4deg) translateY(2px);z-index:2}
+.fan .card:nth-child(4){transform:rotate(12deg) translateY(16px)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;color:var(--dim)}
+.stats b{color:var(--fg);font-family:var(--display);font-size:18px}
+
+/* ---------- CARD (full) ---------- */
+.card{--fc:var(--neutral);container-type:inline-size;aspect-ratio:5/7;position:relative;border-radius:7px;overflow:hidden;
+  background:linear-gradient(170deg,var(--panel2),var(--panel) 60%);border:1px solid color-mix(in srgb,var(--fc) 55%,var(--line));
+  display:flex;flex-direction:column;box-sizing:border-box;user-select:none;-webkit-user-select:none}
+.card.r-SR{box-shadow:0 0 0 1px color-mix(in srgb,var(--fc) 60%,transparent),0 0 14px color-mix(in srgb,var(--fc) 30%,transparent)}
+.card.r-UR{border-color:var(--fc);box-shadow:0 0 0 2px color-mix(in srgb,var(--fc) 70%,transparent),0 0 22px color-mix(in srgb,var(--fc) 45%,transparent)}
+.card.r-UR::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,#ffffff22 45%,transparent 60%);background-size:250% 100%;animation:foil 3.5s linear infinite;pointer-events:none}
+@keyframes foil{from{background-position:120% 0}to{background-position:-120% 0}}
+.c-head{display:flex;align-items:center;gap:3cqw;padding:3.5cqw 4cqw 2cqw}
+.c-cost{flex:none;width:15cqw;height:15cqw;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:10cqw;color:#06101f;background:var(--accent);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.c-name{font-family:var(--display);font-weight:700;font-size:7.6cqw;line-height:1.05;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-art{margin:0 4cqw;border-radius:2.5cqw;overflow:hidden;border:1px solid var(--line);aspect-ratio:100/62}
+.c-art svg{display:block;width:100%;height:100%}
+.c-type{display:flex;justify-content:space-between;padding:2cqw 4cqw 0;font-size:5.4cqw;color:var(--dim);font-family:var(--display);letter-spacing:.04em}
+.c-type .rar{color:var(--fc);font-weight:700}
+.c-kw{display:flex;flex-wrap:wrap;gap:1.5cqw;padding:2cqw 4cqw 0}
+.chip{font-size:5cqw;font-family:var(--display);font-weight:600;padding:.6cqw 2.2cqw;border-radius:9cqw;border:1px solid color-mix(in srgb,var(--fc) 60%,var(--line));color:var(--fg);background:color-mix(in srgb,var(--fc) 14%,transparent);white-space:nowrap}
+.c-text{flex:1;padding:2cqw 4cqw 0;font-size:6cqw;line-height:1.35;color:var(--fg);overflow:hidden}
+.c-stats{display:flex;justify-content:space-between;padding:0 3cqw 3cqw}
+.st{min-width:15cqw;height:12cqw;padding:0 2cqw;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:1cqw;font-family:var(--display);font-weight:700;font-size:8.5cqw;border-radius:2cqw;font-variant-numeric:tabular-nums}
+.st.a{background:color-mix(in srgb,var(--atk) 22%,var(--panel));color:var(--atk);border:1px solid color-mix(in srgb,var(--atk) 50%,transparent)}
+.st.h{background:color-mix(in srgb,var(--hp) 22%,var(--panel));color:#ff8fa2;border:1px solid color-mix(in srgb,var(--hp) 50%,transparent)}
+.card.mini .c-text{display:none}
+.card.mini .c-kw{flex:1;align-content:flex-start}
+.card.mini .c-type{font-size:6cqw}
+.card.mini .c-type .fac{display:none}
+.card.unplayable{filter:saturate(.35) brightness(.7)}
+.card.playable{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok),0 0 12px color-mix(in srgb,var(--ok) 40%,transparent)}
+.card.locked{filter:grayscale(1) brightness(.45)}
+.cback{aspect-ratio:5/7;border-radius:5px;border:1px solid var(--line);background:repeating-linear-gradient(45deg,#142033 0 6px,#0f1928 6px 12px);position:relative}
+.cback::after{content:"IP";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:700;color:var(--mech2);font-size:12px}
+
+/* ---------- GAME ---------- */
+.game{height:100%;max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:6px;padding-block:6px;box-sizing:border-box}
+.pbar{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;min-height:44px;box-sizing:border-box}
+.pbar .who{font-family:var(--display);font-weight:700;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pbar .who small{display:block;font-weight:500;color:var(--dim);font-size:11px;letter-spacing:.1em}
+.core{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:4px;border:1px solid color-mix(in srgb,var(--hp) 50%,var(--line));background:color-mix(in srgb,var(--hp) 12%,var(--panel));
+  font-family:var(--display);font-weight:700;font-size:20px;color:#ff8fa2;position:relative;font-variant-numeric:tabular-nums}
+.core.tgt{outline:2px solid var(--hp);box-shadow:0 0 16px var(--hp);cursor:pointer;animation:pulse 1s infinite}
+.en{display:flex;align-items:center;gap:4px;font-family:var(--display);font-weight:700;color:var(--volt);font-size:17px}
+.pips{display:flex;gap:2px}
+.pip{width:6px;height:14px;border-radius:1px;background:#2a3446}
+.pip.on{background:var(--volt);box-shadow:0 0 6px color-mix(in srgb,var(--volt) 60%,transparent)}
+.meta{display:flex;gap:10px;color:var(--dim);font-family:var(--display);font-size:14px;align-items:center}
+.traps{display:flex;gap:4px}
+.trapc{width:22px;height:30px;border-radius:3px;border:1px solid var(--line);background:repeating-linear-gradient(45deg,#2a1d33 0 4px,#1b1426 4px 8px);display:grid;place-items:center;font-family:var(--display);font-size:11px;color:#c99cff}
+.trapc.mine{background:color-mix(in srgb,var(--fc) 25%,var(--panel2));border-color:var(--fc);color:var(--fg);cursor:pointer}
+.board{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(5,minmax(0,118px));justify-content:center;align-items:center;gap:clamp(4px,1.4vw,10px);padding:4px 0}
+.slot{aspect-ratio:3/4;max-height:100%;border:1px dashed #223044;border-radius:6px;box-sizing:border-box}
+.unit{--fc:var(--neutral);container-type:inline-size;aspect-ratio:3/4;max-height:100%;position:relative;border-radius:6px;overflow:hidden;box-sizing:border-box;cursor:pointer;
+  background:var(--panel2);border:1.5px solid color-mix(in srgb,var(--fc) 55%,var(--line));transition:transform .15s}
+.unit .u-art{position:absolute;inset:0 0 34% 0}
+.unit .u-art svg{width:100%;height:100%;display:block}
+.unit .u-name{position:absolute;left:0;right:0;bottom:22%;padding:0 5cqw;font-family:var(--display);font-weight:700;font-size:10cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unit .u-kw{position:absolute;left:4cqw;top:4cqw;display:flex;gap:2cqw}
+.unit .u-kw span{width:15cqw;height:15cqw;border-radius:50%;background:#0b1220cc;border:1px solid var(--fc);display:grid;place-items:center}
+.unit .u-kw svg{width:10cqw;height:10cqw;fill:var(--fg)}
+.unit .u-st{position:absolute;left:3cqw;right:3cqw;bottom:3cqw;display:flex;justify-content:space-between}
+.unit .u-st .st{font-size:13cqw;height:18cqw;min-width:22cqw;border-radius:3cqw}
+.unit .st.h.hurt{color:#fff;background:var(--hp)}
+.unit .st.a.up,.unit .st.h.up{box-shadow:0 0 0 1px var(--ok)}
+.unit.can{border-color:var(--ok);box-shadow:0 0 10px color-mix(in srgb,var(--ok) 45%,transparent)}
+.unit.sel{transform:translateY(-6%) scale(1.04);border-color:#fff;box-shadow:0 0 18px #fff8}
+.unit.tgt{border-color:var(--hp);box-shadow:0 0 14px var(--hp);animation:pulse 1s infinite}
+.unit.ftgt{border-color:var(--ok);box-shadow:0 0 14px var(--ok);animation:pulse 1s infinite}
+.unit.frozen::before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,#9fe8ff55,#4fd2ff22);z-index:2;pointer-events:none;border:2px solid #bff1ff99;border-radius:5px}
+.unit .barrier{position:absolute;inset:3px;border-radius:5px;box-shadow:inset 0 0 0 2px #b9e6ff,inset 0 0 14px #8fd8ff88;pointer-events:none;z-index:3}
+.unit.fresh .u-art{opacity:.75}
+@keyframes pulse{50%{filter:brightness(1.35)}}
+.mid{display:flex;align-items:center;gap:8px;min-height:46px;flex-wrap:wrap}
+.mid .info{flex:1 1 180px;min-width:0;font-size:14px;line-height:1.3;color:var(--dim)}
+.mid .info b{color:var(--fg);font-family:var(--display)}
+.hand{--hh:clamp(124px,22vh,210px);flex:none;height:var(--hh);box-sizing:border-box;display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:6px 2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.hand .card{width:calc((var(--hh) - 24px)*5/7);flex:none;cursor:pointer;align-self:flex-start}
+.hand .card:active{transform:translateY(-4px)}
+.handback{display:flex;gap:3px;align-items:center}
+.handback .cback{width:14px;border-radius:2px}
+.handback .cback::after{content:none}
+.float{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:700;font-size:22px;pointer-events:none;z-index:20;
+  text-shadow:0 2px 6px #000;animation:floatup 1.1s ease-out forwards;white-space:nowrap}
+.float.dmg{color:#ff6b80}.float.heal{color:var(--ok)}.float.blk{color:#bfe9ff;font-size:15px}.float.buff{color:var(--ok);font-size:16px}.float.frz{color:var(--cryo);font-size:15px}
+@keyframes floatup{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-140%) scale(1)}}
+.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+
+.overlay{position:fixed;inset:0;z-index:50;background:#03060bd9;display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-sizing:border-box}
+.modal{display:flex;flex-direction:column;align-items:center;gap:14px;max-height:100%;overflow-y:auto;width:min(100%,420px)}
+.modal .card{width:min(76vw,290px)}
+.modal .status{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.kwhelp{font-size:13px;color:var(--dim);text-align:left;width:100%;display:flex;flex-direction:column;gap:4px}
+.kwhelp b{color:var(--fg);font-family:var(--display)}
+.banner{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:60;pointer-events:none;font-family:var(--display);font-weight:700;font-size:clamp(20px,5vw,34px);
+  padding:10px 26px;background:#0b1220ee;border:1px solid var(--bc,var(--accent));color:var(--bc,var(--accent));letter-spacing:.06em;white-space:nowrap;
+  clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);animation:ban 1.5s ease forwards}
+@keyframes ban{0%{opacity:0;transform:translate(-30%,-50%)}15%{opacity:1;transform:translate(-50%,-50%)}80%{opacity:1}100%{opacity:0;transform:translate(-60%,-50%)}}
+.pass{text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+.pass h2{font-size:clamp(26px,6vw,40px)}
+.result h2{font-size:clamp(34px,9vw,60px);letter-spacing:.05em}
+
+/* ---------- DECK BUILDER ---------- */
+.db{height:100%;max-width:1100px;margin:0 auto;display:grid;grid-template-rows:auto auto 1fr;gap:10px;padding-block:10px;box-sizing:border-box}
+.db-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.db-top input{flex:1 1 160px}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.fbtn{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:13px;font-family:var(--display)}
+.fbtn.on{background:var(--accent);color:#06101f;border-color:var(--accent)}
+.db-body{display:grid;grid-template-columns:1fr 260px;gap:10px;min-height:0}
+.pool{overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;align-content:start;padding:2px;-webkit-overflow-scrolling:touch}
+.ptile{position:relative;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.ptile .cnt{font-family:var(--display);font-size:12px;color:var(--dim);text-align:center}
+.ptile .cnt b{color:var(--ok)}
+.decklist{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;min-height:0}
+.decklist .dh{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.decklist .dl{overflow-y:auto;flex:1;padding:4px 0}
+.drow{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:14px}
+.drow:hover{background:var(--panel2)}
+.drow .dc{width:22px;height:22px;display:grid;place-items:center;background:var(--accent);color:#06101f;font-family:var(--display);font-weight:700;font-size:12px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);flex:none}
+.drow .dn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:3px solid var(--fc);padding-left:6px}
+.drow .dx{font-family:var(--display);color:var(--dim)}
+.curve{display:flex;align-items:flex-end;gap:3px;height:44px;padding:6px 12px;border-top:1px solid var(--line)}
+.curve div{flex:1;background:var(--accent);opacity:.7;min-height:1px;border-radius:1px 1px 0 0;position:relative}
+.curve span{position:absolute;bottom:-14px;left:0;right:0;text-align:center;font-size:9px;color:var(--dim);font-family:var(--display)}
+@media (max-width:700px){
+  .db-body{grid-template-columns:1fr;grid-template-rows:1fr 34%}
+  .pool{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+}
+.decks{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.dk{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.dk .bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:#1d2838}
+.dk .bar i{display:block}
+
+/* ---------- SHOP ---------- */
+.packs{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.pack{width:150px;aspect-ratio:3/4;border-radius:8px;border:1px solid var(--accent);background:linear-gradient(160deg,#1b2a45,#0d1524);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;font-family:var(--display)}
+.pack b{font-size:22px;letter-spacing:.06em}
+.pack small{color:var(--dim)}
+.reveal{display:grid;grid-template-columns:repeat(5,minmax(0,170px));gap:10px;justify-content:center;width:min(100%,900px)}
+@media (max-width:640px){.reveal{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.flip{perspective:800px;cursor:pointer}
+.flip .in{position:relative;transition:transform .6s;transform-style:preserve-3d;aspect-ratio:5/7}
+.flip .in>*{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip .in .front{transform:rotateY(180deg)}
+.flip.open .in{transform:rotateY(180deg)}
+.flip .tag{text-align:center;font-family:var(--display);font-size:12px;margin-top:4px;color:var(--dim);min-height:16px}
+.flip .tag.new{color:var(--ok)}
+.rules{display:flex;flex-direction:column;gap:14px;max-width:70ch}
+.rules p,.rules li{line-height:1.65;color:#c8d4e2}
+.rules h3{font-size:18px;color:var(--accent);margin-top:6px}
+.tri{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-family:var(--display)}
+.tri span{padding:4px 10px;border-radius:4px;border:1px solid var(--fc);color:var(--fc)}
+@media (max-width:600px){.handback,.pips,.mid .insp{display:none}.pbar{gap:8px;padding:6px 8px}.meta{gap:6px;font-size:13px}.board{grid-template-columns:repeat(5,minmax(0,1fr))}.mid .info{font-size:13px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app"></div>
+
+<script>
+(()=>{
+'use strict';
+/* ================= DATA ================= */
+const FAC={plasma:{n:'พลาสมา',c:'#ff6b3d'},cryo:{n:'ไครโอ',c:'#4fd2ff'},volt:{n:'โวลต์',c:'#ffd23f'},neutral:{n:'กลาง',c:'#a8b5c6'}};
+const BEATS={plasma:'cryo',cryo:'volt',volt:'plasma'};
+const KW={guard:['คุ้มกัน','ศัตรูต้องโจมตียูนิตที่มีคุ้มกันก่อน'],rush:['บูสต์','โจมตีได้ทันทีในเทิร์นที่ลงสนาม'],barrier:['บาเรีย','กันความเสียหายครั้งแรกได้หมด แล้วบาเรียแตก'],
+  pierce:['เจาะเกราะ','ดาเมจที่เกินพลังชีวิตยูนิตเป้าหมาย ทะลุเข้าแกนกลางศัตรู'],drain:['ดูดพลัง','ดาเมจที่ยูนิตนี้ทำ ฟื้นฟูแกนกลางเราเท่ากัน']};
+const TYPE={unit:'ยูนิต',tactic:'แท็กติก',trap:'กับดัก'};
+const U=(id,name,f,c,r,a,h,o={})=>({id,name,f,t:'unit',c,r,a,h,...o});
+const T=(id,name,f,c,r,o)=>({id,name,f,t:'tactic',c,r,...o});
+const P=(id,name,f,c,r,o)=>({id,name,f,t:'trap',c,r,...o});
+const CARDS=[
+ U('n1','Scout Drone','neutral',1,'C',1,2),
+ U('n2','Repair Bot','neutral',2,'C',1,3,{dep:[['healCore',3]],txt:'ลงสนาม: ฟื้นฟูแกนกลางเรา 3'}),
+ U('n3','Bulwark Frame','neutral',3,'C',1,6,{kw:['guard']}),
+ U('n4','Salvage Crawler','neutral',2,'C',2,2,{die:[['draw',1]],txt:'ถูกทำลาย: จั่วการ์ด 1 ใบ'}),
+ U('n5','Sentinel Tower','neutral',4,'C',3,5,{kw:['guard']}),
+ U('n6','Titan Colossus','neutral',7,'SR',7,8,{kw:['guard']}),
+ T('n7','Supply Drop','neutral',2,'R',{fx:[['draw',2]],txt:'จั่วการ์ด 2 ใบ'}),
+ T('n8','EMP Burst','neutral',2,'R',{fx:[['aoe',1]],txt:'ทำดาเมจ 1 แก่ยูนิตศัตรูทุกตัว'}),
+ T('n9','Reinforce','neutral',1,'C',{tgt:'friendlyUnit',fx:[['buff',1,2]],txt:'ยูนิตฝ่ายเรา 1 ตัวได้ +1/+2'}),
+ P('n10','Counter Grid','neutral',2,'C',{trig:'attack',fx:[['dmgAttacker',3]],txt:'เมื่อศัตรูประกาศโจมตี: ทำดาเมจ 3 แก่ผู้โจมตี'}),
+ T('n11','Swarm Protocol','neutral',3,'R',{fx:[['summon','tk1',2]],txt:'สร้าง Micro Drone 1/1 จำนวน 2 ตัว'}),
+ U('n12','Siphon Rig','neutral',3,'R',2,4,{kw:['drain']}),
+ U('n13','Overseer AI','neutral',5,'SR',4,4,{dep:[['draw',2]],txt:'ลงสนาม: จั่วการ์ด 2 ใบ'}),
+ U('tk1','Micro Drone','neutral',1,'C',1,1,{col:false}),
+
+ U('p1','Ember Hound','plasma',1,'C',2,1,{kw:['rush']}),
+ U('p2','Flare Lancer','plasma',2,'C',3,2),
+ U('p3','Blaze Striker','plasma',3,'C',3,3,{kw:['rush']}),
+ U('p4','Inferno Brute','plasma',4,'R',5,3,{kw:['pierce']}),
+ U('p5','Magma Juggernaut','plasma',5,'R',5,5,{dep:[['dmgStrongest',2]],txt:'ลงสนาม: ทำดาเมจ 2 แก่ยูนิตศัตรูที่แข็งแกร่งที่สุด'}),
+ U('p6','Solar Wyvern','plasma',6,'SR',6,4,{kw:['rush','pierce']}),
+ U('p7','Phoenix Core Mk-X','plasma',8,'UR',8,6,{kw:['rush'],dep:[['aoe',3]],txt:'ลงสนาม: ทำดาเมจ 3 แก่ยูนิตศัตรูทุกตัว'}),
+ T('p8','Plasma Bolt','plasma',1,'C',{tgt:'enemyUnit',fx:[['dmg',3]],txt:'ทำดาเมจ 3 แก่ยูนิตศัตรู 1 ตัว'}),
+ T('p9','Meteor Strike','plasma',4,'R',{tgt:'enemyAny',fx:[['dmg',5]],txt:'ทำดาเมจ 5 แก่ยูนิตศัตรูหรือแกนกลางศัตรู'}),
+ T('p10','Overdrive','plasma',2,'C',{tgt:'friendlyUnit',fx:[['buff',2,0],['rush']],txt:'ยูนิตฝ่ายเรา +2 พลังโจมตี และโจมตีได้ทันที'}),
+ P('p11','Scorch Mine','plasma',2,'R',{trig:'summon',fx:[['dmgSummoned',4]],txt:'เมื่อศัตรูลงยูนิต: ทำดาเมจ 4 แก่ยูนิตนั้น'}),
+ T('p12','Firestorm','plasma',6,'SR',{fx:[['aoe',3],['dmgCore',2]],txt:'ทำดาเมจ 3 แก่ยูนิตศัตรูทุกตัว และ 2 แก่แกนกลางศัตรู'}),
+ U('p13','Pyro Engineer','plasma',3,'C',2,3,{dep:[['dmgCore',2]],txt:'ลงสนาม: ทำดาเมจ 2 แก่แกนกลางศัตรู'}),
+
+ U('c1','Frost Sentry','cryo',1,'C',0,3,{kw:['guard']}),
+ U('c2','Glacier Guard','cryo',2,'C',1,4,{kw:['guard']}),
+ U('c3','Cryo Sniper','cryo',3,'C',2,3,{dep:[['freezeStrongest']],txt:'ลงสนาม: แช่แข็งยูนิตศัตรูที่แข็งแกร่งที่สุด'}),
+ U('c4','Ice Warden','cryo',4,'R',3,5,{kw:['barrier']}),
+ U('c5','Permafrost Golem','cryo',5,'R',4,6,{kw:['guard','barrier']}),
+ U('c6','Blizzard Queen','cryo',6,'SR',4,6,{dep:[['freezeAll']],txt:'ลงสนาม: แช่แข็งยูนิตศัตรูทุกตัว'}),
+ U('c7','Absolute Zero Leviathan','cryo',8,'UR',6,10,{kw:['guard','barrier'],dep:[['healCore',5]],txt:'ลงสนาม: ฟื้นฟูแกนกลางเรา 5'}),
+ T('c8','Freeze Ray','cryo',2,'C',{tgt:'enemyUnit',fx:[['freeze'],['draw',1]],txt:'แช่แข็งยูนิตศัตรู 1 ตัว แล้วจั่วการ์ด 1 ใบ'}),
+ T('c9','Cryo Shield','cryo',1,'C',{tgt:'friendlyUnit',fx:[['barrier'],['buff',0,2]],txt:'ยูนิตฝ่ายเราได้บาเรีย และ +0/+2'}),
+ P('c10','Glacial Prison','cryo',3,'R',{trig:'attack',fx:[['cancel'],['freezeAttacker']],txt:'เมื่อศัตรูประกาศโจมตี: ยกเลิกการโจมตี และแช่แข็งผู้โจมตี'}),
+ T('c11','Shatter','cryo',3,'R',{tgt:'enemyUnit',fx:[['shatter']],txt:'ทำลายยูนิตศัตรูที่ถูกแช่แข็ง ถ้าไม่ได้ถูกแช่แข็ง ทำดาเมจ 2'}),
+ T('c12','Coolant Flush','cryo',4,'C',{fx:[['healCore',5],['draw',1]],txt:'ฟื้นฟูแกนกลางเรา 5 แล้วจั่วการ์ด 1 ใบ'}),
+ U('c13','Snow Owl Drone','cryo',2,'C',2,2,{dep:[['freezeRandom']],txt:'ลงสนาม: แช่แข็งยูนิตศัตรู 1 ตัวแบบสุ่ม'}),
+
+ U('v1','Spark Imp','volt',1,'C',1,2,{kw:['rush']}),
+ U('v2','Arc Runner','volt',2,'C',2,2,{kw:['rush']}),
+ U('v3','Tesla Coil','volt',3,'R',1,4,{ts:[['randomHits',1,1]],txt:'ต้นเทิร์นเรา: ทำดาเมจ 1 แก่ศัตรูแบบสุ่ม'}),
+ U('v4','Storm Rider','volt',4,'C',4,3,{dep:[['draw',1]],txt:'ลงสนาม: จั่วการ์ด 1 ใบ'}),
+ U('v5','Ion Cannon Mech','volt',5,'R',4,4,{dep:[['dmgStrongest',3]],txt:'ลงสนาม: ทำดาเมจ 3 แก่ยูนิตศัตรูที่แข็งแกร่งที่สุด'}),
+ U('v6','Thunder Seraph','volt',6,'SR',5,5,{kw:['rush'],dep:[['aoeAll',1]],txt:'ลงสนาม: ทำดาเมจ 1 แก่ยูนิตศัตรูทุกตัวและแกนกลางศัตรู'}),
+ U('v7','Zeus Engine Omega','volt',9,'UR',7,7,{kw:['rush'],dep:[['aoe',2],['draw',2]],txt:'ลงสนาม: ทำดาเมจ 2 แก่ยูนิตศัตรูทุกตัว แล้วจั่ว 2 ใบ'}),
+ T('v8','Chain Lightning','volt',3,'R',{fx:[['randomHits',3,2]],txt:'ทำดาเมจ 2 แก่ศัตรูแบบสุ่ม 3 ครั้ง (ยูนิตหรือแกนกลาง)'}),
+ T('v9','Power Surge','volt',0,'C',{fx:[['energy',2]],txt:'ได้พลังงาน +2 เฉพาะเทิร์นนี้'}),
+ T('v10','Data Uplink','volt',3,'R',{fx:[['draw',3]],txt:'จั่วการ์ด 3 ใบ'}),
+ P('v11','Static Trap','volt',1,'R',{trig:'tactic',fx:[['cancel']],txt:'เมื่อศัตรูใช้แท็กติก: ยกเลิกแท็กติกนั้น'}),
+ P('v12','Volt Reroute','volt',2,'C',{trig:'attack',fx:[['cancel'],['bounceAttacker']],txt:'เมื่อศัตรูประกาศโจมตี: ส่งผู้โจมตีกลับขึ้นมือเจ้าของ'}),
+ U('v13','Circuit Hacker','volt',2,'C',2,3,{dep:[['energy',1]],txt:'ลงสนาม: ได้พลังงาน +1 เฉพาะเทิร์นนี้'}),
+];
+const CARD=Object.fromEntries(CARDS.map(c=>[c.id,c]));
+const COLL=CARDS.filter(c=>c.col!==false);
+const FORDER={plasma:0,cryo:1,volt:2,neutral:3};
+const maxCopies=id=>CARD[id].r==='UR'?1:2;
+const NEUTRAL_FILL=['n1','n4','n5','n3','n2','n9','n10','n12'];
+function starter(f){const d=[];COLL.filter(c=>c.f===f&&(c.r==='C'||c.r==='R')).forEach(c=>d.push(c.id,c.id));
+  for(const id of NEUTRAL_FILL){if(d.length>=30)break;d.push(id);if(d.length<30)d.push(id);}return d;}
+const STARTERS=['plasma','cryo','volt'].map(f=>({name:'สตาร์ทเตอร์ '+FAC[f].n,cards:starter(f),starter:true,f}));
+function hardDeck(f){const d=starter(f);const ups=COLL.filter(c=>c.f===f&&(c.r==='SR'||c.r==='UR')).map(c=>c.id).concat(['n6','n13']);
+  let k=d.length-1;for(const id of ups){while(k>=0&&CARD[d[k]].f!=='neutral')k--;if(k<0)break;d[k]=id;k--;}return d;}
+
+/* ================= SAVE ================= */
+const SKEY='ironprotocol.v1';
+function defSave(){const coll={};COLL.filter(c=>c.r==='C'||c.r==='R').forEach(c=>coll[c.id]=2);return{credits:300,coll,decks:[],stats:{w:0,l:0},packs:0};}
+function loadSave(){try{const s=JSON.parse(localStorage.getItem(SKEY));if(s&&s.coll)return s;}catch(e){}return defSave();}
+function persist(){try{localStorage.setItem(SKEY,JSON.stringify(save));}catch(e){}}
+let save=loadSave();
+
+/* ================= HELPERS ================= */
+const app=document.getElementById('app');
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+let SPEED=1;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms*SPEED));
+const ICON={
+ bolt:'<svg class="ico" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+ core:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 2 21 7v10l-9 5-9-5V7z" opacity=".35"/><circle cx="12" cy="12" r="4.5"/></svg>',
+ deck:'<svg class="ico" viewBox="0 0 24 24"><path d="M6 3h11v16H6z" opacity=".5"/><path d="M8 5h11v16H8z"/></svg>',
+ hand:'<svg class="ico" viewBox="0 0 24 24"><path d="M3 7l8-3 3 14-8 3z" opacity=".5"/><path d="M10 4h9v16h-9z"/></svg>',
+ guard:'<svg viewBox="0 0 24 24"><path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>',
+ rush:'<svg viewBox="0 0 24 24"><path d="M3 5l7 7-7 7V5zm9 0 7 7-7 7V5z"/></svg>',
+ barrier:'<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 .01 0zm0 3a6 6 0 1 1-.01 0z"/></svg>',
+ pierce:'<svg viewBox="0 0 24 24"><path d="M2 11h14V7l6 5-6 5v-4H2z"/></svg>',
+ drain:'<svg viewBox="0 0 24 24"><path d="M12 2c4 6 7 9 7 13a7 7 0 0 1-14 0c0-4 3-7 7-13z"/></svg>',
+ frost:'<svg viewBox="0 0 24 24"><path d="M11 2h2v20h-2zM2 11h20v2H2zM4.2 5.6l1.4-1.4 14.2 14.2-1.4 1.4zM18.4 4.2l1.4 1.4L5.6 19.8l-1.4-1.4z"/></svg>',
+};
+
+/* ================= ART (procedural, seeded) ================= */
+const ARTC={};
+function rng(seed){let h=2166136261;for(const ch of seed){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+  return()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return((h>>>0)%10000)/10000;};}
+function art(id){
+ if(ARTC[id])return ARTC[id];
+ const c=CARD[id],r=rng(id+c.name);const f=n=>n.toFixed(1);
+ let s='<svg viewBox="0 0 100 62" preserveAspectRatio="xMidYMid slice" aria-hidden="true">';
+ s+='<rect width="100" height="62" style="fill:var(--art-bg)"/>';
+ for(let x=5;x<100;x+=10)s+=`<line x1="${x}" y1="0" x2="${x}" y2="62" style="stroke:var(--fc);stroke-opacity:.1;stroke-width:.4"/>`;
+ for(let y=6;y<62;y+=10)s+=`<line x1="0" y1="${y}" x2="100" y2="${y}" style="stroke:var(--fc);stroke-opacity:.1;stroke-width:.4"/>`;
+ s+=`<circle cx="50" cy="30" r="${f(20+r()*8)}" style="fill:var(--fc);opacity:.16"/>`;
+ s+=`<circle cx="50" cy="30" r="${f(12+r()*5)}" style="fill:var(--fc);opacity:.12"/>`;
+ const M='style="fill:var(--mech)"',D='style="fill:var(--mech2)"',F='style="fill:var(--fc)"';
+ if(c.t==='unit'){
+  const big=c.c>=5,cx=50,hip=38+r()*4,w=4+r()*4+(big?2:0),sp=3+r()*6,tw=12+r()*9+(big?5:0),th=11+r()*5+(big?3:0),ty=hip-th;
+  if(c.r==='SR'||c.r==='UR'){ // back fins
+   s+=`<polygon ${F} opacity=".55" points="${f(cx-tw/2)},${f(ty+2)} ${f(cx-tw/2-16-r()*6)},${f(ty-10)} ${f(cx-tw/2-8)},${f(ty+8)}"/>`;
+   s+=`<polygon ${F} opacity=".55" points="${f(cx+tw/2)},${f(ty+2)} ${f(cx+tw/2+16+r()*6)},${f(ty-10)} ${f(cx+tw/2+8)},${f(ty+8)}"/>`;
+  }
+  if(id.startsWith('tk')||c.c<=1&&r()<.6){ // drone body
+   s+=`<ellipse cx="50" cy="30" rx="${f(10+r()*4)}" ry="6" ${M}/><rect x="34" y="22" width="32" height="2" ${D}/><circle cx="50" cy="30" r="2.5" ${F}/>`;
+   s+=`<rect x="31" y="20" width="10" height="1.5" ${D}/><rect x="59" y="20" width="10" height="1.5" ${D}/>`;
+  }else{
+   for(const sg of[-1,1]){
+    s+=`<polygon ${D} points="${f(cx+sg*w)},${f(hip)} ${f(cx+sg*(w+4))},${f(hip)} ${f(cx+sg*(w+sp+3))},58 ${f(cx+sg*(w+sp-3))},58"/>`;
+    s+=`<rect ${M} x="${f(cx+sg*(w+sp)-(sg<0?6:3))}" y="57" width="9" height="3"/>`;
+   }
+   s+=`<polygon ${M} points="${f(cx-tw/2)},${f(ty)} ${f(cx+tw/2)},${f(ty)} ${f(cx+tw/2-3)},${f(hip)} ${f(cx-tw/2+3)},${f(hip)}"/>`;
+   s+=`<rect ${D} x="${f(cx-tw/2+3)}" y="${f(ty+th*.62)}" width="${f(tw-6)}" height="1.2"/>`;
+   s+=`<circle ${F} cx="${cx}" cy="${f(ty+th*.36)}" r="${f(1.8+r()*1.6)}"/>`;
+   const hw=5+r()*4,hh=4+r()*3;
+   s+=`<rect ${M} x="${f(cx-hw/2)}" y="${f(ty-hh-1)}" width="${f(hw)}" height="${f(hh)}" rx="1"/>`;
+   s+=`<rect ${F} x="${f(cx-hw/2+1)}" y="${f(ty-hh+1)}" width="${f(hw-2)}" height="1.3"/>`;
+   for(const sg of[-1,1])s+=`<rect ${D} x="${f(sg<0?cx-tw/2-6:cx+tw/2-1)}" y="${f(ty-1)}" width="7" height="6" rx="1"/>`;
+   const wv=Math.floor(r()*3);
+   if(wv===0){s+=`<rect ${D} x="${f(cx+tw/2+1)}" y="${f(ty+5)}" width="4" height="${f(th)}"/><rect ${M} x="${f(cx+tw/2)}" y="${f(ty+th+3)}" width="6" height="${f(8+r()*6)}"/>`;
+    s+=`<rect ${D} x="${f(cx-tw/2-5)}" y="${f(ty+5)}" width="4" height="${f(th-2)}"/>`;}
+   else if(wv===1){for(const sg of[-1,1]){const x=sg<0?cx-tw/2-5:cx+tw/2+1;s+=`<rect ${D} x="${f(x)}" y="${f(ty+5)}" width="4" height="${f(th-1)}"/><polygon ${F} opacity=".85" points="${f(x+2)},${f(ty+th+3)} ${f(x+sg*8+2)},${f(ty+th+16)} ${f(x+3.5)},${f(ty+th+4)}"/>`;}}
+   else{for(const sg of[-1,1]){const x=sg<0?cx-tw/2-9:cx+tw/2;s+=`<rect ${M} x="${f(x)}" y="${f(ty-7)}" width="9" height="6" rx="1"/>`;for(let k=0;k<3;k++)s+=`<circle ${F} cx="${f(x+1.8+k*2.7)}" cy="${f(ty-4)}" r=".9"/>`;
+     s+=`<rect ${D} x="${f(sg<0?cx-tw/2-5:cx+tw/2+1)}" y="${f(ty+5)}" width="4" height="${f(th-1)}"/>`;}}
+  }
+  s+=`<rect x="0" y="59.5" width="100" height="2.5" style="fill:var(--fc);opacity:.25"/>`;
+ }else if(c.t==='tactic'){
+  const k=c.f;
+  s+=`<circle cx="50" cy="31" r="17" style="fill:none;stroke:var(--fc);stroke-width:1;opacity:.7"/><circle cx="50" cy="31" r="22" style="fill:none;stroke:var(--fc);stroke-width:.5;stroke-dasharray:2 3;opacity:.6"/>`;
+  if(k==='plasma')s+=`<path ${F} d="M50 14c6 8 10 12 10 19a10 10 0 0 1-20 0c0-4 2-7 4-9 0 4 2 6 3 6-1-6 1-11 3-16z"/>`;
+  else if(k==='cryo'){for(let a=0;a<3;a++)s+=`<rect ${F} x="49" y="15" width="2" height="32" transform="rotate(${a*60} 50 31)"/>`;s+=`<circle cx="50" cy="31" r="4" ${F}/>`;}
+  else if(k==='volt')s+=`<path ${F} d="M54 13 41 34h8l-4 15 14-22h-8z"/>`;
+  else s+=`<polygon ${F} points="50,18 61,24.5 61,37.5 50,44 39,37.5 39,24.5" opacity=".9"/><rect x="48.5" y="24" width="3" height="14" style="fill:var(--art-bg)"/><rect x="43" y="29.5" width="14" height="3" style="fill:var(--art-bg)"/>`;
+  for(let i=0;i<6;i++){const a=r()*6.28,d=24+r()*14;s+=`<circle cx="${f(50+Math.cos(a)*d)}" cy="${f(31+Math.sin(a)*d*.6)}" r="${f(.6+r())}" ${F} opacity=".7"/>`;}
+ }else{
+  s+=`<polygon points="50,12 67,21.5 67,40.5 50,50 33,40.5 33,21.5" style="fill:none;stroke:var(--fc);stroke-width:1.6"/>`;
+  s+=`<polygon points="50,18 61,24.5 61,37.5 50,44 39,37.5 39,24.5" style="fill:var(--fc);opacity:.18"/>`;
+  s+=`<rect x="48" y="22" width="4" height="13" ${F}/><rect x="48" y="38" width="4" height="4" ${F}/>`;
+  s+=`<line x1="10" y1="52" x2="90" y2="52" style="stroke:var(--fc);stroke-width:.6;stroke-dasharray:4 2;opacity:.6"/>`;
+ }
+ s+='</svg>';
+ return ARTC[id]=s;
+}
+
+/* ================= CARD HTML ================= */
+function kwChips(list){return list.map(k=>`<span class="chip">${KW[k][0]}</span>`).join('');}
+function cardHTML(id,o={}){
+ const c=CARD[id];const cls=['card','r-'+c.r];if(o.mini)cls.push('mini');if(o.cls)cls.push(o.cls);
+ const u=o.unit;const atk=u?u.atk:c.a,hp=u?u.hp:c.h;
+ const kws=u?Object.keys(u.kw).filter(k=>u.kw[k]):(c.kw||[]);
+ let chips=kwChips(kws);
+ if(c.t==='trap')chips+=`<span class="chip">${c.trig==='attack'?'เมื่อถูกโจมตี':c.trig==='summon'?'เมื่อศัตรูลงยูนิต':'เมื่อศัตรูใช้แท็กติก'}</span>`;
+ return `<div class="${cls.join(' ')}" style="--fc:${FAC[c.f].c}" ${o.attrs||''}>
+  <div class="c-head"><div class="c-cost">${c.c}</div><div class="c-name">${esc(c.name)}</div></div>
+  <div class="c-art">${art(id)}</div>
+  <div class="c-type"><span>${TYPE[c.t]}<span class="fac"> · ${FAC[c.f].n}</span></span><span class="rar">${c.r}</span></div>
+  <div class="c-kw">${chips}</div>
+  <div class="c-text">${esc(c.txt||'')}</div>
+  <div class="c-stats">${c.t==='unit'?`<span class="st a">${atk}</span><span class="st h">${hp}</span>`:''}</div>
+ </div>`;
+}
+
+/* ================= GAME ENGINE ================= */
+let G=null, UI={};
+let uidc=1;
+function mkUnit(id){const c=CARD[id];const kw={};(c.kw||[]).forEach(k=>kw[k]=true);
+ return{uid:uidc++,id,atk:c.a,hp:c.h,maxHp:c.h,kw,canAttack:!!kw.rush,frozen:0,fresh:true};}
+function newPlayer(name,deck,isAI){return{name,core:25,maxEn:0,en:0,deck:shuffle(deck),hand:[],board:[null,null,null,null,null],traps:[],fatigue:0,isAI};}
+function log(t){G.log.unshift(t);if(G.log.length>60)G.log.pop();G.last=t;}
+function fxf(key,text,cls){G.fx.push({key,text,cls});}
+const ukey=u=>'u'+u.uid;
+const unitAt=t=>t&&t.slot!=null?G.p[t.pi].board[t.slot]:null;
+function enemyUnits(o){const r=[];G.p[o].board.forEach((u,s)=>{if(u&&u.hp>0)r.push({pi:o,slot:s});});return r;}
+const uval=u=>u.atk*1.5+u.hp+CARD[u.id].c*.5;
+function strongest(o){let b=null,bv=-1;for(const t of enemyUnits(o)){const v=uval(unitAt(t));if(v>bv){bv=v;b=t;}}return b;}
+
+function draw(pi,n){const P=G.p[pi];
+ for(let i=0;i<n;i++){
+  if(!P.deck.length){P.fatigue++;P.core-=P.fatigue;fxf('c'+pi,'-'+P.fatigue,'dmg');log(`${P.name}: การ์ดหมดกอง เสียแกนกลาง ${P.fatigue}`);continue;}
+  const id=P.deck.pop();
+  if(P.hand.length>=8){log(`${P.name}: มือเต็ม ${CARD[id].name} ถูกทิ้ง`);continue;}
+  P.hand.push({uid:uidc++,id});
+ }}
+function hitCore(o,n){if(n<=0)return;G.p[o].core-=n;fxf('c'+o,'-'+n,'dmg');G.shake='c'+o;}
+function heal(pi,n){const P=G.p[pi];const b=P.core;P.core=Math.min(30,P.core+n);if(P.core>b)fxf('c'+pi,'+'+(P.core-b),'heal');}
+function damageUnit(pi,slot,n){
+ const u=G.p[pi].board[slot];if(!u||n<=0)return{dealt:0,excess:0};
+ if(u.kw.barrier){u.kw.barrier=false;fxf(ukey(u),'บาเรียแตก','blk');return{dealt:0,excess:0,blocked:true};}
+ const before=Math.max(0,u.hp);u.hp-=n;fxf(ukey(u),'-'+n,'dmg');
+ return{dealt:Math.min(n,before),excess:Math.max(0,n-before)};
+}
+function hit(t,n){if(!t)return;if(t.core!=null)hitCore(t.core,n);else damageUnit(t.pi,t.slot,n);}
+function freezeU(t){const u=unitAt(t);if(!u)return;u.frozen=(G.turn===t.pi)?2:1;u.canAttack=false;fxf(ukey(u),'แช่แข็ง','frz');}
+const OPS={
+ dmg:(x,n)=>hit(x.target,n),
+ dmgCore:(x,n)=>hitCore(1-x.pi,n),
+ healCore:(x,n)=>heal(x.pi,n),
+ draw:(x,n)=>draw(x.pi,n),
+ energy:(x,n)=>{G.p[x.pi].en+=n;},
+ buff:(x,a,h)=>{const u=unitAt(x.target);if(u){u.atk+=a;u.hp+=h;u.maxHp+=h;fxf(ukey(u),`+${a}/+${h}`,'buff');}},
+ barrier:x=>{const u=unitAt(x.target);if(u)u.kw.barrier=true;},
+ rush:x=>{const u=unitAt(x.target);if(u&&!u.frozen)u.canAttack=true;},
+ freeze:x=>freezeU(x.target),
+ freezeStrongest:x=>{const t=strongest(1-x.pi);if(t)freezeU(t);},
+ freezeRandom:x=>{const l=enemyUnits(1-x.pi);if(l.length)freezeU(pick(l));},
+ freezeAll:x=>enemyUnits(1-x.pi).forEach(freezeU),
+ dmgStrongest:(x,n)=>{const t=strongest(1-x.pi);if(t)hit(t,n);},
+ aoe:(x,n)=>enemyUnits(1-x.pi).forEach(t=>hit(t,n)),
+ aoeAll:(x,n)=>{enemyUnits(1-x.pi).forEach(t=>hit(t,n));hitCore(1-x.pi,n);},
+ randomHits:(x,k,n)=>{const o=1-x.pi;for(let i=0;i<k;i++){const l=enemyUnits(o);l.push({core:o});hit(pick(l),n);}},
+ summon:(x,id,k)=>{const B=G.p[x.pi].board;for(let i=0;i<k;i++){const s=B.indexOf(null);if(s<0)break;B[s]=mkUnit(id);}},
+ shatter:x=>{const u=unitAt(x.target);if(!u)return;if(u.frozen){u.hp=0;fxf(ukey(u),'แตกกระจาย','dmg');}else hit(x.target,2);},
+ dmgAttacker:(x,n)=>hit(x.attacker,n),
+ freezeAttacker:x=>freezeU(x.attacker),
+ bounceAttacker:x=>{const t=x.attacker,u=unitAt(t);if(!u)return;const Pl=G.p[t.pi];Pl.board[t.slot]=null;if(Pl.hand.length<8)Pl.hand.push({uid:uidc++,id:u.id});log(`${CARD[u.id].name} ถูกส่งกลับขึ้นมือ`);},
+ dmgSummoned:(x,n)=>hit(x.summoned,n),
+ cancel:x=>{x.cancel=true;},
+};
+function runFx(list,ctx){for(const [op,...a] of list||[])OPS[op](ctx,...a);return ctx;}
+function springTrap(owner,trig,ctx){
+ const Pl=G.p[owner];const i=Pl.traps.findIndex(h=>CARD[h.id].trig===trig);if(i<0)return null;
+ const h=Pl.traps.splice(i,1)[0];const c=CARD[h.id];
+ log(`กับดัก! ${Pl.name} เปิด ${c.name}`);banner('กับดัก · '+c.name,FAC[c.f].c);
+ return runFx(c.fx,{...ctx,pi:owner});
+}
+function cleanup(){
+ let again=true,guard=0;
+ while(again&&guard++<20){again=false;
+  for(const pi of[0,1])G.p[pi].board.forEach((u,s)=>{
+   if(u&&u.hp<=0){G.p[pi].board[s]=null;const c=CARD[u.id];log(`${c.name} ถูกทำลาย`);if(c.die){runFx(c.die,{pi});again=true;}}
+  });}
+}
+function checkWin(){
+ if(G.over)return;const a=G.p[0].core<=0,b=G.p[1].core<=0;
+ if(a||b){G.over=true;G.winner=a&&b?G.turn:(a?1:0);}
+}
+function targetsFor(pi,tgt){const o=1-pi,r=[];
+ if(tgt==='enemyUnit'||tgt==='enemyAny')r.push(...enemyUnits(o));
+ if(tgt==='enemyAny')r.push({core:o});
+ if(tgt==='friendlyUnit')r.push(...enemyUnits(pi));
+ return r;}
+function playIssue(pi,h){const Pl=G.p[pi],c=CARD[h.id];
+ if(c.c>Pl.en)return'พลังงานไม่พอ';
+ if(c.t==='unit'&&Pl.board.indexOf(null)<0)return'สนามเต็ม (สูงสุด 5 ยูนิต)';
+ if(c.t==='trap'&&Pl.traps.length>=2)return'วางกับดักได้สูงสุด 2 ใบ';
+ if(c.t==='tactic'&&c.tgt&&!targetsFor(pi,c.tgt).length)return'ไม่มีเป้าหมาย';
+ return'';}
+function play(pi,uid,target){
+ const Pl=G.p[pi],i=Pl.hand.findIndex(h=>h.uid===uid);if(i<0)return false;
+ const h=Pl.hand[i],c=CARD[h.id];if(playIssue(pi,h))return false;
+ Pl.en-=c.c;Pl.hand.splice(i,1);
+ if(c.t==='trap'){Pl.traps.push(h);log(`${Pl.name} วางกับดักคว่ำไว้`);return true;}
+ if(c.t==='unit'){
+  const s=Pl.board.indexOf(null);const u=mkUnit(h.id);Pl.board[s]=u;log(`${Pl.name} ลงสนาม ${c.name}`);
+  springTrap(1-pi,'summon',{summoned:{pi,slot:s}});cleanup();
+  if(Pl.board[s]===u&&c.dep)runFx(c.dep,{pi,src:{pi,slot:s}});
+  cleanup();checkWin();return true;
+ }
+ log(`${Pl.name} ใช้ ${c.name}`);banner(c.name,FAC[c.f].c);
+ const tc=springTrap(1-pi,'tactic',{});
+ if(tc&&tc.cancel){log(`${c.name} ถูกยกเลิก`);cleanup();checkWin();return true;}
+ if(c.tgt&&target&&target.slot!=null&&!unitAt(target)){cleanup();return true;}
+ runFx(c.fx,{pi,target});cleanup();checkWin();return true;
+}
+function attackTargets(pi){const o=1-pi,O=G.p[o];
+ const guards=enemyUnits(o).filter(t=>unitAt(t).kw.guard);
+ if(guards.length)return guards;
+ return[...enemyUnits(o),{core:o}];}
+const sameT=(a,b)=>a.core!=null?b.core===a.core:(b.pi===a.pi&&b.slot===a.slot);
+function adv(A,D){return CARD[A.id].f&&BEATS[CARD[A.id].f]===CARD[D.id].f?1:0;}
+function attack(pi,slot,tgt){
+ const Pl=G.p[pi],o=1-pi,O=G.p[o],A=Pl.board[slot];if(!A||!A.canAttack)return false;
+ if(!attackTargets(pi).some(t=>sameT(t,tgt)))return false;
+ A.canAttack=false;A.fresh=false;
+ const tc=springTrap(o,'attack',{attacker:{pi,slot}});cleanup();
+ if(Pl.board[slot]!==A||A.hp<=0||(tc&&tc.cancel)){checkWin();return true;}
+ const an=CARD[A.id].name;
+ if(tgt.core!=null){hitCore(o,A.atk);if(A.kw.drain)heal(pi,A.atk);log(`${an} โจมตีแกนกลาง ${A.atk}`);}
+ else{const D=O.board[tgt.slot];if(!D){return true;}
+  const ad=A.atk>0?A.atk+adv(A,D):0,dd=D.atk>0?D.atk+adv(D,A):0;
+  log(`${an} โจมตี ${CARD[D.id].name}`);
+  const r=damageUnit(o,tgt.slot,ad);if(A.kw.pierce&&r.excess>0)hitCore(o,r.excess);if(A.kw.drain&&r.dealt>0)heal(pi,r.dealt);
+  if(dd>0){const r2=damageUnit(pi,slot,dd);if(D.kw.drain&&r2.dealt>0)heal(o,r2.dealt);}
+ }
+ cleanup();checkWin();return true;
+}
+function startTurn(pi){const Pl=G.p[pi];
+ Pl.maxEn=Math.min(10,Pl.maxEn+1);Pl.en=Pl.maxEn;draw(pi,1);
+ Pl.board.forEach(u=>{if(u){u.canAttack=!u.frozen;u.fresh=false;}});
+ Pl.board.forEach((u,s)=>{const c=u&&CARD[u.id];if(c&&c.ts)runFx(c.ts,{pi,src:{pi,slot:s}});});
+ cleanup();checkWin();}
+function endTurn(){
+ if(!G||G.over)return;const Pl=G.p[G.turn];
+ Pl.board.forEach(u=>{if(u&&u.frozen>0)u.frozen--;});
+ G.turn=1-G.turn;G.turnNo++;UI={};startTurn(G.turn);
+ if(G.mode==='pvp'&&!G.over)G.pass=true;
+ renderGame();
+ if(!G.over&&G.p[G.turn].isAI)aiTurn();
+}
+function startMatch(cfg){
+ uidc=1;
+ const p0=newPlayer(cfg.n0,cfg.d0,!!cfg.ai0),p1=newPlayer(cfg.n1,cfg.d1,!!cfg.ai1);
+ G={mode:cfg.mode,diff:cfg.diff||'normal',p:[p0,p1],turn:rnd(2),turnNo:1,over:false,log:[],fx:[],pass:cfg.mode==='pvp'};
+ draw(0,4);draw(1,4);draw(1-G.turn,1);
+ log(`${G.p[G.turn].name} เริ่มก่อน`);
+ UI={};screen='game';startTurn(G.turn);renderGame();
+ banner(G.p[G.turn].name+' เริ่มก่อน','var(--accent)');
+ if(G.p[G.turn].isAI)aiTurn();
+}
+
+/* ================= AI ================= */
+function aiTactic(pi,c){
+ const Pl=G.p[pi],o=1-pi,O=G.p[o];const ops=Object.fromEntries((c.fx||[]).map(x=>[x[0],x]));
+ if(ops.dmg){const n=ops.dmg[1];let best=null,bv=-1;
+  if(c.tgt==='enemyAny'&&O.core<=n)return[100,{core:o}];
+  for(const t of enemyUnits(o)){const u=unitAt(t);if(!u.kw.barrier&&u.hp<=n){const v=uval(u);if(v>bv){bv=v;best=t;}}}
+  if(best)return[bv+1,best];
+  if(c.tgt==='enemyAny')return[1.2,{core:o}];
+  const s=strongest(o);return s?[.5,s]:[-1,null];}
+ if(ops.shatter){let best=null,bv=-1;for(const t of enemyUnits(o)){const u=unitAt(t);const v=u.frozen?uval(u)+3:(u.hp<=2&&!u.kw.barrier?uval(u):-1);if(v>bv){bv=v;best=t;}}return[bv,best];}
+ if(ops.freeze){const s=strongest(o);if(!s)return[-1,null];const u=unitAt(s);return[u.atk>=3&&!u.frozen?u.atk+1:.4,s];}
+ if(c.tgt==='friendlyUnit'){let best=null,bv=-1;for(const t of enemyUnits(pi)){const u=unitAt(t);let v=u.atk+u.hp*.3;if(ops.rush&&!u.canAttack&&!u.frozen)v+=3;if(ops.barrier&&u.kw.barrier)v-=4;if(v>bv){bv=v;best=t;}}return best?[2.5+bv*.2,best]:[-1,null];}
+ if(ops.aoe){const n=ops.aoe[1];const l=enemyUnits(o);let s=0;for(const t of l){const u=unitAt(t);s+=(!u.kw.barrier&&u.hp<=n)?uval(u):.8;}return[l.length>=2||s>6?s:-1,null];}
+ if(ops.randomHits)return[enemyUnits(o).length+2,null];
+ if(ops.summon)return[Pl.board.filter(x=>!x).length>=2?3:-1,null];
+ if(ops.healCore)return[Pl.core<=15?6:.6,null];
+ if(ops.energy){const can=Pl.hand.some(h=>CARD[h.id]!==c&&CARD[h.id].c>Pl.en-c.c&&CARD[h.id].c<=Pl.en-c.c+ops.energy[1]);return[can?5:-1,null];}
+ if(ops.draw)return[Pl.hand.length<=3?4:1.5,null];
+ return[1,null];
+}
+function aiBestPlay(pi){const Pl=G.p[pi];let best=null;
+ for(const h of Pl.hand){if(playIssue(pi,h))continue;const c=CARD[h.id];let s=-1,target=null;
+  if(c.t==='unit'){s=c.c*2+(c.a+c.h)*.5+1;if(c.dep)s+=1.5;}
+  else if(c.t==='trap')s=c.c+1.5;
+  else[s,target]=aiTactic(pi,c);
+  if(G.diff==='easy')s+=Math.random()*4-1.5;
+  if(s>0&&(!best||s>best.s))best={s,uid:h.uid,target};}
+ return best;}
+function aiBestAttack(pi){const Pl=G.p[pi],o=1-pi,O=G.p[o];
+ const att=Pl.board.map((u,s)=>u&&u.canAttack&&u.atk>0?s:-1).filter(s=>s>=0);if(!att.length)return null;
+ att.sort((a,b)=>Pl.board[b].atk-Pl.board[a].atk);
+ const s=att[0],A=Pl.board[s];const tg=attackTargets(pi);const guards=tg.every(t=>t.core==null);
+ const total=att.reduce((a,i)=>a+Pl.board[i].atk,0);
+ if(!guards&&(total>=O.core||(G.diff==='easy'&&Math.random()<.6)))return{slot:s,tgt:{core:o}};
+ let best=null;
+ for(const t of tg){if(t.core!=null)continue;const D=unitAt(t);
+  const ad=A.atk+adv(A,D),dd=D.atk>0?D.atk+adv(D,A):0;
+  const kills=!D.kw.barrier&&ad>=D.hp,dies=!A.kw.barrier&&dd>=A.hp;
+  let sc=(kills?uval(D):0)-(dies?uval(A):0)+(kills&&!dies?3:0);
+  if(!best||sc>best.sc)best={sc,t};}
+ if(guards)return{slot:s,tgt:best.t};
+ if(best&&best.sc>=2&&G.diff!=='easy')return{slot:s,tgt:best.t};
+ return{slot:s,tgt:{core:o}};}
+async function aiTurn(){
+ const g=G;G.busy=true;renderGame();await sleep(800);
+ const pi=G.turn;
+ for(let k=0;k<15&&G===g&&!G.over;k++){const mv=aiBestPlay(pi);if(!mv)break;play(pi,mv.uid,mv.target);renderGame();await sleep(850);}
+ for(let k=0;k<10&&G===g&&!G.over;k++){const at=aiBestAttack(pi);if(!at)break;attack(pi,at.slot,at.tgt);renderGame();await sleep(700);}
+ if(G!==g)return;G.busy=false;
+ if(!G.over)endTurn();else renderGame();
+}
+
+/* ================= RENDER: GAME ================= */
+let screen='menu';
+function viewer(){if(!G)return 0;if(G.mode==='ai')return 0;if(G.mode==='sim')return 0;return G.turn;}
+function myTurn(){const v=viewer();return G&&G.turn===v&&!G.busy&&!G.over&&!G.p[v].isAI&&!G.pass;}
+function curTargets(){const v=viewer();
+ if(!myTurn())return[];
+ if(UI.mode==='attack')return attackTargets(v);
+ if(UI.mode==='target'){const h=G.p[v].hand.find(x=>x.uid===UI.uid);return h?targetsFor(v,CARD[h.id].tgt):[];}
+ return[];}
+function pips(P){let s='';const n=Math.max(P.maxEn,P.en);for(let i=0;i<Math.min(10,n);i++)s+=`<span class="pip ${i<P.en?'on':''}"></span>`;return s;}
+function unitHTML(u,pi,slot,tset,isMine){
+ const c=CARD[u.id];const k=`u${pi}_${slot}`;const cl=['unit'];
+ if(isMine&&myTurn()&&u.canAttack&&!UI.mode)cl.push('can');
+ if(UI.mode==='attack'&&UI.slot===slot&&isMine)cl.push('sel');
+ if(tset.has(k))cl.push(pi===viewer()?'ftgt':'tgt');
+ if(u.frozen)cl.push('frozen');
+ if(u.fresh&&!u.canAttack)cl.push('fresh');
+ const kws=['guard','rush','pierce','drain'].filter(x=>u.kw[x]);
+ return `<div class="${cl.join(' ')}" style="--fc:${FAC[c.f].c}" data-act="unit" data-pi="${pi}" data-slot="${slot}" data-k="${ukey(u)}" role="button" tabindex="0" aria-label="${esc(c.name)} ${u.atk}/${u.hp}">
+  <div class="u-art">${art(u.id)}</div>
+  <div class="u-kw">${kws.map(x=>`<span title="${KW[x][0]}">${ICON[x]}</span>`).join('')}${u.frozen?`<span>${ICON.frost}</span>`:''}</div>
+  ${u.kw.barrier?'<div class="barrier"></div>':''}
+  <div class="u-name">${esc(c.name)}</div>
+  <div class="u-st"><span class="st a ${u.atk>c.a?'up':''}">${u.atk}</span><span class="st h ${u.hp<u.maxHp?'hurt':''} ${u.maxHp>c.h&&u.hp>=u.maxHp?'up':''}">${u.hp}</span></div>
+ </div>`;}
+function boardHTML(pi,tset){const P=G.p[pi],mine=pi===viewer();
+ return `<div class="board">${P.board.map((u,s)=>u?unitHTML(u,pi,s,tset,mine):'<div class="slot"></div>').join('')}</div>`;}
+function barHTML(pi,tset,top){const P=G.p[pi];const mine=pi===viewer();
+ const coreT=tset.has('c'+pi);
+ const traps=P.traps.map(h=>mine?`<span class="trapc mine" style="--fc:${FAC[CARD[h.id].f].c}" data-act="trap" data-uid="${h.uid}" title="${esc(CARD[h.id].name)}">!</span>`:'<span class="trapc">?</span>').join('');
+ const handInfo=top?`<span class="handback">${'<span class="cback"></span>'.repeat(Math.min(P.hand.length,8))}</span>`:'';
+ return `<div class="pbar">
+  <div class="core ${coreT?'tgt':''} ${G.shake==='c'+pi?'shake':''}" data-act="core" data-pi="${pi}" data-k="c${pi}" role="button" tabindex="0" aria-label="แกนกลาง ${P.core}">${ICON.core}<span>${P.core}</span></div>
+  <div class="who">${esc(P.name)}<small>${G.turn===pi?'กำลังเล่น':'รอ'}</small></div>
+  ${handInfo}
+  <div class="traps">${traps}</div>
+  <div class="meta"><span title="การ์ดในมือ">${ICON.hand} ${P.hand.length}</span><span title="การ์ดในกอง">${ICON.deck} ${P.deck.length}</span></div>
+  <div class="en">${ICON.bolt}<span class="num">${P.en}/${P.maxEn}</span><span class="pips">${pips(P)}</span></div>
+ </div>`;}
+function midHTML(){const v=viewer();let info='',btns='';
+ if(G.over){info='<b>จบเกม</b>';}
+ else if(!myTurn()){info=G.busy?`<b>${esc(G.p[G.turn].name)}</b> กำลังคิด… · ${esc(G.last||'')}`:esc(G.last||'');}
+ else if(UI.mode==='attack'){const u=G.p[v].board[UI.slot];info=`<b>${esc(CARD[u.id].name)}</b> เลือกเป้าหมายที่จะโจมตี${attackTargets(v).some(t=>t.core==null)&&attackTargets(v).every(t=>t.core==null)?' (ต้องตีตัวคุ้มกันก่อน)':''}`;
+  btns=`<button class="btn sm insp" data-act="inspect" data-pi="${v}" data-slot="${UI.slot}">ดูการ์ด</button><button class="btn sm" data-act="cancel">ยกเลิก</button>`;}
+ else if(UI.mode==='target'){const h=G.p[v].hand.find(x=>x.uid===UI.uid);info=`<b>${esc(CARD[h.id].name)}</b> แตะเลือกเป้าหมาย`;btns=`<button class="btn sm" data-act="cancel">ยกเลิก</button>`;}
+ else{info=`<b>เทิร์น ${Math.ceil(G.turnNo/2)}</b> · แตะการ์ดในมือเพื่อใช้ แตะยูนิตเรืองเขียวเพื่อโจมตี<br>${esc(G.last||'')}`;}
+ const end=myTurn()?`<button class="btn pri sm" data-act="end">จบเทิร์น</button>`:'';
+ return `<div class="mid"><button class="btn sm" data-act="gmenu" aria-label="เมนู">≡</button><div class="info">${info}</div>${btns}${end}</div>`;}
+function handHTML(pi){const P=G.p[pi];const mt=myTurn();
+ return `<div class="hand">${P.hand.map(h=>{const ok=mt&&!playIssue(pi,h);
+  return cardHTML(h.id,{mini:true,cls:mt?(ok?'playable':'unplayable'):'',attrs:`data-act="hand" data-uid="${h.uid}" role="button" tabindex="0"`});}).join('')}</div>`;}
+function renderGame(){
+ if(screen!=='game'||!G)return;
+ const v=viewer(),o=1-v;const tl=curTargets();
+ const tset=new Set(tl.map(t=>t.core!=null?'c'+t.core:`u${t.pi}_${t.slot}`));
+ const prevScroll=app.querySelector('.hand')?.scrollLeft||0;
+ let h=`<div class="game">${barHTML(o,tset,true)}${boardHTML(o,tset)}${midHTML()}${boardHTML(v,tset)}${barHTML(v,tset,false)}${handHTML(v)}</div>`;
+ if(G.pass&&!G.over)h+=`<div class="overlay"><div class="pass"><div class="label">ส่งเครื่องให้</div><h2>${esc(G.p[G.turn].name)}</h2><p style="color:var(--dim);margin:0">ผู้เล่นอีกคนอย่าแอบดูการ์ดในมือนะ</p><button class="btn pri" data-act="ready">พร้อมแล้ว เริ่มเทิร์น</button></div></div>`;
+ if(UI.modal)h+=UI.modal;
+ if(G.over&&!G.showRes){G.showRes=true;setTimeout(()=>{if(G&&G.over){finishMatch();renderGame();}},900);}
+ if(G.over&&G.res)h+=G.res;
+ app.innerHTML=h;
+ const hd=app.querySelector('.hand');if(hd)hd.scrollLeft=prevScroll;
+ for(const f of G.fx){const el=app.querySelector(`[data-k="${f.key}"]`);if(!el)continue;const d=document.createElement('div');d.className='float '+f.cls;d.textContent=f.text;el.appendChild(d);}
+ G.fx=[];G.shake=null;
+}
+function finishMatch(){
+ const v=G.mode==='ai'?0:null;let title,sub='',extra='';
+ if(G.mode==='ai'){const win=G.winner===0;const cr=win?(G.diff==='hard'?90:G.diff==='easy'?40:60):20;
+  if(!G.rewarded){G.rewarded=true;save.credits+=cr;win?save.stats.w++:save.stats.l++;persist();}
+  title=win?'ชนะ':'แพ้';sub=win?'แกนกลางศัตรูถูกทำลาย':'แกนกลางของคุณถูกทำลาย';extra=`<p class="num" style="color:var(--volt);margin:0;font-size:18px">+${cr} เครดิต</p>`;}
+ else{title=esc(G.p[G.winner].name)+' ชนะ';sub='ทำลายแกนกลางฝ่ายตรงข้ามสำเร็จ';}
+ G.res=`<div class="overlay"><div class="pass result"><div class="label">ผลการต่อสู้</div><h2 style="color:${G.mode!=='ai'||G.winner===0?'var(--accent)':'var(--hp)'}">${title}</h2><p style="color:var(--dim);margin:0">${sub} · ${Math.ceil(G.turnNo/2)} เทิร์น</p>${extra}
+  <div class="row" style="justify-content:center"><button class="btn pri" data-act="rematch">เล่นอีกรอบ</button><button class="btn" data-act="menu">เมนูหลัก</button></div></div></div>`;
+}
+function banner(text,color){if(G&&G.mode==='sim')return;const b=document.createElement('div');b.className='banner';b.style.setProperty('--bc',color);b.textContent=text;document.body.appendChild(b);setTimeout(()=>b.remove(),1500);}
+function detailModal(id,o={}){
+ const c=CARD[id];const u=o.unit;
+ const kws=u?Object.keys(u.kw).filter(k=>u.kw[k]):(c.kw||[]);
+ const help=kws.map(k=>`<div><b>${KW[k][0]}</b> — ${KW[k][1]}</div>`).join('')+(u&&u.frozen?`<div><b>แช่แข็ง</b> — โจมตีไม่ได้ในเทิร์นถัดไปของเจ้าของ</div>`:'')+(c.f!=='neutral'?`<div><b>ธาตุ</b> — ${FAC[c.f].n} ชนะ ${FAC[BEATS[c.f]].n}: ต่อสู้กันจะทำดาเมจ +1</div>`:'');
+ return `<div class="overlay" data-act="closemodal"><div class="modal" data-stop="1">${cardHTML(id,{unit:u})}
+  ${help?`<div class="kwhelp panel">${help}</div>`:''}
+  <div class="row" style="justify-content:center">${o.actions||''}<button class="btn" data-act="closemodal">ปิด</button></div></div></div>`;}
+
+/* ================= GAME INPUT ================= */
+function onGame(act,el){
+ const v=viewer();
+ if(act==='ready'){G.pass=false;renderGame();return;}
+ if(act==='closemodal'){UI.modal=null;renderGame();return;}
+ if(act==='gmenu'){UI.modal=`<div class="overlay" data-act="closemodal"><div class="modal panel" data-stop="1"><h3>เมนูเกม</h3>
+   <div class="kwhelp" style="max-height:40vh;overflow:auto">${G.log.slice(0,25).map(l=>`<div>${esc(l)}</div>`).join('')}</div>
+   <div class="row" style="justify-content:center"><button class="btn warn" data-act="surrender">${UI.sure?'แตะอีกครั้งเพื่อยืนยันยอมแพ้':'ยอมแพ้'}</button><button class="btn" data-act="closemodal">กลับไปเล่น</button></div></div></div>`;renderGame();return;}
+ if(act==='surrender'){if(!UI.sure){UI.sure=true;onGame('gmenu');return;}
+  UI={};const loser=G.mode==='ai'?0:G.turn;G.p[loser].core=0;G.over=true;G.winner=1-loser;G.busy=false;renderGame();return;}
+ if(act==='rematch'){const c=G.cfg;startMatch(c);G.cfg=c;return;}
+ if(act==='menu'){G=null;go('menu');return;}
+ if(act==='trap'){const h=G.p[v].traps.find(x=>x.uid==el.dataset.uid);if(h){UI.modal=detailModal(h.id);renderGame();}return;}
+ if(act==='inspect'){const u=G.p[+el.dataset.pi].board[+el.dataset.slot];if(u){UI.modal=detailModal(u.id,{unit:u});renderGame();}return;}
+ if(act==='cancel'){UI={};renderGame();return;}
+ if(act==='end'){if(myTurn())endTurn();return;}
+ if(act==='hand'){
+  const h=G.p[v].hand.find(x=>x.uid==el.dataset.uid);if(!h)return;
+  if(!myTurn()){UI.modal=detailModal(h.id);renderGame();return;}
+  const iss=playIssue(v,h);const c=CARD[h.id];
+  const lab=c.t==='unit'?'ลงสนาม':c.t==='trap'?'วางกับดัก':'ใช้แท็กติก';
+  UI={modal:detailModal(h.id,{actions:`<button class="btn pri" data-act="use" data-uid="${h.uid}" ${iss?'disabled':''}>${iss||lab+' · '+c.c+' พลังงาน'}</button>`})};
+  renderGame();return;}
+ if(act==='use'){const h=G.p[v].hand.find(x=>x.uid==el.dataset.uid);if(!h||!myTurn())return;const c=CARD[h.id];
+  if(c.t==='tactic'&&c.tgt){UI={mode:'target',uid:h.uid};renderGame();return;}
+  UI={};play(v,h.uid,null);renderGame();return;}
+ if(act==='unit'||act==='core'){
+  const pi=+el.dataset.pi,slot=act==='unit'?+el.dataset.slot:null;
+  const t=act==='core'?{core:pi}:{pi,slot};
+  const valid=curTargets().some(x=>sameT(x,t));
+  if(valid&&UI.mode==='target'){const uid=UI.uid;UI={};play(v,uid,t);renderGame();return;}
+  if(valid&&UI.mode==='attack'){const s=UI.slot;UI={};attack(v,s,t);renderGame();return;}
+  if(act==='core')return;
+  const u=G.p[pi].board[slot];if(!u)return;
+  if(pi===v&&myTurn()&&!UI.mode&&u.canAttack){UI={mode:'attack',slot};renderGame();return;}
+  if(pi===v&&UI.mode==='attack'&&UI.slot===slot){UI={modal:detailModal(u.id,{unit:u})};renderGame();return;}
+  UI.modal=detailModal(u.id,{unit:u});renderGame();return;}
+}
+
+/* ================= OTHER SCREENS ================= */
+function go(s){screen=s;render();}
+function render(){
+ if(screen==='game')return renderGame();
+ if(screen==='menu')return renderMenu();
+ if(screen==='setup')return renderSetup();
+ if(screen==='decks')return renderDecks();
+ if(screen==='builder')return renderBuilder();
+ if(screen==='shop')return renderShop();
+ if(screen==='rules')return renderRules();
+}
+function topNav(title){return `<div class="row" style="justify-content:space-between"><button class="btn sm" data-act="nav" data-to="menu">‹ เมนู</button><h2 style="font-size:22px">${title}</h2><span class="num" style="color:var(--volt)">${save.credits} CR</span></div>`;}
+function ownedCount(){return COLL.filter(c=>save.coll[c.id]).length;}
+function renderMenu(){
+ const show=['p7','c6','v7','n10'];
+ app.innerHTML=`<div class="scroll"><div class="wrap">
+  <div class="hero"><div class="label">Trading Card Game · หุ่นรบ</div><h1>IRON<br><span>PROTOCOL</span></h1><p>บัญชาการกองทัพหุ่นรบสามธาตุ ทำลายแกนกลางของศัตรูให้ได้ก่อน</p></div>
+  <div class="fan">${show.map(id=>cardHTML(id)).join('')}</div>
+  <div class="stats"><span>เครดิต <b class="num">${save.credits}</b></span><span>ชนะ <b class="num">${save.stats.w}</b></span><span>แพ้ <b class="num">${save.stats.l}</b></span><span>สะสม <b class="num">${ownedCount()}/${COLL.length}</b> ใบ</span></div>
+  <div class="menu-grid">
+   <button class="menu-item" data-act="setup" data-mode="ai"><b>สู้กับ AI</b><small>เล่นคนเดียว ชนะได้เครดิตไปเปิดซอง</small></button>
+   <button class="menu-item" data-act="setup" data-mode="pvp"><b>2 ผู้เล่น</b><small>ผลัดกันเล่นบนเครื่องเดียว</small></button>
+   <button class="menu-item" data-act="nav" data-to="decks"><b>จัดเดค</b><small>สร้างเดค 30 ใบจากการ์ดที่สะสม</small></button>
+   <button class="menu-item" data-act="nav" data-to="shop"><b>ร้านซองการ์ด</b><small>ซองละ 100 เครดิต ลุ้น SR และ UR</small></button>
+   <button class="menu-item" data-act="nav" data-to="rules"><b>วิธีเล่น</b><small>กติกา คีย์เวิร์ด และธาตุ</small></button>
+  </div></div></div>`;
+}
+function allDecks(){return[...STARTERS,...save.decks.filter(d=>d.cards.length===30)];}
+let setupMode='ai';
+function renderSetup(){
+ const decks=allDecks();const opts=sel=>decks.map((d,i)=>`<option value="${i}" ${i===sel?'selected':''}>${esc(d.name)}</option>`).join('');
+ const ai=setupMode==='ai';
+ app.innerHTML=`<div class="scroll"><div class="wrap">${topNav(ai?'สู้กับ AI':'2 ผู้เล่น')}
+  <div class="panel" style="display:flex;flex-direction:column;gap:14px">
+   <label class="label" for="d0">${ai?'เดคของคุณ':'เดคผู้เล่น 1'}</label><select id="d0">${opts(0)}</select>
+   ${ai?`<label class="label" for="diff">ความยาก</label><select id="diff"><option value="easy">ง่าย · ชนะได้ 40 เครดิต</option><option value="normal" selected>ปกติ · ชนะได้ 60 เครดิต</option><option value="hard">ยาก · AI ใช้การ์ด SR/UR · ชนะได้ 90 เครดิต</option></select>`
+     :`<label class="label" for="d1">เดคผู้เล่น 2</label><select id="d1">${opts(1)}</select>
+       <div class="row"><input type="text" id="n0" value="ผู้เล่น 1" aria-label="ชื่อผู้เล่น 1"><input type="text" id="n1" value="ผู้เล่น 2" aria-label="ชื่อผู้เล่น 2"></div>`}
+   <button class="btn pri" data-act="start">เริ่มต่อสู้</button>
+  </div>
+  <p style="color:var(--dim);margin:0">เดคที่จัดเองต้องมีครบ 30 ใบถึงจะเลือกได้</p></div></div>`;
+}
+function startFromSetup(){
+ const decks=allDecks();const d0=decks[+document.getElementById('d0').value];let cfg;
+ if(setupMode==='ai'){const diff=document.getElementById('diff').value;const f=pick(['plasma','cryo','volt']);
+  const dk=diff==='hard'?hardDeck(f):starter(f);
+  cfg={mode:'ai',diff,n0:'คุณ',n1:'AI · '+FAC[f].n,d0:d0.cards,d1:dk,ai1:true};}
+ else{const d1=decks[+document.getElementById('d1').value];
+  cfg={mode:'pvp',n0:document.getElementById('n0').value.trim()||'ผู้เล่น 1',n1:document.getElementById('n1').value.trim()||'ผู้เล่น 2',d0:d0.cards,d1:d1.cards};}
+ startMatch(cfg);G.cfg=cfg;
+}
+function deckBar(cards){const n={plasma:0,cryo:0,volt:0,neutral:0};cards.forEach(id=>n[CARD[id].f]++);
+ return `<div class="bar">${Object.keys(n).map(f=>`<i style="width:${n[f]/Math.max(1,cards.length)*100}%;background:${FAC[f].c}"></i>`).join('')}</div>`;}
+function renderDecks(){
+ app.innerHTML=`<div class="scroll"><div class="wrap">${topNav('จัดเดค')}
+  <div class="row"><button class="btn pri" data-act="newdeck">สร้างเดคใหม่</button></div>
+  <div class="label">เดคของคุณ</div>
+  <div class="decks">${save.decks.length?save.decks.map((d,i)=>`<div class="dk"><b style="font-family:var(--display);font-size:17px">${esc(d.name)}</b>${deckBar(d.cards)}
+   <span class="num" style="color:${d.cards.length===30?'var(--ok)':'var(--atk)'}">${d.cards.length}/30 ใบ</span><div class="row"><button class="btn sm" data-act="editdeck" data-i="${i}">แก้ไข</button></div></div>`).join(''):'<p style="color:var(--dim);margin:0">ยังไม่มีเดค เริ่มจากคัดลอกสตาร์ทเตอร์ด้านล่างแล้วปรับแต่งก็ได้</p>'}</div>
+  <div class="label">เดคสตาร์ทเตอร์ (ใช้ได้เสมอ)</div>
+  <div class="decks">${STARTERS.map((d,i)=>`<div class="dk"><b style="font-family:var(--display);font-size:17px;color:${FAC[d.f].c}">${esc(d.name)}</b>${deckBar(d.cards)}<span class="num" style="color:var(--dim)">30/30 ใบ</span>
+   <div class="row"><button class="btn sm" data-act="copydeck" data-i="${i}">คัดลอกไปแก้</button></div></div>`).join('')}</div>
+ </div></div>`;
+}
+let DB=null;
+function renderBuilder(){
+ const counts={};DB.cards.forEach(id=>counts[id]=(counts[id]||0)+1);
+ const pool=COLL.filter(c=>(DB.ff==='all'||c.f===DB.ff)&&(DB.ft==='all'||c.t===DB.ft)).sort((a,b)=>FORDER[a.f]-FORDER[b.f]||a.c-b.c||a.name.localeCompare(b.name));
+ const uniq=[...new Set(DB.cards)].sort((a,b)=>CARD[a].c-CARD[b].c||CARD[a].name.localeCompare(CARD[b].name));
+ const curve=[0,1,2,3,4,5,6,7].map(n=>DB.cards.filter(id=>n===7?CARD[id].c>=7:CARD[id].c===n).length);const mx=Math.max(1,...curve);
+ const fb=(k,v,l)=>`<button class="fbtn ${DB[k]===v?'on':''}" data-act="filter" data-k="${k}" data-v="${v}">${l}</button>`;
+ const pl=app.querySelector('.pool')?.scrollTop||0;
+ app.innerHTML=`<div class="db">
+  <div class="db-top"><button class="btn sm" data-act="nav" data-to="decks">‹ กลับ</button><input type="text" id="dname" value="${esc(DB.name)}" aria-label="ชื่อเดค">
+   <button class="btn pri sm" data-act="savedeck">บันทึก</button>${DB.idx>=0?`<button class="btn warn sm" data-act="deldeck">${DB.sure?'ยืนยันลบ':'ลบเดค'}</button>`:''}</div>
+  <div class="filters">${fb('ff','all','ทั้งหมด')}${fb('ff','plasma','พลาสมา')}${fb('ff','cryo','ไครโอ')}${fb('ff','volt','โวลต์')}${fb('ff','neutral','กลาง')}
+   <span style="width:8px"></span>${fb('ft','all','ทุกชนิด')}${fb('ft','unit','ยูนิต')}${fb('ft','tactic','แท็กติก')}${fb('ft','trap','กับดัก')}</div>
+  <div class="db-body">
+   <div class="pool">${pool.map(c=>{const own=save.coll[c.id]||0,inD=counts[c.id]||0;
+    return `<div class="ptile" data-act="addcard" data-id="${c.id}" role="button" tabindex="0">${cardHTML(c.id,{cls:own?'':'locked'})}<div class="cnt">${own?`มี ${own} · ใส่ <b>${inD}</b>/${Math.min(own,maxCopies(c.id))}`:'ยังไม่มี'}</div></div>`;}).join('')}</div>
+   <div class="decklist"><div class="dh"><b style="font-family:var(--display)">ในเดค</b><span class="num" style="color:${DB.cards.length===30?'var(--ok)':'var(--atk)'}">${DB.cards.length}/30</span></div>
+    <div class="dl">${uniq.length?uniq.map(id=>`<div class="drow" data-act="rmcard" data-id="${id}" role="button" tabindex="0" style="--fc:${FAC[CARD[id].f].c}"><span class="dc">${CARD[id].c}</span><span class="dn">${esc(CARD[id].name)}</span><span class="dx">×${counts[id]}</span></div>`).join(''):'<p style="color:var(--dim);padding:0 12px;font-size:14px">แตะการ์ดทางซ้ายเพื่อใส่เดค แตะรายการตรงนี้เพื่อเอาออก</p>'}</div>
+    <div class="curve" aria-label="กราฟค่าพลังงาน">${curve.map((n,i)=>`<div style="height:${n/mx*100}%"><span>${i===7?'7+':i}</span></div>`).join('')}</div><div style="height:14px"></div></div>
+  </div></div>`;
+ const p=app.querySelector('.pool');if(p)p.scrollTop=pl;
+}
+let lastPack=null;
+const RW={C:70,R:22,SR:6.5,UR:1.5};
+function rollRarity(minR){const r=Math.random()*100;let k=r<RW.UR?'UR':r<RW.UR+RW.SR?'SR':r<RW.UR+RW.SR+RW.R?'R':'C';if(minR&&k==='C')k='R';return k;}
+function openPack(){
+ if(save.credits<100)return;save.credits-=100;save.packs=(save.packs||0)+1;
+ const res=[];for(let i=0;i<5;i++){const rr=rollRarity(i===4);const id=pick(COLL.filter(c=>c.r===rr)).id;
+  const have=save.coll[id]||0;let tag;
+  if(have>=maxCopies(id)){save.credits+=10;tag='ซ้ำเกิน · +10 CR';}else{save.coll[id]=have+1;tag=have?'ได้เพิ่ม':'ใบใหม่!';}
+  res.push({id,tag,isNew:!have});}
+ persist();lastPack=res;renderShop();
+}
+function renderShop(){
+ app.innerHTML=`<div class="scroll"><div class="wrap">${topNav('ร้านซองการ์ด')}
+  <div class="packs"><div class="pack"><div class="label">Booster</div><b>IRON</b><small>5 ใบ · การันตี R+ 1 ใบ</small></div>
+   <div style="display:flex;flex-direction:column;gap:10px;max-width:40ch"><p style="margin:0;color:var(--dim);line-height:1.6">โอกาสต่อใบ: C 70% · R 22% · SR 6.5% · UR 1.5%<br>ได้การ์ดเกินจำนวนที่ใส่เดคได้ จะแปลงเป็น 10 เครดิต</p>
+   <button class="btn pri" data-act="buy" ${save.credits<100?'disabled':''}>${save.credits<100?'เครดิตไม่พอ (ต้องใช้ 100)':'เปิดซอง · 100 CR'}</button>
+   <span class="num" style="color:var(--dim)">สะสมแล้ว ${ownedCount()}/${COLL.length} ใบ · เปิดไป ${save.packs||0} ซอง</span></div></div>
+  ${lastPack?`<div class="label">แตะการ์ดเพื่อเปิด</div><div class="reveal">${lastPack.map((r,i)=>`<div class="flip" data-act="flip" role="button" tabindex="0"><div class="in"><div class="cback"></div><div class="front">${cardHTML(r.id)}</div></div><div class="tag ${r.isNew?'new':''}">${r.tag}</div></div>`).join('')}</div>
+   <button class="btn sm" data-act="flipall">เปิดทั้งหมด</button>`:''}
+ </div></div>`;
+}
+function renderRules(){
+ app.innerHTML=`<div class="scroll"><div class="wrap">${topNav('วิธีเล่น')}<div class="rules">
+  <p>ผู้เล่นแต่ละฝ่ายมี <b>แกนกลาง 25 หน่วย</b> ใครทำให้แกนกลางศัตรูเหลือ 0 ก่อนเป็นฝ่ายชนะ เดคมี 30 ใบ ใส่การ์ดเดียวกันได้ไม่เกิน 2 ใบ (UR ได้ 1 ใบ)</p>
+  <h3>ลำดับเทิร์น</h3>
+  <ol><li>พลังงานสูงสุดเพิ่ม 1 (สูงสุด 10) และเติมเต็ม</li><li>จั่วการ์ด 1 ใบ ถ้ากองหมดจะเสียแกนกลางเพิ่มขึ้นทุกครั้ง</li><li>ใช้การ์ดได้ตามพลังงานที่มี และสั่งยูนิตโจมตีได้ตัวละ 1 ครั้ง</li><li>กด <b>จบเทิร์น</b></li></ol>
+  <h3>ชนิดการ์ด</h3>
+  <ul><li><b>ยูนิต</b> ลงสนามได้สูงสุด 5 ตัว เทิร์นที่ลงยังโจมตีไม่ได้ (ยกเว้นมีบูสต์)</li>
+  <li><b>แท็กติก</b> ใช้แล้วเกิดผลทันที บางใบต้องเลือกเป้าหมาย</li>
+  <li><b>กับดัก</b> วางคว่ำไว้ได้ 2 ใบ ทำงานเองเมื่อศัตรูทำตามเงื่อนไข (โจมตี / ลงยูนิต / ใช้แท็กติก) ศัตรูไม่เห็นว่าเป็นใบอะไร</li></ul>
+  <h3>การต่อสู้</h3>
+  <p>ยูนิตที่ปะทะกันจะทำดาเมจใส่กันพร้อมกัน ถ้าศัตรูมียูนิต <b>คุ้มกัน</b> ต้องตีตัวนั้นก่อน ถึงจะตียูนิตอื่นหรือแกนกลางได้</p>
+  <h3>ธาตุ</h3>
+  <div class="tri"><span style="--fc:${FAC.plasma.c}">พลาสมา</span>ชนะ<span style="--fc:${FAC.cryo.c}">ไครโอ</span>ชนะ<span style="--fc:${FAC.volt.c}">โวลต์</span>ชนะ<span style="--fc:${FAC.plasma.c}">พลาสมา</span></div>
+  <p>ยูนิตที่ธาตุชนะ ทำดาเมจ +1 เมื่อปะทะกับยูนิตธาตุที่แพ้ทาง ธาตุกลางไม่ได้เปรียบหรือเสียเปรียบใคร พลาสมาเน้นบุกแรง ไครโอเน้นป้องกันและแช่แข็ง โวลต์เน้นความเร็วและจั่วการ์ด</p>
+  <h3>คีย์เวิร์ด</h3>
+  <ul>${Object.values(KW).map(k=>`<li><b>${k[0]}</b> — ${k[1]}</li>`).join('')}<li><b>แช่แข็ง</b> — ยูนิตโจมตีไม่ได้ในเทิร์นถัดไปของเจ้าของ</li></ul>
+  <h3>เครดิตและซอง</h3>
+  <p>สู้กับ AI ชนะได้ 40–90 เครดิตตามความยาก แพ้ได้ 20 เครดิต ใช้ 100 เครดิตเปิดซองได้ 5 ใบ ความคืบหน้าบันทึกไว้ในเครื่องนี้</p>
+ </div></div></div>`;
+}
+
+/* ================= INPUT ================= */
+app.addEventListener('click',e=>{
+ const el=e.target.closest('[data-act]');if(!el)return;
+ const act=el.dataset.act;
+ if(act==='closemodal'&&e.target.closest('[data-stop]')&&!e.target.closest('button[data-act="closemodal"]'))return;
+ if(screen==='game'&&G){onGame(act,el);return;}
+ switch(act){
+  case'nav':go(el.dataset.to);break;
+  case'setup':setupMode=el.dataset.mode;go('setup');break;
+  case'start':startFromSetup();break;
+  case'newdeck':DB={name:'เดคใหม่ '+(save.decks.length+1),cards:[],idx:-1,ff:'all',ft:'all'};go('builder');break;
+  case'editdeck':{const i=+el.dataset.i;DB={name:save.decks[i].name,cards:save.decks[i].cards.slice(),idx:i,ff:'all',ft:'all'};go('builder');break;}
+  case'copydeck':{const s=STARTERS[+el.dataset.i];DB={name:s.name+' (แก้)',cards:s.cards.slice(),idx:-1,ff:'all',ft:'all'};go('builder');break;}
+  case'filter':DB[el.dataset.k]=el.dataset.v;DB.name=document.getElementById('dname').value;renderBuilder();break;
+  case'addcard':{const id=el.dataset.id;const n=DB.cards.filter(x=>x===id).length;DB.name=document.getElementById('dname').value;
+   if((save.coll[id]||0)>n&&n<maxCopies(id)&&DB.cards.length<30){DB.cards.push(id);renderBuilder();}else{el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');}break;}
+  case'rmcard':{const i=DB.cards.lastIndexOf(el.dataset.id);DB.name=document.getElementById('dname').value;if(i>=0)DB.cards.splice(i,1);renderBuilder();break;}
+  case'savedeck':{DB.name=document.getElementById('dname').value.trim()||'เดคไม่มีชื่อ';const d={name:DB.name,cards:DB.cards.slice()};
+   if(DB.idx>=0)save.decks[DB.idx]=d;else{save.decks.push(d);DB.idx=save.decks.length-1;}persist();go('decks');break;}
+  case'deldeck':if(!DB.sure){DB.sure=true;DB.name=document.getElementById('dname').value;renderBuilder();}else{save.decks.splice(DB.idx,1);persist();go('decks');}break;
+  case'buy':openPack();break;
+  case'flip':el.classList.add('open');break;
+  case'flipall':app.querySelectorAll('.flip').forEach((f,i)=>setTimeout(()=>f.classList.add('open'),i*150));break;
+ }
+});
+app.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click();}});
+
+/* test hook */
+window.__IP={startMatch,get G(){return G},CARDS,starter,hardDeck,setSpeed:s=>{SPEED=s},aiBestPlay,aiBestAttack,play,attack,endTurn};
+render();
+})();
+</script>
