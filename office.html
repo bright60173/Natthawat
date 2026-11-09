@@ -1591,7 +1591,7 @@ function drawInfoCard(c,el,base,since,fam){ const {w,h}=cardSize(el,base), u=w/1
   const pill=(x,y,text,good,s)=>{ c.font=`600 ${s}px ${fam}`; const tw=c.measureText(text).width+s*1.6; c.fillStyle=good===false?"#c8452f":good===true?"#2e7a4d":"#5f5648"; c.beginPath(); c.roundRect(x,y-s*0.75,tw,s*1.5,s*0.75); c.fill(); c.fillStyle="#fff"; c.textAlign="left"; c.textBaseline="middle"; c.fillText(text,x+s*0.8,y+s*0.05); };
   if(el.kind==="compare"){ const cw=w*0.45, gap=w-cw*2; [["left",-w/2],["right",-w/2+cw+gap]].forEach(([k,x0],i)=>{ const d=el[k]; const acc=d.good===false?"#c8452f":d.good===true?"#2e7a4d":"#d9a23a"; cardPanel(c,x0,-h/2,cw,h,u,acc);
       c.textAlign="center"; c.textBaseline="middle"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(d.label,x0+cw/2,-h/2+u*6,cw*0.9);
-      c.font=`800 ${u*15}px ${fam}`; c.fillStyle=d.good===false?"#c8452f":d.good===true?"#2e7a4d":ink; c.fillText(countUp(d.value,q),x0+cw/2,-h/2+u*17,cw*0.9);
+      const vl=String(d.value).length; c.font=`800 ${u*(vl>6?8.5:vl>4?11:15)}px ${fam}`; c.fillStyle=d.good===false?"#c8452f":d.good===true?"#2e7a4d":ink; c.fillText(countUp(d.value,q),x0+cw/2,-h/2+u*17,cw*0.86);
       c.font=`600 ${u*4.4}px ${fam}`; c.fillStyle=ink; c.fillText(d.unit,x0+cw/2,-h/2+u*26.5,cw*0.9);
       if(d.note){ c.font=`600 ${u*3.6}px ${fam}`; const tw=c.measureText(d.note).width+u*5.5; pill(x0+cw/2-tw/2,-h/2+u*32.5,(d.good===false?"✕ ":d.good===true?"✓ ":"")+d.note,d.good,u*3.6); } });
     c.fillStyle="#1f1c18"; c.beginPath(); c.arc(0,0,gap*0.62,0,7); c.fill(); c.fillStyle="#f5f0e6"; c.font=`800 ${gap*0.5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("VS",0,u*0.4); return; }
@@ -2166,7 +2166,7 @@ class Renderer{
   emphTimes(){ if(this.project.emphOn===false) return []; const out=[]; this.subs.forEach((S,i)=>S.emphStarts.forEach(f=>out.push(this.starts[i]+f))); return out; }
   pages(c,S,fs,maxW,weight){ const key=fs+"|"+maxW+"|"+weight+"|"+fontEpoch; if(S._pk===key) return S._pages; const lines=[]; let line=[],lw=0;
     const emK=this.project.subStyle==="doc"?1:1.15; S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*emK:fs}px ${this.fam}`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
-    if(line.length) lines.push({items:line,w:lw}); const pages=[]; for(let k=0;k<lines.length;k+=2){ const ls=lines.slice(k,k+2); pages.push({lines:ls,from:ls[0].items[0].w.from}); }
+    if(line.length) lines.push({items:line,w:lw}); const per=this.project.subStyle==="doc"?1:2, pages=[]; for(let k=0;k<lines.length;k+=per){ const ls=lines.slice(k,k+per); pages.push({lines:ls,from:ls[0].items[0].w.from}); }  // promptkub shows one line at a time
     S._pk=key; S._pages=pages; return pages; }
   curPage(pages,lt){ let k=0; pages.forEach((p,j)=>{ if(lt>=p.from-0.05) k=j; }); return {p:pages[k],k}; }
   sceneAt(t){ const st=this.starts; for(let i=st.length-1;i>=0;i--) if(t>=st[i]) return i; return 0; }
@@ -3578,7 +3578,20 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
     // a prop hidden behind a card only adds noise
     const ar=p.aspect==="16:9"?16/9:9/16; x.elements.filter(e=>e.type==="card").forEach(cd=>{ const z=cardSize(cd,1), hw=z.w/2*(ar<1?1:1/ar), hh=z.h/2*(ar<1?ar:1); x.elements=x.elements.filter(e=>{ if(e.type!=="prop") return true; const r=0.07*e.scale; return Math.abs(e.x-cd.x)>hw+r||Math.abs(e.y-cd.y)>hh+r*(ar<1?ar:1); }); });
     if(x.elements.length<n0) fixes.push(`ฉาก ${i+1} ลดของรก ให้เหลือจุดเด่นเดียว`);
-    if(x.subPos!=="auto"){ x.subPos="auto"; fixes.push(`ฉาก ${i+1} ให้ซับหาที่ว่างเอง ไม่ทับหน้าและการ์ด`); } });
+    if(x.subPos!=="auto"){ x.subPos="auto"; fixes.push(`ฉาก ${i+1} ให้ซับหาที่ว่างเอง ไม่ทับหน้าและการ์ด`); }
+    // no floating words: numbers live on cards, everything else in the subtitle
+    if(x.elements.some(e=>e.type==="text")){ x.elements=x.elements.filter(e=>e.type!=="text"); fixes.push(`ฉาก ${i+1} เอาตัวหนังสือลอยออก`); }
+    // a close-up shows one person; small figures behind a giant one look broken
+    const ch=x.elements.filter(e=>e.type==="character"); if(ch.length>1&&ch.some(e=>e.scale>=1.15)){ const big=ch.slice().sort((a,b)=>b.scale-a.scale)[0]; x.elements=x.elements.filter(e=>e.type!=="character"||e===big); fixes.push(`ฉาก ${i+1} ภาพใกล้เหลือตัวละครเดียว`); }
+    else if(ch.length>1){ const sc=ch.reduce((a,e)=>a+e.scale,0)/ch.length; ch.forEach(e=>{ e.scale=+sc.toFixed(2); }); }
+    x.elements.forEach(e=>{ if(e.type!=="card") return;
+      // phone fills the frame: keep it to the upper part so the subtitle fits below
+      if(e.kind==="phone"){ e.scale=Math.min(e.scale,0.75); e.y=0.36; x.elements=x.elements.filter(o=>o===e||o.type!=="character"||o.scale<0.9); }
+      // a progress bar only means something for a percentage
+      if(e.pct!=null&&e.unit!=="%"&&!/%/.test(e.value)) e.pct=null;
+      // a single-number stat card must show the number the narrator says
+      const said=numsIn(x.narration); if(e.kind==="stat"&&said.length===1){ const cn=numsIn(e.value); if(cn.length===1&&cn[0]!==said[0]&&!String(e.value).includes("-")){ e.value=String(e.value).replace(/\d[\d,]*(\.\d+)?/,said[0]); fixes.push(`ฉาก ${i+1} ตัวเลขบนการ์ดให้ตรงกับเสียง (${said[0]})`); } } }); });
+  { let k=0; S.forEach((x,i)=>{ if(x.punch&&++k>3){ x.punch=false; } }); }
   if(S[0]&&S[0].camera==="static"){ S[0].camera="zoom-in"; fixes.push("ฉากแรกใช้กล้องซูมเข้าให้ hook มีพลัง"); }
   for(let i=1;i<S.length;i++){ if(S[i].camera===S[i-1].camera&&S[i].camera!=="shake"){ const nx=S[i+1]?.camera; const c=rot.find(x=>x!==S[i-1].camera&&x!==nx&&(x!=="drone"||OUTDOOR.includes(S[i].bg))); if(c){ S[i].camera=c; fixes.push(`ฉาก ${i+1} เปลี่ยนมุมกล้องไม่ให้ซ้ำฉากก่อน`); } } }
   if(S.length>=4&&!S.some(x=>x.camera==="drone"||x.camera==="orbit")){ const k=S.findIndex((x,i)=>i>0&&i<S.length-1&&OUTDOOR.includes(x.bg)); const i=k>0?k:1; S[i].camera=OUTDOOR.includes(S[i].bg)?"drone":"orbit"; fixes.push(`ฉาก ${i+1} ใช้มุมกว้าง${S[i].camera==="drone"?"แบบโดรน":"แบบโคจร"}ให้ฉากมีมิติ`); }
@@ -3595,7 +3608,7 @@ function staffFallbacks(p,r){ let n=0; const sj=subJSON(r,"editor","subs"), pj=s
       if(a.subPos&&x.subPos==="auto"&&CAT.subPos.includes(a.subPos)&&a.subPos!=="auto"){ x.subPos=a.subPos; } } });
   if(p.scenes.length>3&&new Set(p.scenes.slice(1).map(x=>x.transition)).size<2&&Array.isArray(pj?.scenes)){ pj.scenes.forEach(z=>{ const x=p.scenes[(Number(z?.scene)||0)-1]; if(x&&CAT.transitions.includes(z.transition)){ x.transition=z.transition; n++; } }); }
   return n; }
-const scriptOf=p=>p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}/${x.time}, กล้อง ${x.camera}, ${x.transition}, sfx ${x.sfx}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion},${e.motion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
+const scriptOf=p=>p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}/${x.time}, กล้อง ${x.camera}, ${x.transition}, sfx ${x.sfx}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}${e.pin?"["+e.pin+"]":""}(${e.emotion},${e.motion},scale ${e.scale})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:e.type==="card"?`การ์ด ${e.kind}: ${[e.tag,e.strike&&("ขีดฆ่า "+e.strike),e.label,e.value,e.unit,e.kind==="compare"?`${e.left?.label} ${e.left?.value} vs ${e.right?.label} ${e.right?.value}`:"",(e.rows||[]).map(r=>r.label+" "+r.value).join(" / ")].filter(Boolean).join(" ")}`:`"${e.text}"`).join(", ")}${x.tag?` | ป้ายสถานที่: ${x.tag}`:""}${x.punch?" | ซับกล่องแดง":""}`).join("\n")+"\n(สไตล์ช่อง: ไม่ใช้ข้อความบนจอ caption ข้อความทั้งหมดอยู่ในซับและการ์ด)";
 const STEP_FN={
   async plan(r){
     const past=Object.values(recs).filter(x=>x.id!==r.id&&(x.title||x.topic)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20).map(x=>"- "+(x.title||x.topic)).join("\n")||"- (ยังไม่มี)";
