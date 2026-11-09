@@ -17,7 +17,7 @@ function llm(msgs,imgs){ imgs=imgs||[]; return new Promise((res,rej)=>{
   await p.addInitScript(()=>{ window.claude={use:async n=>{ if(n==='downloads') return {save:async()=>{}}; if(n!=='sample') return null;
     const f=async(input,opts)=>{ const imgs=[]; for(const b of (opts&&opts.images)||[]){ const d=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(String(fr.result).split(',')[1]); fr.readAsDataURL(b); }); imgs.push({type:b.type||'image/jpeg',data:d}); } const t=await window.__llm(input.map(x=>({role:x.role,content:x.content})),imgs); opts?.onText&&opts.onText({text:t,delta:t}); return {text:t,truncated:false}; }; f.limits=async()=>({images:true}); return f; }}; });
   await p.goto('file://'+SP+'/wrapped.html'); await p.waitForTimeout(1500);
-  const t0=Date.now(); await p.selectOption('#aspect','9:16').catch(()=>{}); await p.click('#makeBtn');
+  const t0=Date.now(); await p.selectOption('#aspect','9:16').catch(()=>{}); if(process.env.TOPIC) await p.evaluate(t=>runPipeline(newRec(t,'9:16')),process.env.TOPIC); else await p.click('#makeBtn');
   let last=""; for(;;){ await p.waitForTimeout(15000); const st=await p.evaluate(()=>{ const r=Object.values(recs)[0]; return r?{done:!!r.finishedAt,err:r.error,waiting:r.waiting,steps:Object.keys(r.out||{}),log:(r.log||[]).slice(-1)[0]?.text}:null; });
     const line=JSON.stringify(st); if(line!==last){ console.log(((Date.now()-t0)/1000).toFixed(0)+'s',line); last=line; }
     if(st&&(st.done||st.err)) break; if(Date.now()-t0>55*60000){ console.log('timeout'); break; } }

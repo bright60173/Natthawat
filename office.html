@@ -1124,9 +1124,9 @@ const FONT_IDS=CLIP_FONTS.map(f=>f[0]);
 const famOf=f=>`"${FONT_IDS.includes(f)?f:"Kanit"}", Kanit, sans-serif`;
 const CF={ff:famOf("Kanit"),cs:"cute"};
 const CAT = {
-  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint"],
+  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint","home","hospital"],
   times:["day","sunset","night"],
-  characters:["boy","girl","kid","scientist","robot","cat","alien"],
+  characters:["boy","girl","kid","man","woman","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry"],
   props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd"],
   motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave"],
@@ -1184,7 +1184,7 @@ function normalizeProject(p){
       bg:pick(s.bg,CAT.backgrounds,"sky"), time:pick(s.time,CAT.times,"day"),
       camera:pick(s.camera,CAT.cameras,"static"), effect:pick(s.effect,CAT.effects,"none"),
       transition:pick(s.transition,CAT.transitions,"fade"), sfx:pick(s.sfx,CAT.sfx,"none"),
-      caption:str(s.caption,40), narration, emph, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8),
+      caption:str(s.caption,40), narration, emph, speak:str(s.speak,220)||undefined, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8),
       duration:al?clamp(minDur,1.2,20):clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15),
       voice:{ emotion:str(s.voice?.emotion,20), rate:num(s.voice?.rate,0.6,1.6,1), pitch:num(s.voice?.pitch,0.5,1.8,1) },
       elements:els,
@@ -1238,6 +1238,26 @@ function tree2d(c,x,y,r,P){ c.fillStyle="#5a4632"; c.fillRect(x-r*0.08,y-r*0.6,r
 const BG={
   /* Illustrated flat 2D sets per situation (muted documentary palette, as in the owner's viral references).
      Ground line near 0.78H so characters (y 0.75-0.85) stand on it. time: day | sunset | night. */
+  /* Thai home, dining corner: wall, window, photo frame, shelf, dining table with dishes (characters stand in front). */
+  home(c,W,H,t,time){ const P=SET_PAL(time), n=P.night; c.fillStyle=n?"#8a7a62":"#ebdfc8"; c.fillRect(0,0,W,H); c.fillStyle=n?"#7f6f58":"#e2d4ba"; c.fillRect(0,H*0.5,W,H*0.24); c.fillStyle=n?"#3e3427":"#c9b493"; c.fillRect(0,H*0.5,W,H*0.008);
+    const wx=W*0.06,wy=H*0.14,ww=W*0.34,wh=H*0.26; c.save(); c.beginPath(); c.rect(wx,wy,ww,wh); c.clip(); setSky(c,W,H,P,H*0.4); c.fillStyle=P.tree; for(let i=0;i<4;i++){ c.beginPath(); c.arc(wx+ww*(0.1+i*0.28),wy+wh*0.95,ww*0.16,0,7); c.fill(); } c.restore();
+    c.strokeStyle=n?"#2e271f":"#8a6a4a"; c.lineWidth=W*0.012; c.strokeRect(wx,wy,ww,wh); c.lineWidth=W*0.006; c.beginPath(); c.moveTo(wx+ww/2,wy); c.lineTo(wx+ww/2,wy+wh); c.stroke();
+    c.fillStyle=n?"#7a4a3a":"#c97b5e"; c.fillRect(wx-W*0.03,wy-H*0.01,W*0.05,wh*1.05); c.fillRect(wx+ww-W*0.02,wy-H*0.01,W*0.05,wh*1.05);
+    c.fillStyle=n?"#3a3026":"#7a5a3d"; c.fillRect(W*0.6,H*0.18,W*0.16,H*0.11); c.fillStyle=n?"#8f8a80":"#e9ecef"; c.fillRect(W*0.615,H*0.188,W*0.13,H*0.094); c.fillStyle=n?"#6f6a62":"#b8c4cc"; c.beginPath(); c.arc(W*0.68,H*0.225,W*0.025,0,7); c.fill(); c.fillRect(W*0.645,H*0.25,W*0.07,H*0.032);
+    c.fillStyle=n?"#3a3026":"#8a6a4a"; c.fillRect(W*0.56,H*0.34,W*0.36,H*0.012); c.fillStyle="#e2b33a"; c.fillRect(W*0.6,H*0.31,W*0.02,H*0.03); c.fillRect(W*0.86,H*0.31,W*0.02,H*0.03); c.fillStyle=n?"#7a6a55":"#d8c7a8"; c.fillRect(W*0.7,H*0.305,W*0.08,H*0.035);
+    c.fillStyle=n?"#4a3a2a":"#a97b52"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(0,0,0,.08)"; for(let x=0;x<W;x+=W*0.11) c.fillRect(x,H*0.74,W*0.004,H*0.26);
+    c.fillStyle=n?"#3a2c20":"#8d6440"; c.fillRect(W*0.1,H*0.645,W*0.8,H*0.022); c.fillStyle=n?"#2e2219":"#7a5536"; c.fillRect(W*0.14,H*0.667,W*0.025,H*0.075); c.fillRect(W*0.835,H*0.667,W*0.025,H*0.075);
+    [[0.25,"#f3f1ea"],[0.45,"#f3f1ea"],[0.68,"#f3f1ea"]].forEach(([x,col])=>{ c.fillStyle=col; c.beginPath(); c.ellipse(W*x,H*0.643,W*0.06,H*0.007,0,0,7); c.fill(); }); c.fillStyle="#e9e4d8"; c.beginPath(); c.arc(W*0.56,H*0.63,W*0.04,Math.PI,0); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.ellipse(W*0.56,H*0.628,W*0.032,H*0.004,0,0,7); c.fill();
+    if(n){ c.save(); c.globalCompositeOperation="lighter"; const g=c.createRadialGradient(W*0.5,H*0.2,0,W*0.5,H*0.2,W*0.7); g.addColorStop(0,"rgba(255,200,120,.22)"); g.addColorStop(1,"rgba(255,200,120,0)"); c.fillStyle=g; c.fillRect(0,0,W,H); c.restore(); } },
+  /* Hospital emergency entrance: pale walls, red ER sign, double doors with round windows, handrail, gurney. */
+  hospital(c,W,H,t,time){ const n=time==="night"; c.fillStyle=n?"#9aa8a3":"#e1e9e4"; c.fillRect(0,0,W,H); c.fillStyle=n?"#8a9893":"#d3ddd7"; c.fillRect(0,H*0.52,W,H*0.22);
+    c.fillStyle=n?"#cfd8d3":"#f6faf8"; for(let x=W*0.08;x<W;x+=W*0.3) c.fillRect(x,H*0.02,W*0.16,H*0.012);
+    c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(W*0.28,H*0.17,W*0.44,H*0.06,W*0.01); c.fill(); c.fillStyle="#fff"; c.font=`700 ${W*0.045}px sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("ฉุกเฉิน  EMERGENCY",W*0.5,H*0.2,W*0.4);
+    const dx=W*0.3,dy=H*0.26,dw=W*0.4,dh=H*0.48; c.fillStyle=n?"#6f7d78":"#b9c6c0"; c.fillRect(dx-W*0.015,dy-H*0.01,dw+W*0.03,dh+H*0.01); c.fillStyle=n?"#8d9b96":"#cfdad5"; c.fillRect(dx,dy,dw/2-W*0.004,dh); c.fillRect(dx+dw/2+W*0.004,dy,dw/2-W*0.004,dh);
+    c.fillStyle=n?"#3e4f5a":"#9fc1d1"; [dx+dw*0.25,dx+dw*0.75].forEach(x=>{ c.beginPath(); c.arc(x,dy+dh*0.28,dw*0.09,0,7); c.fill(); }); c.fillStyle="#7a8a85"; c.fillRect(dx+dw/2-W*0.03,dy+dh*0.5,W*0.02,H*0.004); c.fillRect(dx+dw/2+W*0.01,dy+dh*0.5,W*0.02,H*0.004);
+    c.fillStyle=n?"#7d8a85":"#aab7b1"; c.fillRect(0,H*0.5,dx-W*0.02,H*0.01); c.fillRect(dx+dw+W*0.02,H*0.5,W,H*0.01);
+    c.fillStyle=n?"#b8c2be":"#eef2f0"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(dx,H*0.76,dw,H*0.08);
+    c.fillStyle="#f4f6f5"; c.fillRect(W*0.76,H*0.66,W*0.22,H*0.025); c.fillStyle="#7f8c88"; c.fillRect(W*0.78,H*0.685,W*0.01,H*0.05); c.fillRect(W*0.96,H*0.685,W*0.01,H*0.05); c.fillStyle="#9fc1d1"; c.fillRect(W*0.79,H*0.648,W*0.06,H*0.014); },
   blueprint(c,W,H){ c.fillStyle="#1f4a73"; c.fillRect(0,0,W,H); c.strokeStyle="rgba(255,255,255,.06)"; c.lineWidth=1; const g=W/18; c.beginPath(); for(let x=0;x<W;x+=g){ c.moveTo(x,0); c.lineTo(x,H); } for(let y=0;y<H;y+=g){ c.moveTo(0,y); c.lineTo(W,y); } c.stroke(); },
   beach(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.5);
     c.fillStyle=P.hill; c.beginPath(); c.moveTo(W*0.45,H*0.5); c.bezierCurveTo(W*0.6,H*0.36,W*0.78,H*0.33,W*0.92,H*0.4); c.bezierCurveTo(W*1.0,H*0.43,W*1.05,H*0.46,W*1.1,H*0.5); c.closePath(); c.fill();
@@ -1672,9 +1692,10 @@ function drawSlim(c,el,lt,talking){ const L=LOOKS[el.look]||LOOKS.boy, T=SLIM_TO
 /* promptkub-style people (the owner asked to copy that channel's animation): tall flat figures, small round head,
    dot eyes, thin straight limbs, flat muted colours, no outlines. Feet at (0,0), about 300 units tall. */
 const PK_TONES={boy:{top:"#3f6fb0",bottom:"#2a2f3c",hair:"#1d1b1a",skin:"#e2ae86"},girl:{top:"#f1f0ec",bottom:"#283457",hair:"#151413",skin:"#ecbf98",skirt:true},
-  scientist:{top:"#f3f3f0",bottom:"#3b4050",hair:"#cfcac2",skin:"#dcaa82",coat:true,glasses:true},kid:{top:"#f1f0ec",bottom:"#2b3550",hair:"#1d1b1a",skin:"#e6b48c"}};
+  scientist:{top:"#f3f3f0",bottom:"#3b4050",hair:"#cfcac2",skin:"#dcaa82",coat:true,glasses:true},kid:{top:"#f1f0ec",bottom:"#2b3550",hair:"#1d1b1a",skin:"#e6b48c"},
+  man:{top:"#6b7f5a",bottom:"#7d6f57",hair:"#4a4644",skin:"#d9a47c"},woman:{top:"#b5694f",bottom:"#3a3f4d",hair:"#2a2422",skin:"#e4b38f",skirt:true}};
 function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=el.emotion, mo=el.motion, run=mo==="run", walk=mo==="walk"||mo==="move"||run, sw=walk?Math.sin(lt*(run?14:7.5)):0;
-  const lift=mo==="jump"||mo==="celebrate"||emo==="excited"?-Math.abs(Math.sin(lt*6))*14:run?-Math.abs(Math.sin(lt*14))*5:0, breath=Math.sin(lt*2)*0.8, armsUp=emo==="shocked"||emo==="scared"||mo==="celebrate"||emo==="excited";
+  const lift=mo==="jump"||mo==="celebrate"||emo==="excited"?-Math.abs(Math.sin(lt*6))*14:run?-Math.abs(Math.sin(lt*14))*5:0, breath=Math.sin(lt*2)*0.8, armsUp=mo==="celebrate"||emo==="excited"||mo==="jump", handsIn=emo==="shocked"||emo==="scared"||emo==="sad";
   const ln=(pts,w,col)=>{ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w; c.strokeStyle=col; c.beginPath(); c.moveTo(pts[0],pts[1]); for(let k=2;k<pts.length;k+=2) c.lineTo(pts[k],pts[k+1]); c.stroke(); };
   c.save(); if(run) c.rotate(0.12); c.translate(0,lift);
   const hip=-140, sh=-236, legW=11;
@@ -1685,7 +1706,7 @@ function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=e
   if(T.skirt){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-17,hip-14); c.lineTo(17,hip-14); c.lineTo(25,hip+44); c.lineTo(-25,hip+44); c.closePath(); c.fill(); }
   else { c.fillStyle=T.bottom; c.fillRect(-15,hip-14,30,22); }
   // arms (thin, sleeve then skin)
-  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=armsUp?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
+  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=armsUp?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
     ln(a.slice(0,4),10,T.coat?T.top:T.top); ln(a.slice(2),8.5,T.skin); };
   arm(-16,-1,-sw); 
   // torso: flat shirt block (lab coat longer)
@@ -2526,7 +2547,7 @@ function speakText(text,{rate=1,pitch=1,onEnd=null}={}){
 function speakScene(i){
   if($("ttsToggle").value!=="on"||voiceBuf||!TTS.ok) return;
   const s=project.scenes[i]; if(!s?.narration) return;
-  speakText(s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1});
+  speakText(s.speak||s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1});
 }
 /* Preview playback. With the synthetic voice on, the picture waits at the end of each scene until the
    sentence has been fully spoken (like the screen-recording mode), so phrases are never cut off. */
@@ -2534,7 +2555,7 @@ const PV={held:0,done:true,doneAt:0,scene:-1,t0:0};
 function previewVoiceOn(){ return $("ttsToggle").value==="on"&&!voiceBuf&&TTS.ok; }
 function beginPreviewScene(i){ const s=project.scenes[i]; PV.scene=i; PV.done=false; PV.t0=performance.now();
   const ac=AU.ac; if(ac&&AU.master){ if(s.sfx!=="none") AU.sfx(s.sfx,ac.currentTime+0.02); if(project.emphOn!==false) (R.subs[i]?.emphStarts||[]).forEach(f=>AU.osc("sine",900,ac.currentTime+f,0.09,0.12,AU.master,{glideTo:1500})); }
-  const ok=s.narration&&speakText(s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1,onEnd:()=>{ if(PV.scene===i) PV.done=true; }}); if(!ok) PV.done=true; }
+  const ok=s.narration&&speakText(s.speak||s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1,onEnd:()=>{ if(PV.scene===i) PV.done=true; }}); if(!ok) PV.done=true; }
 function play(){
   if(!project) return; if(playT>=R.total-0.05) playT=0; playing=true; $("playBtn").textContent="⏸ หยุด";
   const paced=previewVoiceOn();
@@ -2583,8 +2604,8 @@ function b64buf(b64){ const bin=atob(b64), u=new Uint8Array(bin.length); for(let
 async function genVoice({fetchOk=true,quiet=false}={}){ if(!project) return false; const voice=store.get("el_voice","TX3LPaxmHKxFdv7VOQHJ"), ac=AU.ensure(), btn=$("elGen"); const lines=[]; let chars=0, fetched=0;
   btn.disabled=true; const old=btn.textContent;
   try{ for(let i=0;i<project.scenes.length;i++){ const s=project.scenes[i]; if(!s.narration){ lines.push(null); continue; } btn.textContent=`กำลังสร้างเสียง ${i+1}/${project.scenes.length}...`;
-      const had=await elCache(voice+"|"+EL.model+"|"+s.narration); const v=await elLine(s.narration,voice,{fetchOk}); if(!v) return false; if(!had){ fetched++; chars+=s.narration.length; }
-      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+(VOICE_LEAD+Math.max(...v.e)+0.35).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
+      const say=s.speak||s.narration; const had=await elCache(voice+"|"+EL.model+"|"+say); const v=await elLine(say,voice,{fetchOk}); if(!v) return false; if(!had){ fetched++; chars+=say.length; }
+      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(!s.speak&&v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+(VOICE_LEAD+Math.max(...v.e)+0.35).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
       lines.push(buf); }
     relayout(); const sr=ac.sampleRate, out=ac.createBuffer(2,Math.ceil((R.total+0.5)*sr),sr);
     lines.forEach((b,i)=>{ if(!b) return; const off=Math.round((R.starts[i]+VOICE_LEAD)*sr); for(let ch=0;ch<2;ch++){ const src=b.getChannelData(Math.min(ch,b.numberOfChannels-1)), dst=out.getChannelData(ch); dst.set(src.subarray(0,Math.max(0,Math.min(src.length,dst.length-off))),off); } });
@@ -3348,7 +3369,11 @@ clearBtn.onclick=()=>{ if(status[current]==="working") return; if(clearBtn.datas
   clearBtn.dataset.armed=""; clearBtn.textContent="ล้างแชต"; chats[current]=[]; saveChats(current); setStatus(current,"idle"); renderChat(); };
 
 function setNarration(x,raw,extraEmph=[]){ const old=x.emph||[]; const r=parseEmph(raw,[...(Array.isArray(extraEmph)?extraEmph:[]),...old]); x.narration=r.text; x.emph=r.emph; x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); }
-function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return; if(typeof l.text==="string"&&cleanStar(l.text)) setNarration(s,l.text,l.emph);
+/* The voice team may rewrite a line for speaking (digits or letters read out: "หนึ่ง หก หก เก้า", "บี"). The subtitle must keep
+   the written form, so such a rewrite goes to s.speak (what the voice reads) and the narration stays as written. */
+function lostTokens(a,b){ const tok=t=>String(t||"").match(/[0-9][0-9,.:/-]*|[A-Za-z]+/g)||[]; const nb=tok(b); return tok(a).some(x=>!nb.includes(x)); }
+function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return;
+  if(typeof l.text==="string"&&cleanStar(l.text)){ if(lostTokens(s.narration,cleanStar(l.text))) s.speak=str(cleanStar(l.text),220); else { setNarration(s,l.text,l.emph); delete s.speak; } }
   s.voice={emotion:str(l.emotion,20),rate:num(l.rate,0.6,1.6,1),pitch:num(l.pitch,0.5,1.8,1)}; }); return p; }
 function applyVoice(j){ if(!project) return; applyVoiceTo(project,j); relayout(); renderSceneList(); notice("ใส่บทพากย์ใหม่ลงคลิปแล้ว",3000); }
 
@@ -3516,6 +3541,8 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ภาพแบบ promptkub (เจ้าของสั่งให้ลอกการทำอนิเมชันและตัดต่อของ promptkub ทั้งหมด): ตัวละครคนตัวสูงหัวเล็กสีแบน (ระบบวาดให้เอง) ภาพกว้างให้ตัวละคร scale 0.6-0.8 ยืน y 0.8-0.85 ยืนเรียงในฉากจริง; ภาพใกล้ scale 1.4-1.8 วาง y 1.0-1.1 ให้ล้นขอบล่าง ฉากหลังจะเบลอเอง
 - ตั้งชื่อคนในเรื่องด้วย "pin" บนตัวละคร เช่น "คุณ", "ต้น", "ฟ้า · หัวหน้าห้อง" (ป้ายหมุดเหนือหัว) ใช้ตอนแนะนำตัวละครครั้งแรก
 - ประโยค punch ให้ใส่ emph เป็นคำสำคัญ 1 วลี (จะขึ้นกล่องแดงเฉพาะวลีนั้น) ห้ามใช้อีโมจิ ห้ามใช้ caption
+- ทุกฉากต้องอยู่ในสถานที่จริงตามบท (กินข้าวที่บ้าน = home, โรงพยาบาล = hospital, ถนน = street, โรงเรียน = school ...) ใช้ studio (ห้องมืด) ได้ไม่เกิน 2 ฉาก เฉพาะฉากการ์ดล้วน
+- ท่าทางตัวละครต้องตรงบท (ตกใจ = เอามือแตะหน้า, กังวล = กอดอก, คุย = talk, ชี้ = point) ไม่ยกแขนซ้ำทุกฉาก
 - ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
 - ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
 const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล
@@ -3538,6 +3565,8 @@ const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
 function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","zoom-in","pan-left","drone","zoom-out"];
   // house style chosen by the owner from the viral references: documentary subtitles and the muted "doc" look, always
   if(p.subStyle!=="doc"){ p.subStyle="doc"; fixes.push("ใช้ซับแบบสารคดี (สไตล์ช่อง)"); } if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน (สไตล์ช่อง)"); } if(p.charStyle!=="pk"){ p.charStyle="pk"; fixes.push("ใช้ตัวละครแบบ promptkub"); }
+  { let st=0, lastReal=null; S.forEach((x,i)=>{ if(x.bg==="studio"){ if(++st>2&&lastReal){ x.bg=lastReal.bg; x.time=lastReal.time; fixes.push(`ฉาก ${i+1} ใช้สถานที่จริงของเรื่องแทนห้องมืด`); } } else lastReal=x; }); }
+  S.forEach((x,i)=>{ if(i<S.length-1) x.elements.forEach(e=>{ if(e.type==="card"&&e.kind==="lesson"){ e.kind="note"; e.value=""; e.tag=e.tag||""; fixes.push(`ฉาก ${i+1} การ์ดข้อคิดเก็บไว้ฉากจบ`); } }); });
   const MAP2D={classroom:"school",city:"street",ocean:"beach",room:"nightroom"}; S.forEach((x,i)=>{ if(MAP2D[x.bg]){ x.bg=MAP2D[x.bg]; fixes.push(`ฉาก ${i+1} ใช้ฉากวาด 2 มิติแทนฉาก 3 มิติ`); } });
   // viral layout: one focal point. No big captions, no emoji; a scene with a card shows only that card (the best match to the narration) and no extra text.
   S.forEach((x,i)=>{ if(x.caption){ x.caption=""; fixes.push("เอาหัวข้อใหญ่ออก ให้ซับกับการ์ดเล่าเรื่อง"); }
@@ -3672,7 +3701,7 @@ const STEP_FN={
   async voice(r){ const lines=r.project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
     const team=await staffWork(r,"voice",[{id:"tone",prompt:`บทพูดคลิป "${r.project.title}":\n${lines}\n\nชี้คำหรือประโยคที่พูดแล้วสะดุดหรือเป็นภาษาเขียน พร้อมคำที่พูดง่ายกว่า`},{id:"music",prompt:`คลิป "${r.project.title}" เพลงตอนนี้: ${r.project.music}\n${scriptOf(r.project)}\n\nเลือกเพลงและปรับเสียงประกอบ ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"music":"${CAT.music.join("|")}","sfx":[{"scene":1,"sfx":"${CAT.sfx.join("|")}"}]}\n\`\`\``}]);
     const tone=team.split("\n\n[งานจาก").find(x=>x.includes("น้องโทน"))||"";
-    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก${note(r,"voice")}${tone?`\n\nข้อสังเกตจากน้องโทน:\n${tone.replace(/^\[?งานจาก[^\]]*\]\n/,"")}`:""}:\n\n${lines}`));
+    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก (ถ้าต้องสะกดตัวเลข/ตัวอักษรเป็นคำอ่าน เช่น 1669 = หนึ่ง หก หก เก้า ให้เขียนใน text ได้ ระบบจะใช้แค่เป็นเสียง ซับยังแสดงตัวเลขเดิม)${note(r,"voice")}${tone?`\n\nข้อสังเกตจากน้องโทน:\n${tone.replace(/^\[?งานจาก[^\]]*\]\n/,"")}`:""}:\n\n${lines}`));
     const mj=subJSON(r,"voice","music"); if(mj){ r.project.music=pick(mj.music,CAT.music,r.project.music); (Array.isArray(mj.sfx)?mj.sfx:[]).forEach(x=>{ const sc=r.project.scenes[(Number(x?.scene)||0)-1]; if(sc) sc.sfx=pick(x.sfx,CAT.sfx,sc.sfx); }); }
     r.out.voice=vj?.lines?{lines:vj.lines}:{lines:[]}; r.project=applyVoiceTo(r.project,r.out.voice); return "ปรับบทพากย์และอารมณ์เสียงแล้ว"; },
 };

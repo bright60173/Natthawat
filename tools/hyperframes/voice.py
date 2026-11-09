@@ -40,8 +40,9 @@ def main():
         if not text:
             t += float(s.get("duration", 3)); continue
         mp3 = os.path.join(out, f"scene{i+1:02d}.mp3")
-        ch, st, en = tts(text, voice, model, mp3); chars += len(text)
-        if "".join(ch) == text and len(st) == len(text):
+        say = re.sub(r"\*", "", str(s.get("speak") or text)).strip()  # spoken form (e.g. digits read out); subtitles keep narration
+        ch, st, en = tts(say, voice, model, mp3); chars += len(say)
+        if say == text and "".join(ch) == text and len(st) == len(text):
             s["align"] = {"s": [round(x, 3) for x in st], "e": [round(x, 3) for x in en]}
             s["duration"] = round(VOICE_LEAD + max(en) + END_PAD, 3)
         else:  # timings do not line up with the text: keep the estimate, still fit the audio
