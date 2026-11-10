@@ -1127,9 +1127,9 @@ const CAT = {
   backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint","home","hospital"],
   times:["day","sunset","night"],
   characters:["boy","girl","kid","man","woman","scientist","robot","cat","alien"],
-  emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry"],
-  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd"],
-  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave"],
+  emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry","droop"],
+  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine"],
+  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie"],
   enters:["none","pop","fade","left","right","top","bottom"],
   cameras:["static","zoom-in","zoom-out","pan-left","pan-right","orbit","drone","shake"],
   effects:["none","rain","snow","sparkles","confetti","speedlines","fireworks","flash","darken","heat","bubbles"],
@@ -1160,10 +1160,10 @@ function normalizeProject(p){
   if(!p||typeof p!=="object") throw new Error("ไม่ใช่ JSON ของโปรเจกต์");
   const scenesIn=Array.isArray(p.scenes)?p.scenes:[];
   if(!scenesIn.length) throw new Error("ไม่มีฉากใน JSON");
-  const scenes=scenesIn.slice(0,14).map(s=>{
+  const scenes=scenesIn.slice(0,20).map(s=>{
     const els=(Array.isArray(s.elements)?s.elements:[]).slice(0,8).map(e=>{
       const type=pick(e.type,["character","prop","text","emoji","card"],"prop");
-      const o={ type, x:num(e.x,-0.3,1.3,0.5), y:num(e.y,-0.3,1.3,0.6), scale:num(e.scale,0.2,4,1),
+      const o={ type, x:num(e.x,-0.3,1.3,0.5), y:num(e.y,-0.3,2.2,0.6), scale:num(e.scale,0.2,4,1),
         enter:pick(e.enter,CAT.enters,"pop"), at:num(e.at,0,12,0), motion:pick(e.motion,CAT.motions,"none"),
         toX:num(e.toX,-0.5,1.5,num(e.x,-0.3,1.3,0.5)), toY:num(e.toY,-0.5,1.5,num(e.y,-0.3,1.3,0.6)), flip:!!e.flip };
       if(type==="character"){ o.look=pick(e.look,CAT.characters,"boy"); o.emotion=pick(e.emotion,CAT.emotions,"happy"); o.say=str(e.say,24); }
@@ -1417,6 +1417,26 @@ const CONTINENTS=[
 ];
 function globeProj(lon,lat,rot,r){ const L=(lon-rot)*Math.PI/180, A=lat*Math.PI/180; return [r*Math.cos(A)*Math.sin(L), -r*Math.sin(A), Math.cos(A)*Math.cos(L)]; }
 const PROPS_HQ={
+  /* Close-up inserts in the flat promptkub style (about 120 units wide). */
+  needle(c,t){ const j=Math.sin(t*3)*2.5, sk="#e2ae86", sk2="#d39c74", rr2=(x,y,w,h,r,col)=>{ c.fillStyle=col; c.beginPath(); c.roundRect(x,y,w,h,r); c.fill(); };
+    rr2(-78,2,92,30,15,sk); rr2(-10,5,20,11,5.5,"#f4d8c2"); c.fillStyle="rgba(0,0,0,.07)"; c.fillRect(-78,24,84,8);
+    c.save(); c.translate(34+j,-14-j); c.rotate(-0.72); rr2(-4,-40,8,44,3,"#5d7f96"); rr2(-5.5,-44,11,9,2,"#3f5a6d"); c.strokeStyle="#c9d2d8"; c.lineWidth=1.6; c.lineCap="round"; c.beginPath(); c.moveTo(0,4); c.lineTo(0,17); c.stroke();
+      rr2(-17,-34,13,34,6.5,sk2); rr2(5,-30,13,32,6.5,sk); c.restore(); },
+  brain(c,t){ const pk="#e3a39d", dk="#c47d78"; c.save(); HQ.smooth(c,[[-52,-6],[-46,-34],[-18,-48],[16,-48],[44,-34],[54,-8],[44,12],[20,18],[-8,16],[-36,14]]); c.fillStyle=pk; c.fill(); c.clip();
+      const r=8+((t*0.9)%5)/5*34; c.fillStyle="rgba(84,78,92,.78)"; c.beginPath(); c.arc(6,-12,r,0,7); c.fill(); c.restore();
+    c.strokeStyle=dk; c.lineWidth=2.4; c.lineCap="round"; [[-34,-26,-18,-36,-6,-24],[-2,-40,10,-30,24,-38],[-40,-4,-22,-12,-10,0],[4,-8,18,-18,34,-8],[14,6,28,0,40,4]].forEach(q=>{ c.beginPath(); c.moveTo(q[0],q[1]); c.quadraticCurveTo(q[2],q[3],q[4],q[5]); c.stroke(); });
+    c.fillStyle="#d18f8a"; c.beginPath(); c.ellipse(30,20,17,10,0.2,0,7); c.fill(); c.fillStyle="#c98a86"; c.beginPath(); c.roundRect(6,16,10,26,5); c.fill();
+    c.fillStyle="#c8352b"; c.beginPath(); c.arc(6,-12,4+Math.abs(Math.sin(t*5))*2,0,7); c.fill(); },
+  ambulance(c,t){ const fl=Math.sin(t*10)>0; c.fillStyle="#f4f4f1"; c.beginPath(); c.roundRect(-64,-34,128,54,[8,14,4,4]); c.fill(); c.fillStyle="#9fc1d1"; c.beginPath(); c.roundRect(30,-27,28,20,[3,9,2,2]); c.fill();
+    c.fillStyle="#c8352b"; c.fillRect(-64,-4,128,7); c.fillStyle="#e8a03a"; c.fillRect(-64,3,128,3); c.fillStyle="#c8352b"; c.fillRect(-36,-27,8,20); c.fillRect(-42,-21,20,8);
+    c.fillStyle="#1f1c18"; c.font="800 11px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("1669",-2,-17); c.fillStyle=fl?"#e2483d":"#7a2620"; c.fillRect(-14,-41,12,7); c.fillStyle=fl?"#2a4f9a":"#4f8cf0"; c.fillRect(0,-41,12,7);
+    c.fillStyle="#22232a"; c.beginPath(); c.arc(-36,20,11,0,7); c.arc(38,20,11,0,7); c.fill(); c.fillStyle="#9aa0a6"; c.beginPath(); c.arc(-36,20,4.5,0,7); c.arc(38,20,4.5,0,7); c.fill(); },
+  spoon(c,t){ c.save(); c.rotate(0.6); c.fillStyle="#c9cfd4"; c.beginPath(); c.ellipse(0,-30,15,21,0,0,7); c.fill(); c.fillStyle="#aab2b8"; c.beginPath(); c.ellipse(1,-28,9,14,0,0,7); c.fill(); c.fillStyle="#c9cfd4"; c.beginPath(); c.roundRect(-3.5,-12,7,62,3.5); c.fill(); c.restore(); },
+  ct(c,t){ c.fillStyle="#e9edef"; c.beginPath(); c.roundRect(-46,-56,92,96,16); c.fill(); c.fillStyle="#cfd6da"; c.beginPath(); c.arc(0,-10,30,0,7); c.fill(); c.fillStyle="#2c3a44"; c.beginPath(); c.arc(0,-10,22,0,7); c.fill();
+    c.strokeStyle="#5fd3c0"; c.lineWidth=2; c.beginPath(); c.arc(0,-10,26,t*2,t*2+1.6); c.stroke(); c.fillStyle="#b9c2c8"; c.fillRect(-58,34,116,8); c.fillStyle="#8fb7c6"; c.beginPath(); c.roundRect(-22,22,70,12,6); c.fill(); c.fillStyle="#e2ae86"; c.beginPath(); c.arc(-8,18,8,0,7); c.fill(); },
+  medicine(c,t){ c.fillStyle="#7a4a2a"; c.beginPath(); c.roundRect(-44,-18,34,52,6); c.fill(); c.fillStyle="#3a2a1e"; c.fillRect(-38,-30,22,13); c.fillStyle="#efe6cf"; c.fillRect(-42,-2,30,22); c.fillStyle="#b5694f"; c.fillRect(-38,4,22,4); c.fillRect(-38,11,14,3);
+    c.fillStyle="rgba(190,225,240,.55)"; c.beginPath(); c.moveTo(6,-22); c.lineTo(46,-22); c.lineTo(41,34); c.lineTo(11,34); c.closePath(); c.fill(); c.fillStyle="rgba(120,190,225,.75)"; c.beginPath(); c.moveTo(8,-2+Math.sin(t*2)); c.lineTo(44,-2-Math.sin(t*2)); c.lineTo(41,34); c.lineTo(11,34); c.closePath(); c.fill();
+    c.fillStyle="#f4f1ea"; c.beginPath(); c.ellipse(-2,40,7,3.5,0.3,0,7); c.ellipse(52,42,7,3.5,-0.2,0,7); c.fill(); },
   earth(c,t){ const r=50, rot=-20+t*14;
     c.fillStyle=HQ.rad(c,0,0,r*0.9,r*1.32,[[0,"rgba(120,200,255,.45)"],[1,"rgba(120,200,255,0)"]]); c.beginPath(); c.arc(0,0,r*1.32,0,7); c.fill();
     c.save(); c.beginPath(); c.arc(0,0,r,0,7); c.clip();
@@ -1697,16 +1717,18 @@ const PK_TONES={boy:{top:"#3f6fb0",bottom:"#2a2f3c",hair:"#1d1b1a",skin:"#e2ae86
 function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=el.emotion, mo=el.motion, run=mo==="run", walk=mo==="walk"||mo==="move"||run, sw=walk?Math.sin(lt*(run?14:7.5)):0;
   const lift=mo==="jump"||mo==="celebrate"||emo==="excited"?-Math.abs(Math.sin(lt*6))*14:run?-Math.abs(Math.sin(lt*14))*5:0, breath=Math.sin(lt*2)*0.8, armsUp=mo==="celebrate"||emo==="excited"||mo==="jump", handsIn=emo==="shocked"||emo==="scared"||emo==="sad";
   const ln=(pts,w,col)=>{ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w; c.strokeStyle=col; c.beginPath(); c.moveTo(pts[0],pts[1]); for(let k=2;k<pts.length;k+=2) c.lineTo(pts[k],pts[k+1]); c.stroke(); };
-  c.save(); if(run) c.rotate(0.12); c.translate(0,lift);
+  const sit=mo==="sit", lie=mo==="lie", droop=emo==="droop";
+  c.save(); if(run) c.rotate(0.12); c.translate(0,lift); if(lie){ c.translate(-135,-17); c.rotate(Math.PI/2); } if(sit) c.translate(0,70);
   const hip=-140, sh=-236, legW=11;
+  if(sit){ c.fillStyle="#6b4f3a"; c.fillRect(-26,hip+8,44,7); c.fillRect(-22,hip+15,5,56); c.fillRect(9,hip+15,5,56); }
   // legs: straight, swing from the hip; skirt for the girl look
-  const leg=(x,ph,col)=>{ const a=ph*(run?0.55:0.35), fx=x+Math.sin(a)*140, fy=hip+Math.cos(a)*140; ln([x,hip,fx,fy-4],legW,col); c.fillStyle="#f2f2ee"; c.fillRect(fx-5,fy-16,10,12); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(fx+5,fy-3,11,5,0,0,7); c.fill(); };
+  const leg=(x,ph,col)=>{ if(sit){ ln([x,hip,x+50,hip+2,x+50,hip+62],legW,col); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(x+56,hip+67,11,5,0,0,7); c.fill(); return; } const a=ph*(run?0.55:0.35), fx=x+Math.sin(a)*140, fy=hip+Math.cos(a)*140; ln([x,hip,fx,fy-4],legW,col); c.fillStyle="#f2f2ee"; c.fillRect(fx-5,fy-16,10,12); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(fx+5,fy-3,11,5,0,0,7); c.fill(); };
   leg(5,-sw,T.skirt?T.skin:T.bottom); leg(-5,sw,T.skirt?shade(T.skin,-0.06):shade(T.bottom,-0.12));
   c.translate(0,breath);
   if(T.skirt){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-17,hip-14); c.lineTo(17,hip-14); c.lineTo(25,hip+44); c.lineTo(-25,hip+44); c.closePath(); c.fill(); }
   else { c.fillStyle=T.bottom; c.fillRect(-15,hip-14,30,22); }
   // arms (thin, sleeve then skin)
-  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=armsUp?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
+  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=sit&&!armsUp&&!(droop&&side<0)&&mo!=="point"?[sx,sh+8,sx+16,sh+52,sx+44,sh+60]:armsUp&&!lie?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
     ln(a.slice(0,4),10,T.coat?T.top:T.top); ln(a.slice(2),8.5,T.skin); };
   arm(-16,-1,-sw); 
   // torso: flat shirt block (lab coat longer)
@@ -1724,10 +1746,11 @@ function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=e
   const blink=(lt+el.x*3)%3.8<0.12, big=emo==="shocked"||emo==="scared", ey=3;
   if(big){ c.fillStyle="#fbfaf6"; c.beginPath(); c.arc(-7,ey,5,0,7); c.arc(7,ey,5,0,7); c.fill(); }
   c.fillStyle="#1b1a1c"; if(blink){ c.fillRect(-10,ey,6,1.8); c.fillRect(4,ey,6,1.8); } else { c.beginPath(); c.arc(-7,ey,big?2.4:2.2,0,7); c.arc(7,ey,big?2.4:2.2,0,7); c.fill(); }
+  if(droop&&!blink){ c.fillStyle=T.skin; c.fillRect(3,ey-3.2,8.5,3.4); c.strokeStyle="#1b1a1c"; c.lineWidth=1.1; c.beginPath(); c.moveTo(3.5,ey+0.1); c.lineTo(11,ey+1.2); c.stroke(); }
   if(T.glasses){ c.strokeStyle="#1b1a1c"; c.lineWidth=1.4; c.beginPath(); c.arc(-7,ey,5.5,0,7); c.moveTo(12.5,ey); c.arc(7,ey,5.5,0,7); c.stroke(); }
   const ta=typeof talking==="number"?talking:0, my=12; c.fillStyle="#8a3b3b";
-  if(ta>0.02){ c.beginPath(); c.ellipse(0,my,3,1+ta*3.5,0,0,7); c.fill(); } else if(big){ c.beginPath(); c.ellipse(0,my+1,2.6,3.4,0,0,7); c.fill(); } else { c.strokeStyle="#8a3b3b"; c.lineWidth=1.6; c.beginPath(); if(emo==="sad"||emo==="angry"){ c.moveTo(-4,my+2); c.quadraticCurveTo(0,my-1,4,my+2); } else if(emo==="happy"||emo==="excited"){ c.moveTo(-4,my-1); c.quadraticCurveTo(0,my+3,4,my-1); } else { c.moveTo(-3,my); c.lineTo(3,my); } c.stroke(); }
-  if(emo==="scared"||emo==="sad"){ c.fillStyle="#9fd0ff"; c.beginPath(); c.moveTo(18,-14); c.quadraticCurveTo(24,-4,18,-2); c.quadraticCurveTo(13,-4,18,-14); c.fill(); }
+  if(ta>0.02){ c.beginPath(); c.ellipse(0,my,3,1+ta*3.5,0,0,7); c.fill(); } else if(big){ c.beginPath(); c.ellipse(0,my+1,2.6,3.4,0,0,7); c.fill(); } else { c.strokeStyle="#8a3b3b"; c.lineWidth=1.6; c.beginPath(); if(droop){ c.moveTo(-5,my-1.5); c.quadraticCurveTo(1,my-0.5,7,my+5.5); } else if(emo==="sad"||emo==="angry"){ c.moveTo(-4,my+2); c.quadraticCurveTo(0,my-1,4,my+2); } else if(emo==="happy"||emo==="excited"){ c.moveTo(-4,my-1); c.quadraticCurveTo(0,my+3,4,my-1); } else { c.moveTo(-3,my); c.lineTo(3,my); } c.stroke(); }
+  if(emo==="scared"||emo==="sad"||droop){ c.fillStyle="#9fd0ff"; c.beginPath(); c.moveTo(18,-14); c.quadraticCurveTo(24,-4,18,-2); c.quadraticCurveTo(13,-4,18,-14); c.fill(); }
   c.restore(); c.restore(); }
 function drawCharacter(c,el,lt,talking){ if(CF.cs==="pk"&&!["robot","cat","alien"].includes(el.look)) return drawPK(c,el,lt,talking); if(CF.cs==="slim"&&!["robot","cat","alien"].includes(el.look)) return drawSlim(c,el,lt,talking);
   const L=LOOKS[el.look]||LOOKS.boy, emo=el.emotion, mo=el.motion, running=mo==="run", walking=mo==="walk"||mo==="move"||running, waving=mo==="wave";
@@ -2166,7 +2189,10 @@ class Renderer{
   emphTimes(){ if(this.project.emphOn===false) return []; const out=[]; this.subs.forEach((S,i)=>S.emphStarts.forEach(f=>out.push(this.starts[i]+f))); return out; }
   pages(c,S,fs,maxW,weight){ const key=fs+"|"+maxW+"|"+weight+"|"+fontEpoch; if(S._pk===key) return S._pages; const lines=[]; let line=[],lw=0;
     const emK=this.project.subStyle==="doc"?1:1.15; S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*emK:fs}px ${this.fam}`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
-    if(line.length) lines.push({items:line,w:lw}); const per=this.project.subStyle==="doc"?1:2, pages=[]; for(let k=0;k<lines.length;k+=per){ const ls=lines.slice(k,k+per); pages.push({lines:ls,from:ls[0].items[0].w.from}); }  // promptkub shows one line at a time
+    if(line.length) lines.push({items:line,w:lw});
+    // balance the lines so no page is a one-word orphan ("...ข้าง / เดียว")
+    if(lines.length>1){ const all=lines.flatMap(l=>l.items), tot=all.reduce((a,x)=>a+x.width,0), n=lines.length; for(let lim=tot/n*1.08; lim<=maxW*1.001; lim*=1.07){ const out=[]; let cur=[],w=0; all.forEach(it=>{ if(cur.length&&w+it.width>lim){ out.push({items:cur,w}); cur=[]; w=0; } cur.push(it); w+=it.width; }); if(cur.length) out.push({items:cur,w}); if(out.length<=n){ lines.length=0; lines.push(...out); break; } } }
+    const per=this.project.subStyle==="doc"?1:2, pages=[]; for(let k=0;k<lines.length;k+=per){ const ls=lines.slice(k,k+per); pages.push({lines:ls,from:ls[0].items[0].w.from}); }  // promptkub shows one line at a time
     S._pk=key; S._pages=pages; return pages; }
   curPage(pages,lt){ let k=0; pages.forEach((p,j)=>{ if(lt>=p.from-0.05) k=j; }); return {p:pages[k],k}; }
   sceneAt(t){ const st=this.starts; for(let i=st.length-1;i>=0;i--) if(t>=st[i]) return i; return 0; }
@@ -2241,7 +2267,7 @@ class Renderer{
     if(el.type==="character"&&!reduceMotion){ const br=Math.sin(T*2.4)*0.012; sy*=1+br; sx*=1-br*0.5; }
     const base=Math.min(W,H), X=x*W, Y=y*H;
     // ground shadow (characters and grounded props)
-    const GROUND=["car","house","building","tree","coin","burger","book","bomb","volcano","ice","phone","wave"];
+    const GROUND=["car","house","building","tree","coin","burger","book","bomb","volcano","ice","phone","wave","ambulance","ct"];
     if(alpha>0.05&&(el.type==="character"||(el.type==="prop"&&GROUND.includes(el.name)&&!["float","fall","rise","spin"].includes(el.motion)))){
       const gy=(y+lift)*H+(el.type==="character"?0:base*0.0022*el.scale*48), r=(el.type==="character"?base*0.075:base*0.09)*el.scale*(1-lift*4);
       c.save(); c.globalAlpha=alpha*0.22; c.fillStyle="#1b1230"; c.beginPath(); c.ellipse(X,gy,r,r*0.22,0,0,Math.PI*2); c.fill(); c.restore(); }
@@ -3542,6 +3568,9 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ตั้งชื่อคนในเรื่องด้วย "pin" บนตัวละคร เช่น "คุณ", "ต้น", "ฟ้า · หัวหน้าห้อง" (ป้ายหมุดเหนือหัว) ใช้ตอนแนะนำตัวละครครั้งแรก
 - ประโยค punch ให้ใส่ emph เป็นคำสำคัญ 1 วลี (จะขึ้นกล่องแดงเฉพาะวลีนั้น) ห้ามใช้อีโมจิ ห้ามใช้ caption
 - ทุกฉากต้องอยู่ในสถานที่จริงตามบท (กินข้าวที่บ้าน = home, โรงพยาบาล = hospital, ถนน = street, โรงเรียน = school ...) ใช้ studio (ห้องมืด) ได้ไม่เกิน 2 ฉาก เฉพาะฉากการ์ดล้วน
+- ภาพแทรกใกล้ (insert) แบบ promptkub อย่างน้อย 3 ช็อตต่อคลิป: พร็อพเดี่ยว scale 2.2-2.8 กลางจอ ไม่มีตัวละคร เช่น needle (มือถือเข็มจ่อนิ้ว), spoon, brain, medicine, ambulance, ct หรือภาพใกล้หน้าตัวละคร scale 3.5-4 วาง y 1.7-1.85
+- ท่าใหม่: motion sit (นั่งเก้าอี้ที่โต๊ะ), lie (นอนตะแคง); emotion droop (ปากเบี้ยว ตาตก) ใช้เมื่อบทพูดถึง
+- คลิปหนึ่งมีได้ถึง 20 ช็อต ช็อตละ 2.5-3.5 วินาที สลับ กว้าง → ใกล้ → แทรกของ → การ์ด ห้ามมีตัวละครยืนเฉยติดกันเกิน 2 ช็อต
 - ท่าทางตัวละครต้องตรงบท (ตกใจ = เอามือแตะหน้า, กังวล = กอดอก, คุย = talk, ชี้ = point) ไม่ยกแขนซ้ำทุกฉาก
 - ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
 - ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
@@ -3585,6 +3614,8 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
     const ch=x.elements.filter(e=>e.type==="character"); if(ch.length>1&&ch.some(e=>e.scale>=1.15)){ const big=ch.slice().sort((a,b)=>b.scale-a.scale)[0]; x.elements=x.elements.filter(e=>e.type!=="character"||e===big); fixes.push(`ฉาก ${i+1} ภาพใกล้เหลือตัวละครเดียว`); }
     else if(ch.length>1){ const sc=ch.reduce((a,e)=>a+e.scale,0)/ch.length; ch.forEach(e=>{ e.scale=+sc.toFixed(2); }); }
     x.elements.forEach(e=>{ if(e.type!=="card") return;
+      // keep cards clear of the place/clock chips at the top
+      if((x.tag||x.clock)&&e.kind!=="phone"){ const z=cardSize(e,1), hh=z.h/2*(p.aspect==="16:9"?1:9/16); if(e.y-hh<0.15) e.y=+(0.15+hh).toFixed(3); }
       // phone fills the frame: keep it to the upper part so the subtitle fits below
       if(e.kind==="phone"){ e.scale=Math.min(e.scale,0.75); e.y=0.36; x.elements=x.elements.filter(o=>o===e||o.type!=="character"||o.scale<0.9); }
       // a progress bar only means something for a percentage
