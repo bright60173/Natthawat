@@ -1124,11 +1124,11 @@ const FONT_IDS=CLIP_FONTS.map(f=>f[0]);
 const famOf=f=>`"${FONT_IDS.includes(f)?f:"Kanit"}", Kanit, sans-serif`;
 const CF={ff:famOf("Kanit"),cs:"cute"};
 const CAT = {
-  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint","home","hospital"],
+  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint","home","hospital","canal","carin"],
   times:["day","sunset","night"],
   characters:["boy","girl","kid","man","woman","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry","droop"],
-  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine"],
+  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer"],
   motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie"],
   enters:["none","pop","fade","left","right","top","bottom"],
   cameras:["static","zoom-in","zoom-out","pan-left","pan-right","orbit","drone","shake"],
@@ -1258,6 +1258,24 @@ const BG={
     c.fillStyle=n?"#7d8a85":"#aab7b1"; c.fillRect(0,H*0.5,dx-W*0.02,H*0.01); c.fillRect(dx+dw+W*0.02,H*0.5,W,H*0.01);
     c.fillStyle=n?"#b8c2be":"#eef2f0"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(dx,H*0.76,dw,H*0.08);
     c.fillStyle="#f4f6f5"; c.fillRect(W*0.76,H*0.66,W*0.22,H*0.025); c.fillStyle="#7f8c88"; c.fillRect(W*0.78,H*0.685,W*0.01,H*0.05); c.fillRect(W*0.96,H*0.685,W*0.01,H*0.05); c.fillStyle="#9fc1d1"; c.fillRect(W*0.79,H*0.648,W*0.06,H*0.014); },
+  /* Roadside canal (Thai klong): road with posts and a lamp on top, grass bank, dark water with moving ripples, reeds. */
+  canal(c,W,H,t,time){ const P=SET_PAL(time), n=P.night; setSky(c,W,H,P,H*0.34); c.fillStyle=P.tree2; for(let i=0;i<9;i++){ c.beginPath(); c.arc(W*(i*0.13-0.02),H*0.335,W*(0.07+rnd(i+11)*0.03),Math.PI,0); c.fill(); }
+    c.fillStyle=P.road; c.fillRect(0,H*0.335,W,H*0.055); c.fillStyle="rgba(255,255,255,.7)"; for(let x=0;x<W;x+=W*0.14) c.fillRect(x,H*0.36,W*0.07,H*0.004);
+    c.fillStyle=n?"#b9b4aa":"#e9e4da"; for(let x=W*0.04;x<W;x+=W*0.12){ c.fillRect(x,H*0.378,W*0.012,H*0.022); } c.fillStyle="#c8452f"; for(let x=W*0.04;x<W;x+=W*0.12) c.fillRect(x,H*0.378,W*0.012,H*0.006);
+    c.strokeStyle="#3a352f"; c.lineWidth=W*0.01; c.beginPath(); c.moveTo(W*0.82,H*0.39); c.lineTo(W*0.82,H*0.16); c.lineTo(W*0.72,H*0.15); c.stroke(); if(n){ c.save(); c.globalCompositeOperation="lighter"; c.fillStyle="rgba(255,214,140,.16)"; c.beginPath(); c.moveTo(W*0.72,H*0.15); c.lineTo(W*0.5,H*0.6); c.lineTo(W*0.94,H*0.6); c.closePath(); c.fill(); c.restore(); }
+    c.fillStyle=P.grass; c.beginPath(); c.moveTo(0,H*0.39); c.lineTo(W,H*0.39); c.lineTo(W,H*0.5); c.quadraticCurveTo(W*0.5,H*0.54,0,H*0.5); c.closePath(); c.fill(); c.fillStyle=P.grass2; for(let i=0;i<24;i++) c.fillRect(rnd(i+61)*W,H*(0.4+rnd(i+17)*0.09),W*0.02,H*0.004);
+    c.fillStyle=n?"#17333a":"#3f7f80"; c.beginPath(); c.moveTo(0,H*0.5); c.quadraticCurveTo(W*0.5,H*0.54,W,H*0.5); c.lineTo(W,H); c.lineTo(0,H); c.closePath(); c.fill(); c.fillStyle=n?"#12292f":"#356f72"; c.fillRect(0,H*0.72,W,H*0.28);
+    c.strokeStyle="rgba(255,255,255,.28)"; c.lineWidth=Math.max(1,W*0.003); for(let r=0;r<9;r++){ const y=H*(0.56+r*0.05), o=(t*W*0.03*(r%2?1:-1)+r*131)%(W*0.36); for(let x=-W*0.36+o;x<W;x+=W*0.36){ c.beginPath(); c.moveTo(x,y); c.lineTo(x+W*(0.06+r*0.008),y); c.stroke(); } }
+    c.strokeStyle=n?"#2b4a36":"#4f8a50"; c.lineWidth=W*0.006; [[0.04,0.54],[0.09,0.56],[0.93,0.55],[0.97,0.53]].forEach(([x,y],k)=>{ c.beginPath(); c.moveTo(W*x,H*y); c.quadraticCurveTo(W*(x+0.01*Math.sin(t+k)),H*(y-0.05),W*(x+0.015*Math.sin(t*1.3+k)),H*(y-0.09)); c.stroke(); }); },
+  /* Inside a sinking car, seen from the driver's seat: windscreen with murky water rising, pillars, dashboard, wheel. */
+  carin(c,W,H,t){ c.fillStyle="#1d2126"; c.fillRect(0,0,W,H); const wl=H*(0.36-0.22*clamp(t/9,0,1));
+    c.save(); c.beginPath(); c.moveTo(W*0.1,H*0.1); c.lineTo(W*0.9,H*0.1); c.lineTo(W*0.98,H*0.5); c.lineTo(W*0.02,H*0.5); c.closePath(); c.clip(); c.fillStyle="#31404a"; c.fillRect(0,0,W,H*0.5);
+      c.fillStyle="#2f6a66"; c.beginPath(); c.moveTo(0,wl); for(let x=0;x<=W;x+=W/24) c.lineTo(x,wl+Math.sin(x*0.02+t*2.2)*H*0.006); c.lineTo(W,H*0.5); c.lineTo(0,H*0.5); c.closePath(); c.fill(); c.fillStyle="#285a58"; c.fillRect(0,wl+H*0.07,W,H*0.5);
+      c.fillStyle="rgba(255,255,255,.35)"; for(let i=0;i<14;i++){ const bx=W*(0.08+rnd(i+33)*0.84), by=H*0.5-((t*H*0.05*(0.6+rnd(i+7))+rnd(i+90)*H*0.3)%(H*0.5-wl+1)); c.beginPath(); c.arc(bx,by,W*(0.004+rnd(i+3)*0.006),0,7); c.fill(); } c.restore();
+    c.strokeStyle="#14171b"; c.lineWidth=W*0.05; c.beginPath(); c.moveTo(W*0.1,H*0.1); c.lineTo(W*0.02,H*0.5); c.moveTo(W*0.9,H*0.1); c.lineTo(W*0.98,H*0.5); c.stroke(); c.fillStyle="#14171b"; c.fillRect(0,0,W,H*0.1); c.fillStyle="#2a2f36"; c.fillRect(W*0.44,H*0.105,W*0.12,H*0.03);
+    c.fillStyle="#262b31"; c.beginPath(); c.moveTo(0,H*0.5); c.quadraticCurveTo(W*0.5,H*0.46,W,H*0.5); c.lineTo(W,H*0.68); c.lineTo(0,H*0.68); c.closePath(); c.fill(); c.fillStyle="#1a1e23"; for(let k=0;k<3;k++) c.fillRect(W*(0.62+k*0.09),H*0.54,W*0.07,H*0.03); c.fillStyle="#e2483d"; c.fillRect(W*0.5,H*0.545,W*0.05,H*0.02);
+    c.strokeStyle="#0f1215"; c.lineWidth=W*0.04; c.beginPath(); c.arc(W*0.27,H*0.63,W*0.17,0,7); c.stroke(); c.lineWidth=W*0.025; c.beginPath(); c.moveTo(W*0.1,H*0.63); c.lineTo(W*0.44,H*0.63); c.moveTo(W*0.27,H*0.63); c.lineTo(W*0.27,H*0.72); c.stroke(); c.fillStyle="#0f1215"; c.beginPath(); c.arc(W*0.27,H*0.63,W*0.05,0,7); c.fill();
+    c.fillStyle="#191c20"; c.fillRect(0,H*0.68,W,H*0.32); },
   blueprint(c,W,H){ c.fillStyle="#1f4a73"; c.fillRect(0,0,W,H); c.strokeStyle="rgba(255,255,255,.06)"; c.lineWidth=1; const g=W/18; c.beginPath(); for(let x=0;x<W;x+=g){ c.moveTo(x,0); c.lineTo(x,H); } for(let y=0;y<H;y+=g){ c.moveTo(0,y); c.lineTo(W,y); } c.stroke(); },
   beach(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.5);
     c.fillStyle=P.hill; c.beginPath(); c.moveTo(W*0.45,H*0.5); c.bezierCurveTo(W*0.6,H*0.36,W*0.78,H*0.33,W*0.92,H*0.4); c.bezierCurveTo(W*1.0,H*0.43,W*1.05,H*0.46,W*1.1,H*0.5); c.closePath(); c.fill();
@@ -1417,6 +1435,26 @@ const CONTINENTS=[
 ];
 function globeProj(lon,lat,rot,r){ const L=(lon-rot)*Math.PI/180, A=lat*Math.PI/180; return [r*Math.cos(A)*Math.sin(L), -r*Math.sin(A), Math.cos(A)*Math.cos(L)]; }
 const PROPS_HQ={
+  /* Car-in-water inserts (flat style). */
+  sinkcar(c,t){ c.save(); c.rotate(0.3+Math.sin(t*1.2)*0.02); c.translate(0,Math.sin(t*1.5)*2); c.fillStyle="#c8452f"; c.beginPath(); c.roundRect(-58,-12,116,30,8); c.fill(); c.beginPath(); c.moveTo(-32,-12); c.lineTo(-18,-36); c.lineTo(24,-36); c.lineTo(40,-12); c.closePath(); c.fill();
+      c.fillStyle="#9fc1d1"; c.beginPath(); c.moveTo(-24,-13); c.lineTo(-14,-31); c.lineTo(1,-31); c.lineTo(1,-13); c.closePath(); c.fill(); c.beginPath(); c.moveTo(6,-13); c.lineTo(6,-31); c.lineTo(21,-31); c.lineTo(32,-13); c.closePath(); c.fill();
+      c.fillStyle="#22232a"; c.beginPath(); c.arc(-32,18,11,0,7); c.arc(34,18,11,0,7); c.fill(); c.fillStyle="#f2e3a0"; c.fillRect(52,-6,6,7); c.restore();
+    c.fillStyle="rgba(28,62,68,.9)"; c.beginPath(); c.moveTo(-700,4); for(let x=-700;x<=700;x+=10) c.lineTo(x,4+Math.sin(x*0.09+t*3)*2.5); c.lineTo(700,700); c.lineTo(-700,700); c.closePath(); c.fill();
+    c.strokeStyle="rgba(255,255,255,.7)"; c.lineWidth=2; c.beginPath(); for(let x=-60;x<=70;x+=6) c.lineTo(x,4+Math.sin(x*0.09+t*3)*2.5); c.stroke(); c.fillStyle="rgba(255,255,255,.6)"; for(let i=0;i<6;i++){ const by=60-((t*26+i*17)%56); c.beginPath(); c.arc(30+i*7-((i*13)%20),by,2+i%3,0,7); c.fill(); } },
+  cardoor(c,t){ c.fillStyle="#b53d2a"; c.beginPath(); c.moveTo(-50,-58); c.lineTo(34,-58); c.quadraticCurveTo(52,-56,54,-20); c.lineTo(54,58); c.lineTo(-50,58); c.closePath(); c.fill(); c.fillStyle="#9fc1d1"; c.beginPath(); c.moveTo(-42,-50); c.lineTo(30,-50); c.quadraticCurveTo(44,-48,46,-12); c.lineTo(-42,-12); c.closePath(); c.fill();
+    c.fillStyle="#2a2d33"; c.beginPath(); c.roundRect(-40,2,22,7,3.5); c.fill(); c.fillStyle="rgba(0,0,0,.12)"; c.fillRect(-50,40,104,18);
+    const wl=14+Math.sin(t*1.5)*2; c.fillStyle="rgba(28,62,68,.85)"; c.beginPath(); c.moveTo(-700,wl); for(let x=-700;x<=700;x+=8) c.lineTo(x,wl+Math.sin(x*0.1+t*3)*2); c.lineTo(700,700); c.lineTo(-700,700); c.closePath(); c.fill();
+    c.fillStyle="#bfe3ff"; const a=Math.abs(Math.sin(t*3))*6; [[-64,30],[-64,48]].forEach(([x,y])=>{ c.beginPath(); c.moveTo(x-12+a,y-4); c.lineTo(x+4+a,y-4); c.lineTo(x+4+a,y-9); c.lineTo(x+14+a,y); c.lineTo(x+4+a,y+9); c.lineTo(x+4+a,y+4); c.lineTo(x-12+a,y+4); c.closePath(); c.fill(); }); },
+  seatbelt(c,t){ const pr=Math.abs(Math.sin(t*4))*2.5; c.save(); c.rotate(-0.5); c.fillStyle="#4a4f57"; c.fillRect(-9,-80,18,62); c.restore(); c.fillStyle="#c9cfd4"; c.beginPath(); c.roundRect(-12,-26,24,22,3); c.fill(); c.fillStyle="#6f757c"; c.fillRect(-5,-20,10,9);
+    c.fillStyle="#1f2226"; c.beginPath(); c.roundRect(-24,-8,48,50,8); c.fill(); c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(-16,2+pr,32,18,4); c.fill(); c.fillStyle="#fff"; c.font="800 7px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("PRESS",0,11+pr);
+    c.fillStyle="#4a4f57"; c.fillRect(-7,42,14,26); c.fillStyle="#e2ae86"; c.beginPath(); c.roundRect(20,-2+pr,44,19,9.5); c.fill(); c.fillStyle="#f4d8c2"; c.beginPath(); c.roundRect(22,1+pr,12,9,4.5); c.fill(); },
+  winswitch(c,t){ const pr=Math.abs(Math.sin(t*4))*2; c.fillStyle="#2a2e34"; c.beginPath(); c.roundRect(-64,-8,128,44,10); c.fill(); c.fillStyle="#1c1f23"; c.beginPath(); c.roundRect(-52,2,104,24,6); c.fill();
+    [[-34,true],[-6,false],[22,false]].forEach(([x,on])=>{ c.fillStyle=on?"#5d646c":"#3d4249"; c.beginPath(); c.roundRect(x,6+(on?pr:0),22,16,3); c.fill(); c.strokeStyle=on?"#ffb84a":"#8a9097"; c.lineWidth=1.4; c.strokeRect(x+6,10+(on?pr:0),10,8); c.beginPath(); c.moveTo(x+6,14+(on?pr:0)); c.lineTo(x+16,14+(on?pr:0)); c.stroke(); });
+    c.fillStyle="#e2ae86"; c.save(); c.translate(-23,6+pr); c.rotate(0.25); c.beginPath(); c.roundRect(-9,-58,19,62,9.5); c.fill(); c.fillStyle="#f4d8c2"; c.beginPath(); c.roundRect(-6,-8,13,9,4.5); c.fill(); c.restore();
+    c.strokeStyle="#ffb84a"; c.lineWidth=2.2; c.lineCap="round"; c.beginPath(); c.moveTo(40,-34); c.lineTo(40,-16); c.moveTo(34,-22); c.lineTo(40,-16); c.lineTo(46,-22); c.stroke(); },
+  hammer(c,t){ const hit=Math.max(0,Math.sin(t*5)); c.fillStyle="rgba(159,193,209,.75)"; c.beginPath(); c.roundRect(-64,-52,104,96,6); c.fill(); c.strokeStyle="rgba(255,255,255,.5)"; c.lineWidth=2; c.beginPath(); c.moveTo(-50,-40); c.lineTo(-20,-40); c.stroke();
+    c.strokeStyle="#f4f8fa"; c.lineWidth=1.6; [[-22,0],[-8,14],[4,36],[-30,24],[-40,6],[-2,-6]].forEach(([x,y])=>{ c.beginPath(); c.moveTo(24,30); c.lineTo(24+(x-24)*0.5+4,30+(y-30)*0.5-3); c.lineTo(x,y); c.stroke(); }); c.fillStyle="#f4f8fa"; c.beginPath(); c.arc(24,30,3,0,7); c.fill();
+    c.save(); c.translate(30+hit*5,36+hit*4); c.rotate(-0.75); c.fillStyle="#e8862e"; c.beginPath(); c.roundRect(4,-7,62,14,7); c.fill(); c.fillStyle="#c96f1f"; c.beginPath(); c.roundRect(-4,-17,18,34,4); c.fill(); c.fillStyle="#c9cfd4"; c.beginPath(); c.moveTo(-4,-8); c.lineTo(-15,0); c.lineTo(-4,8); c.closePath(); c.fill(); c.restore(); },
   /* Close-up inserts in the flat promptkub style (about 120 units wide). */
   needle(c,t){ const j=Math.sin(t*3)*2.5, sk="#e2ae86", sk2="#d39c74", rr2=(x,y,w,h,r,col)=>{ c.fillStyle=col; c.beginPath(); c.roundRect(x,y,w,h,r); c.fill(); };
     rr2(-78,2,92,30,15,sk); rr2(-10,5,20,11,5.5,"#f4d8c2"); c.fillStyle="rgba(0,0,0,.07)"; c.fillRect(-78,24,84,8);
@@ -1601,7 +1639,7 @@ function pictogram(c,kind,x,y,s,col){ c.fillStyle=col; c.beginPath();
   if(kind==="car"){ c.roundRect(x-s*0.45,y-s*0.08,s*0.9,s*0.3,s*0.08); c.fill(); c.beginPath(); c.roundRect(x-s*0.26,y-s*0.3,s*0.5,s*0.26,s*0.1); c.fill(); c.fillStyle="#3a332b"; c.beginPath(); c.arc(x-s*0.26,y+s*0.24,s*0.11,0,7); c.arc(x+s*0.26,y+s*0.24,s*0.11,0,7); c.fill(); return; }
   if(kind==="tree"){ c.arc(x,y-s*0.15,s*0.3,0,7); c.fill(); c.fillRect(x-s*0.06,y,s*0.12,s*0.4); return; }
   c.arc(x,y-s*0.28,s*0.15,0,7); c.fill(); c.beginPath(); c.roundRect(x-s*0.2,y-s*0.08,s*0.4,s*0.48,[s*0.18,s*0.18,s*0.04,s*0.04]); c.fill(); }
-function countUp(v,q){ v=String(v||""); if(q>=1||/\d\s*[-–]\s*\d/.test(v)) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
+function countUp(v,q){ v=String(v||""); if(/^(1669|1784|191|199|1129|1441|1193|1155|1137)$/.test(v)) return v; if(q>=1||/\d\s*[-–]\s*\d/.test(v)) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
   const m=v.match(/\d[\d,]*(\.\d+)?/); if(!m) return v; const n=parseFloat(m[0].replace(/,/g,"")), dec=(m[1]||"").length?m[1].length-1:0, cur=n*q;
   let s=cur.toFixed(dec); if(m[0].includes(",")) s=Number(s).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}); return v.slice(0,m.index)+s+v.slice(m.index+m[0].length); }
 function cardPanel(c,x,y,w,h,u,accent){ c.save(); c.shadowColor="rgba(0,0,0,.35)"; c.shadowBlur=u*5; c.shadowOffsetY=u*1.6; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.fill(); c.restore();
@@ -3571,6 +3609,7 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ภาพแทรกใกล้ (insert) แบบ promptkub อย่างน้อย 3 ช็อตต่อคลิป: พร็อพเดี่ยว scale 2.2-2.8 กลางจอ ไม่มีตัวละคร เช่น needle (มือถือเข็มจ่อนิ้ว), spoon, brain, medicine, ambulance, ct หรือภาพใกล้หน้าตัวละคร scale 3.5-4 วาง y 1.7-1.85
 - ท่าใหม่: motion sit (นั่งเก้าอี้ที่โต๊ะ), lie (นอนตะแคง); emotion droop (ปากเบี้ยว ตาตก) ใช้เมื่อบทพูดถึง
 - คลิปหนึ่งมีได้ถึง 20 ช็อต ช็อตละ 2.5-3.5 วินาที สลับ กว้าง → ใกล้ → แทรกของ → การ์ด ห้ามมีตัวละครยืนเฉยติดกันเกิน 2 ช็อต
+- ห้ามใช้ของไม่ตรงเรื่อง (เช่น คลื่นสึนามิแทนน้ำคลอง ประตูบ้านแทนประตูรถ) ถ้าคลังไม่มีภาพที่ตรง ให้ใช้การ์ดเล่าแทน เรื่องรถ/น้ำ: ฉาก canal (คลองข้างถนน), carin (ในรถกำลังจม), พร็อพ sinkcar cardoor seatbelt winswitch hammer
 - ท่าทางตัวละครต้องตรงบท (ตกใจ = เอามือแตะหน้า, กังวล = กอดอก, คุย = talk, ชี้ = point) ไม่ยกแขนซ้ำทุกฉาก
 - ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
 - ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
@@ -3596,7 +3635,7 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
   if(p.subStyle!=="doc"){ p.subStyle="doc"; fixes.push("ใช้ซับแบบสารคดี (สไตล์ช่อง)"); } if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน (สไตล์ช่อง)"); } if(p.charStyle!=="pk"){ p.charStyle="pk"; fixes.push("ใช้ตัวละครแบบ promptkub"); }
   { let st=0, lastReal=null; S.forEach((x,i)=>{ if(x.bg==="studio"){ if(++st>2&&lastReal){ x.bg=lastReal.bg; x.time=lastReal.time; fixes.push(`ฉาก ${i+1} ใช้สถานที่จริงของเรื่องแทนห้องมืด`); } } else lastReal=x; }); }
   S.forEach((x,i)=>{ if(i<S.length-1) x.elements.forEach(e=>{ if(e.type==="card"&&e.kind==="lesson"){ e.kind="note"; e.value=""; e.tag=e.tag||""; fixes.push(`ฉาก ${i+1} การ์ดข้อคิดเก็บไว้ฉากจบ`); } }); });
-  const MAP2D={classroom:"school",city:"street",ocean:"beach",room:"nightroom"}; S.forEach((x,i)=>{ if(MAP2D[x.bg]){ x.bg=MAP2D[x.bg]; fixes.push(`ฉาก ${i+1} ใช้ฉากวาด 2 มิติแทนฉาก 3 มิติ`); } });
+  const MAP2D={classroom:"school",city:"street",ocean:"beach",room:"nightroom",abstract:"studio"}; S.forEach((x,i)=>{ if(MAP2D[x.bg]){ x.bg=MAP2D[x.bg]; fixes.push(`ฉาก ${i+1} ใช้ฉากวาด 2 มิติแทนฉาก 3 มิติ`); } });
   // viral layout: one focal point. No big captions, no emoji; a scene with a card shows only that card (the best match to the narration) and no extra text.
   S.forEach((x,i)=>{ if(x.caption){ x.caption=""; fixes.push("เอาหัวข้อใหญ่ออก ให้ซับกับการ์ดเล่าเรื่อง"); }
     const n0=x.elements.length; x.elements=x.elements.filter(e=>e.type!=="emoji"); const cards=x.elements.filter(e=>e.type==="card");
