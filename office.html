@@ -1128,7 +1128,7 @@ const CAT = {
   times:["day","sunset","night"],
   characters:["boy","girl","kid","man","woman","crew","sprinter","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry","droop"],
-  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer","powerbank","safebag","extinguisher","handbank","bag","smokebank","stopwatch","blocks","bed"],
+  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer","powerbank","safebag","extinguisher","handbank","bag","smokebank","stopwatch","blocks","bed","stopwatchfin"],
   motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie","handup","reach","hold","duck","crouch","sithandup","sitreach","sithold","sitduck"],
   enters:["none","pop","fade","left","right","top","bottom"],
   cameras:["static","zoom-in","zoom-out","pan-left","pan-right","orbit","drone","shake"],
@@ -1459,6 +1459,7 @@ const PROPS_HQ={
   stopwatch(c,t){ const v=Math.min(9.58,t*3.2), done=v>=9.58, fl=done&&Math.sin(t*14)>0; c.fillStyle="#6a7078"; c.beginPath(); c.roundRect(-9,-84,18,16,3); c.fill(); c.fillStyle="#22262d"; c.beginPath(); c.roundRect(-58,-70,116,142,22); c.fill(); c.fillStyle="#3a4048"; c.beginPath(); c.roundRect(-52,-64,104,130,18); c.fill();
     c.fillStyle="#0e1014"; c.beginPath(); c.roundRect(-44,-38,88,50,8); c.fill(); c.fillStyle=fl?"#fff2b0":"#ff4a3a"; c.font="800 34px monospace"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(v.toFixed(2),0,-12);
     c.fillStyle="#9aa3b2"; c.font="700 11px sans-serif"; c.fillText("SEC",0,-50); c.fillStyle=done?"#46b56a":"#c8352b"; c.beginPath(); c.arc(0,38,12,0,7); c.fill(); c.fillStyle="#fff"; c.font="800 10px sans-serif"; c.fillText(done?"STOP":"RUN",0,38); },
+  stopwatchfin(c,t){ PROPS_HQ.stopwatch(c,t+4); },
   blocks(c,t){ c.fillStyle="#3a3f47"; c.fillRect(-52,12,104,8); [[-34,0],[24,0]].forEach(([x])=>{ c.fillStyle="#c8352b"; c.beginPath(); c.moveTo(x-6,12); c.lineTo(x+16,-26); c.lineTo(x+26,-20); c.lineTo(x+12,12); c.closePath(); c.fill(); c.fillStyle="#1f2226"; c.fillRect(x-8,10,30,5); }); c.fillStyle="#d9d4c7"; c.fillRect(-52,6,104,3); },
   bed(c,t){ c.fillStyle="#6b4f3a"; c.fillRect(-82,10,10,26); c.fillRect(72,10,10,26); c.fillStyle="#e9e4da"; c.beginPath(); c.roundRect(-80,-12,160,28,8); c.fill(); c.fillStyle="#f4f1e8"; c.beginPath(); c.roundRect(-74,-26,44,20,10); c.fill();
     c.fillStyle="#3b6f9e"; c.beginPath(); c.roundRect(-30,-24,106,40,8); c.fill(); c.fillStyle="rgba(255,255,255,.18)"; c.fillRect(-30,-24,106,6); c.fillRect(-30,-10,106,2); },
@@ -3676,6 +3677,7 @@ const VIRAL_RULES=`เทคนิคที่เรียนจากคลิ�
 - ห้ามใช้ของไม่ตรงเรื่อง (เช่น คลื่นสึนามิแทนน้ำคลอง ประตูบ้านแทนประตูรถ) ถ้าคลังไม่มีภาพที่ตรง ให้ใช้การ์ดเล่าแทน เรื่องรถ/น้ำ: ฉาก canal (คลองข้างถนน), carin (ในรถกำลังจม), พร็อพ sinkcar cardoor seatbelt winswitch hammer
 - ท่าทางตัวละครต้องตรงบท (ตกใจ = เอามือแตะหน้า, กังวล = กอดอก, คุย = talk, ชี้ = point) ไม่ยกแขนซ้ำทุกฉาก
 - ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
+- ใน 5 วินาทีแรกต้องบอกให้ชัดว่า ใคร ที่ไหน กำลังเกิดอะไร (ห้ามเปิดด้วยตัวเลขหรือภาพลอยๆ ที่ยังไม่มีความหมาย) ชื่อตัวเอก/หัวข้อต้องถูกพูดในบทจริง ตัวละครทุกตัวต้องถูกแนะนำก่อนใช้ ภาพเปรียบเทียบหรือย้อนเหตุการณ์ต้องบอกกรอบด้วยคำพูด (เช่น "ย้อนดูอีกรอบ", "สมมติว่า...") และทุกช็อตต้องต่อจากช็อตก่อนด้วยเวลาหรือเหตุผล (ใช้คำเชื่อม เช่น เพราะ, แล้ว, พอ) ตอนจบต้องโยงกลับไปที่ตอนเปิด
 - บทต้องเล่าเป็นเหตุการณ์ตามลำดับเวลา ภาษาพูดสั้นๆ ไม่ใช่รายการข้อเท็จจริง ห้ามเฉลยก่อนเกิดเรื่อง (ห้ามพูดว่า "ผิด!" ก่อนที่ตัวละครจะทำผิดให้เห็น) ห้ามสั่งสิ่งที่ทำไม่ได้ในสถานการณ์นั้น (นั่งอยู่บนเครื่องบินจะ "ถอยห่าง" ไม่ได้)
 - ทุกช็อตต้องมีสิ่งที่ขยับจริงอย่างน้อย 1 อย่าง: ตัวละครทำท่า (motion handup/reach/hold/duck/walk/move, ใส่ sit นำหน้าได้ เช่น sithandup) หรือของเคลื่อนที่ (motion move + toX,toY) หรือควัน/ฟองในพร็อพ หรือการ์ดที่ทยอยเข้าตามจังหวะพูด (ใส่ at) ห้ามมีแต่ตัวละครยืนนิ่งกับการ์ดผุดขึ้นเฉยๆ
 - ของที่ถูกกระทำต้องเห็นเหตุและผล เช่น แบตถูกยัดลงกระเป๋า (ใส่พร็อพ bag ทับด้านหน้า) ลูกเรือเดินเข้ามา (ตัวละคร move จากนอกจอ) ถังดับเพลิงฉีดใส่แบตที่มีควัน (พร็อพ smokebank + extinguisher)
