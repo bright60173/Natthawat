@@ -1184,8 +1184,8 @@ function normalizeProject(p){
       bg:pick(s.bg,CAT.backgrounds,"sky"), time:pick(s.time,CAT.times,"day"),
       camera:pick(s.camera,CAT.cameras,"static"), effect:pick(s.effect,CAT.effects,"none"),
       transition:pick(s.transition,CAT.transitions,"fade"), sfx:pick(s.sfx,CAT.sfx,"none"),
-      caption:str(s.caption,40), narration, emph, speak:str(s.speak,220)||undefined, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8), pad, beat:!!s.beat,
-      duration:al?clamp(minDur,1.2,20):narration.trim()?clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15):clamp(num(s.duration,0.6,15,1),0.6,15),
+      caption:str(s.caption,40), hold:num(s.hold,0,12,0), narration, emph, speak:str(s.speak,220)||undefined, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8), pad, beat:!!s.beat,
+      duration:al?clamp(Math.max(minDur,num(s.hold,0,12,0)),1.2,20):narration.trim()?clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15):clamp(num(s.duration,0.6,15,1),0.6,15),
       voice:{ emotion:str(s.voice?.emotion,20), rate:num(s.voice?.rate,0.6,1.6,1), pitch:num(s.voice?.pitch,0.5,1.8,1) },
       elements:els,
     };
@@ -2219,7 +2219,7 @@ class Renderer{
     // real voiceover timings (ElevenLabs character alignment, scene-local seconds, voice starts at VOICE_LEAD)
     const A=s.align; if(A&&A.s?.length===text.length&&A.e?.length===text.length) words.forEach(w=>{ let a=w.at; while(a<w.end-1&&/\s/.test(text[a])) a++; let b=Math.max(a,w.end-1); while(b>a&&/\s/.test(text[b])) b--; w.from=VOICE_LEAD+A.s[a]; w.to=Math.max(w.from+0.05,VOICE_LEAD+A.e[b]); });
     const chunks=[]; let cur=[], len=0;
-    words.forEach((w,k)=>{ const L=lens[k], prev=cur[cur.length-1]; if(cur.length&&(len+L>15||(w.emph!==prev.emph&&len>5))){ chunks.push(cur); cur=[]; len=0; } cur.push(w); len+=L; if((w.sp||/[,.!?…]$/.test(w.text))&&len>7){ chunks.push(cur); cur=[]; len=0; } });
+    words.forEach((w,k)=>{ const L=lens[k], prev=cur[cur.length-1]; if(cur.length&&(len+L>18||(w.emph!==prev.emph&&len>9))){ chunks.push(cur); cur=[]; len=0; } cur.push(w); len+=L; if((w.sp||/[,.!?…]$/.test(w.text))&&len>10){ chunks.push(cur); cur=[]; len=0; } });
     if(cur.length) chunks.push(cur);
     // Never leave a tiny fragment (e.g. "ออก" from "ส่งออก") on its own: merge it into a neighbour.
     const base=c=>c.reduce((n,w)=>n+w.text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g,"").length,0);
@@ -2734,7 +2734,7 @@ async function genVoice({fetchOk=true,quiet=false}={}){ if(!project) return fals
   btn.disabled=true; const old=btn.textContent;
   try{ for(let i=0;i<project.scenes.length;i++){ const s=project.scenes[i]; if(!s.narration){ lines.push(null); continue; } btn.textContent=`กำลังสร้างเสียง ${i+1}/${project.scenes.length}...`;
       const say=s.speak||s.narration; const had=await elCache(voice+"|"+EL.model+"|"+say); const v=await elLine(say,voice,{fetchOk}); if(!v) return false; if(!had){ fetched++; chars+=say.length; }
-      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(!s.speak&&v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+(VOICE_LEAD+Math.max(...v.e)+(s.pad??0.35)).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
+      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(!s.speak&&v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+Math.max(VOICE_LEAD+Math.max(...v.e)+(s.pad??0.35),s.hold||0).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
       lines.push(buf); }
     relayout(); const sr=ac.sampleRate, out=ac.createBuffer(2,Math.ceil((R.total+0.5)*sr),sr);
     lines.forEach((b,i)=>{ if(!b) return; const off=Math.round((R.starts[i]+VOICE_LEAD)*sr); for(let ch=0;ch<2;ch++){ const src=b.getChannelData(Math.min(ch,b.numberOfChannels-1)), dst=out.getChannelData(ch); dst.set(src.subarray(0,Math.max(0,Math.min(src.length,dst.length-off))),off); } });

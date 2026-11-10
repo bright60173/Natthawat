@@ -58,7 +58,7 @@ def main():
         ch, st, en = tts(say, voice, model, mp3); chars += len(say)
         if say == text and "".join(ch) == text and len(st) == len(text):
             s["align"] = {"s": [round(x, 3) for x in st], "e": [round(x, 3) for x in en]}
-            s["duration"] = round(VOICE_LEAD + max(en) + float(s.get("pad", END_PAD)), 3)
+            s["duration"] = round(max(VOICE_LEAD + max(en) + float(s.get("pad", END_PAD)), float(s.get("hold", 0))), 3)
         else:  # timings do not line up with the text: keep the estimate, still fit the audio
             s.pop("align", None); s["duration"] = round(max(float(s.get("duration", 3)), VOICE_LEAD + dur(mp3) + float(s.get("pad", END_PAD))), 3)
         parts.append((mp3, t + VOICE_LEAD)); t += s["duration"]
