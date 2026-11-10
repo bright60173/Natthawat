@@ -1171,21 +1171,21 @@ function normalizeProject(p){
       if(type==="character") o.pin=str(e.pin,16);
       else if(type==="emoji"){ o.char=str(e.char||e.text,8)||"✨"; }
       else if(type==="card"){ const side=v=>({label:str(v?.label,22),value:str(v?.value,12),unit:str(v?.unit,14),note:str(v?.note,20),good:v?.good===false?false:v?.good===true?true:null});
-        o.kind=pick(e.kind,["stat","timer","compare","icons","bars","lesson","note","phone","plan"],"stat"); o.tag=str(e.tag,28); o.src=str(e.src,48); o.strike=str(e.strike,28); o.total=Math.round(num(e.total,2,20,10)); o.icon=pick(e.icon,["house","person","car","building","tree"],"person");
-        o.rows=(Array.isArray(e.rows)?e.rows:[]).slice(0,3).map(r=>({label:str(r?.label,16),value:str(r?.value,12),pct:num(r?.pct,0,100,50),good:r?.good===false?false:r?.good===true?true:null})); o.label=str(e.label,28); o.labelEn=o.kind==="lesson"?str(e.labelEn,60):str(e.labelEn,30).toUpperCase(); if(o.kind==="lesson") o.label=str(e.label,30); o.value=str(e.value,16)||(["lesson","bars","note","phone","plan"].includes(o.kind)?"":"0"); o.unit=str(e.unit,14);
+        o.kind=pick(e.kind,["stat","timer","compare","icons","bars","lesson","note","phone","plan"],"stat"); o.tag=str(e.tag,28); o.src=str(e.src,48); o.tilt=num(e.tilt,-0.08,0.08,0); o.strike=str(e.strike,28); o.total=Math.round(num(e.total,2,20,10)); o.icon=pick(e.icon,["house","person","car","building","tree"],"person");
+        o.rows=(Array.isArray(e.rows)?e.rows:[]).slice(0,4).map(r=>({label:str(r?.label,16),value:str(r?.value,12),pct:num(r?.pct,0,100,50),good:r?.good===false?false:r?.good===true?true:null})); o.label=str(e.label,28); o.labelEn=o.kind==="lesson"?str(e.labelEn,60):str(e.labelEn,30).toUpperCase(); if(o.kind==="lesson") o.label=str(e.label,30); o.value=str(e.value,16)||(["lesson","bars","note","phone","plan"].includes(o.kind)?"":"0"); o.unit=str(e.unit,14);
         o.pct=e.pct==null||e.pct===""?null:num(e.pct,0,100,0); o.note=str(e.note,24); o.good=e.good===false?false:e.good===true?true:null; if(o.kind==="compare"){ o.left=side(e.left); o.right=side(e.right); } }
       else { o.text=str(e.text,30)||"!"; o.color=/^#[0-9a-f]{3,8}$/i.test(e.color||"")?e.color:"#ffffff"; }
       return o;
     });
     const {text:narration,emph}=parseEmph(s.narration,s.emph);
     const al=s.align&&Array.isArray(s.align.e)&&s.align.e.length===narration.length?s.align.e:null;
-    const minDur=al?VOICE_LEAD+Math.max(0,...al.map(Number))+0.35:speakSeconds(narration)+0.6;
+    const pad=num(s.pad,0.05,1.5,0.35), minDur=al?VOICE_LEAD+Math.max(0,...al.map(Number))+pad:speakSeconds(narration)+0.6;
     return {
       bg:pick(s.bg,CAT.backgrounds,"sky"), time:pick(s.time,CAT.times,"day"),
       camera:pick(s.camera,CAT.cameras,"static"), effect:pick(s.effect,CAT.effects,"none"),
       transition:pick(s.transition,CAT.transitions,"fade"), sfx:pick(s.sfx,CAT.sfx,"none"),
-      caption:str(s.caption,40), narration, emph, speak:str(s.speak,220)||undefined, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8),
-      duration:al?clamp(minDur,1.2,20):clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15),
+      caption:str(s.caption,40), narration, emph, speak:str(s.speak,220)||undefined, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8), pad, beat:!!s.beat,
+      duration:al?clamp(minDur,1.2,20):narration.trim()?clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15):clamp(num(s.duration,0.6,15,1),0.6,15),
       voice:{ emotion:str(s.voice?.emotion,20), rate:num(s.voice?.rate,0.6,1.6,1), pitch:num(s.voice?.pitch,0.5,1.8,1) },
       elements:els,
     };
@@ -1662,7 +1662,7 @@ function countUp(v,q){ v=String(v||""); if(/^(1669|1784|191|199|1129|1441|1193|1
   let s=cur.toFixed(dec); if(m[0].includes(",")) s=Number(s).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}); return v.slice(0,m.index)+s+v.slice(m.index+m[0].length); }
 function cardPanel(c,x,y,w,h,u,accent){ c.save(); c.shadowColor="rgba(0,0,0,.35)"; c.shadowBlur=u*5; c.shadowOffsetY=u*1.6; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.fill(); c.restore();
   c.strokeStyle="#d9cdb8"; c.lineWidth=Math.max(1,u*0.35); c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.stroke(); c.fillStyle=accent; c.beginPath(); c.roundRect(x,y,u*1.6,h,[u*2.6,0,0,u*2.6]); c.fill(); }
-function drawInfoCard(c,el,base,since,fam){ const {w,h}=cardSize(el,base), u=w/100, q=easeOut(clamp((since-0.15)/0.9,0,1)), ink="#1f1c18", soft="#8a7f70";
+function drawInfoCard(c,el,base,since,fam){ if(el.tilt) c.rotate(el.tilt); const {w,h}=cardSize(el,base), u=w/100, q=easeOut(clamp((since-0.15)/0.9,0,1)), ink="#1f1c18", soft="#8a7f70";
   const accent=el.good===false?"#c8452f":el.good===true?"#2e7a4d":"#d9a23a";
   const pill=(x,y,text,good,s)=>{ c.font=`600 ${s}px ${fam}`; const tw=c.measureText(text).width+s*1.6; c.fillStyle=good===false?"#c8452f":good===true?"#2e7a4d":"#5f5648"; c.beginPath(); c.roundRect(x,y-s*0.75,tw,s*1.5,s*0.75); c.fill(); c.fillStyle="#fff"; c.textAlign="left"; c.textBaseline="middle"; c.fillText(text,x+s*0.8,y+s*0.05); };
   if(el.kind==="compare"){ const cw=w*0.45, gap=w-cw*2; [["left",-w/2],["right",-w/2+cw+gap]].forEach(([k,x0],i)=>{ const d=el[k]; const acc=d.good===false?"#c8452f":d.good===true?"#2e7a4d":"#d9a23a"; cardPanel(c,x0,-h/2,cw,h,u,acc);
@@ -2688,7 +2688,7 @@ async function genVoice({fetchOk=true,quiet=false}={}){ if(!project) return fals
   btn.disabled=true; const old=btn.textContent;
   try{ for(let i=0;i<project.scenes.length;i++){ const s=project.scenes[i]; if(!s.narration){ lines.push(null); continue; } btn.textContent=`กำลังสร้างเสียง ${i+1}/${project.scenes.length}...`;
       const say=s.speak||s.narration; const had=await elCache(voice+"|"+EL.model+"|"+say); const v=await elLine(say,voice,{fetchOk}); if(!v) return false; if(!had){ fetched++; chars+=say.length; }
-      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(!s.speak&&v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+(VOICE_LEAD+Math.max(...v.e)+0.35).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
+      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(!s.speak&&v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+(VOICE_LEAD+Math.max(...v.e)+(s.pad??0.35)).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
       lines.push(buf); }
     relayout(); const sr=ac.sampleRate, out=ac.createBuffer(2,Math.ceil((R.total+0.5)*sr),sr);
     lines.forEach((b,i)=>{ if(!b) return; const off=Math.round((R.starts[i]+VOICE_LEAD)*sr); for(let ch=0;ch<2;ch++){ const src=b.getChannelData(Math.min(ch,b.numberOfChannels-1)), dst=out.getChannelData(ch); dst.set(src.subarray(0,Math.max(0,Math.min(src.length,dst.length-off))),off); } });
@@ -3567,7 +3567,7 @@ function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
   if(total<20) out.push(`คลิปสั้นไป (${total.toFixed(0)} วินาที)`); if(total>65) out.push(`คลิปยาวไป (${total.toFixed(0)} วินาที)`);
   if(p.scenes.length<3) out.push("มีน้อยกว่า 3 ฉาก");
   if((p.scenes[0]?.duration||0)>4.2) out.push(`ฉากแรก (hook) ยาว ${p.scenes[0].duration.toFixed(1)} วินาที ควรไม่เกิน 3.5`);
-  p.scenes.forEach((x,i)=>{ if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(p.emphOn!==false&&!(x.emph||[]).length) out.push(`ฉาก ${i+1} ไม่มีคำเน้น (emph)`);
+  p.scenes.forEach((x,i)=>{ if(x.beat) return; if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(p.emphOn!==false&&!(x.emph||[]).length) out.push(`ฉาก ${i+1} ไม่มีคำเน้น (emph)`);
     if(x.caption.length>18) out.push(`ฉาก ${i+1} ข้อความบนจอยาว ${x.caption.length} ตัวอักษร (ควรไม่เกิน 18)`);
     if(x.elements.length<2) out.push(`ฉาก ${i+1} มีองค์ประกอบภาพน้อย (${x.elements.length})`);
     { const said=numsIn(x.narration), cn=cardNums(x); if(said.length&&cn.length&&!cn.some(n=>said.includes(n))) out.push(`ฉาก ${i+1} ตัวเลขบนการ์ด (${cn.join(", ")}) ไม่ตรงกับบทพูด (${said.join(", ")}) ต้องใช้ตัวเลขเดียวกัน`); }
@@ -3616,7 +3616,7 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ซับไทยสั้น 1 บรรทัดต่อช็อต (ไม่เกินราว 18 ตัวอักษร) ตัดภาพทุกประโยค
 - ฉากเดียวกันใช้ซ้ำได้แต่เปลี่ยนมุม: มุมกว้างตั้งเรื่อง แล้วตัดเข้าใกล้ของสำคัญ (ถังแก๊ส ป้าย ตัวเลข) หนึ่งจุดเด่นต่อช็อต
 - ปมคือ "สิ่งที่คนทั่วไปเชื่อ" แล้วหักด้วยข้อเท็จจริง เช่น วิ่งหนีน้ำ ผิด วิ่งหาบันได ถูก
-- ฉากสุดท้ายใช้การ์ด kind lesson: strike = ความเชื่อเดิมที่ขีดฆ่า, label = หลักคิดใหม่สั้นจำง่าย, labelEn = คำแปล
+- ฉากสุดท้าย: การ์ด kind lesson (strike = ความเชื่อเดิมที่ขีดฆ่า, label = หลักคิดใหม่, labelEn = คำแปล) ใช้ได้ แต่ไม่ต้องทุกคลิป ดูกฎความหลากหลายด้านล่าง
 - เรื่องที่ต้องทำอะไรกับมือถือ (โทรสายด่วน อ่านประกาศ) ใช้การ์ด kind phone เป็นมือถือมุมมองคนดู ไม่ต้องมีตัวละคร
 - ต้องบอกตำแหน่งในบ้าน/อาคาร ใช้ bg "blueprint" กับการ์ด kind plan (บ้านผ่าครึ่ง ไฮไลต์ห้องที่ปลอดภัย)
 - ข้อมูลสั้นที่ต้องจำ (เบอร์โทร ข้อห้าม) ใช้การ์ด kind note มี tag; ฉากสรุปท้ายเรียงการ์ด note 2-3 ใบ
@@ -3631,6 +3631,12 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ห้ามใช้ของไม่ตรงเรื่อง (เช่น คลื่นสึนามิแทนน้ำคลอง ประตูบ้านแทนประตูรถ) ถ้าคลังไม่มีภาพที่ตรง ให้ใช้การ์ดเล่าแทน เรื่องรถ/น้ำ: ฉาก canal (คลองข้างถนน), carin (ในรถกำลังจม), พร็อพ sinkcar cardoor seatbelt winswitch hammer
 - ท่าทางตัวละครต้องตรงบท (ตกใจ = เอามือแตะหน้า, กังวล = กอดอก, คุย = talk, ชี้ = point) ไม่ยกแขนซ้ำทุกฉาก
 - ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
+- ห้ามตัดตามสูตรเดิมทุกคลิป (เจ้าของบอกว่า "ดูออกว่าคัดลอกมา") โครงสร้างต้องต่างกันตามเรื่อง:
+  เปิดคลิปสลับกัน: ภาพแทรกใกล้ก่อนแล้วถอยออก / ฉากกว้างพร้อมป้ายสถานที่ / การ์ดตัวเลขตัวเดียว / หน้าตัวละครพูดคำถาม ห้ามเปิดแบบเดียวกับคลิปก่อน
+  ความยาวช็อตไม่เท่ากัน: ช็อตเร่ง 1.2-2 วินาทีตอนลน ช็อตหนัก 4-5 วินาทีตอนอธิบายตัวเลข (ระบบกำหนด pad ต่อฉากให้)
+  ช็อตเงียบ 0.8-1.2 วินาที ไม่มีบทพูด (narration ว่าง, beat true) คั่นหลังช็อตหนัก เช่น หน้าตกใจ มือสั่น (ถ้าไม่ใส่ ระบบเติมให้)
+  วางการ์ดไม่ซ้ำตำแหน่ง ห้ามกลางบนทุกใบ ป้ายสถานที่ใส่เฉพาะตอนเปลี่ยนที่ นาฬิกาเฉพาะช็อตที่เวลาสำคัญ
+  ตอนจบสลับกัน: หน้าใกล้พูดประโยคสุดท้าย / ภาพนิ่งเงียบ / ย้อนฉากแรก / การ์ดข้อคิด ห้ามใช้อย่างเดียวกันทุกคลิป
 - ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
 const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล
 ${VIRAL_RULES}`;
@@ -3687,7 +3693,32 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
   if(S.length>3&&new Set(S.slice(1).map(x=>x.transition)).size<2){ const tr=["whip","slide","zoom","fade","cut"]; S.slice(1).forEach((x,i)=>{ x.transition=tr[i%tr.length]; }); fixes.push("สลับทรานซิชันให้มีจังหวะ"); }
   S.forEach((x,i)=>{ const ch=x.elements.filter(e=>e.type==="character"&&!["move","walk"].includes(e.motion)); for(let a=0;a<ch.length;a++) for(let b=a+1;b<ch.length;b++){ if(Math.abs(ch[a].x-ch[b].x)<0.2&&Math.abs(ch[a].y-ch[b].y)<0.12){
       const n=ch.length; ch.sort((u,v)=>u.x-v.x).forEach((e,k)=>{ e.x=+(n===1?0.5:0.22+k*(0.56/(n-1))).toFixed(3); }); fixes.push(`ฉาก ${i+1} จัดตัวละครไม่ให้ซ้อนกัน`); return; } } });
+  /* Variation: no two clips (and no two stretches of one clip) should be cut by the same template. Everything here is a pure function
+     of (title, scene index, scene text), so running the director again after a QA fix gives the same result. */
+  { const rngOf=(k)=>mkRng(p.title+"|"+k), changed=new Set();
+    // 1. transitions follow the story (new place = fade/slide/zoom, emphasis = whip, otherwise mostly a plain cut), never the same fancy one twice in a row
+    for(let i=1;i<S.length;i++){ const x=S[i], pv=S[i-1], R=rngOf("t"+i+x.narration); let tr;
+      if(x.beat) tr="cut"; else if(x.bg!==pv.bg) tr=["fade","slide","zoom"][Math.floor(R()*3)]; else if(x.punch) tr="whip"; else tr=R()<0.62?"cut":["slide","zoom","fade"][Math.floor(R()*3)];
+      if(tr!=="cut"&&tr===pv.transition) tr="cut"; if(x.transition!==tr){ x.transition=tr; changed.add("ทรานซิชันตามเรื่อง ไม่วนเป็นรอบ"); } }
+    // 2. breath after each line: urgent lines are clipped short, the last line and a change of place breathe
+    S.forEach((x,i)=>{ if(x.beat||!x.narration.trim()) return; const R=rngOf("p"+i+x.narration), urgent=x.punch||/[!?]/.test(x.narration), nx=S[i+1];
+      const pad=i===S.length-1?0.8:urgent?0.1:(nx&&nx.bg!==x.bg)?0.55:+(0.14+R()*0.32).toFixed(2); if(x.pad!==pad){ x.pad=pad; changed.add("ความยาวช็อตไม่เท่ากัน"); } });
+    // 3. chips: place only when the place changes, clock only on some shots
+    const firstTag=S.findIndex(x=>x.tag), firstClock=S.findIndex(x=>x.clock);
+    S.forEach((x,i)=>{ const R=rngOf("c"+i+x.narration); if(i!==firstTag&&x.tag&&(i>0&&S[i-1].bg===x.bg)&&R()<0.9){ x.tag=""; changed.add("ป้ายสถานที่เฉพาะตอนเปลี่ยนที่"); } if(i!==firstClock&&x.clock&&R()<0.6){ x.clock=""; changed.add("นาฬิกาเฉพาะบางช็อต"); } });
+    // 4. card layout: position, side and a slight tilt differ shot to shot
+    S.forEach((x,i)=>{ const cards=x.elements.filter(e=>e.type==="card"); if(!cards.length) return; const R=rngOf("l"+i+x.narration), solo=!x.elements.some(e=>e.type==="character"||e.type==="prop");
+      const small=cards.filter(e=>["note","stat","bars","timer","icons"].includes(e.kind)); if(!small.length) return;
+      const xs=[0.5,0.38,0.62], bx=xs[Math.floor(R()*3)], low=solo&&R()<0.38, top=Math.min(...small.map(e=>e.y)), shift=low?0.46-top:0;
+      small.forEach((e,k)=>{ e.x=small.length>1?+(0.5+(k%2?0.06:-0.06)).toFixed(2):bx; if(solo&&shift) e.y=+(e.y+shift).toFixed(3); e.tilt=+((R()-0.5)*0.06).toFixed(3); }); changed.add("ตำแหน่งการ์ดสลับ"); });
+    // 5. silent reaction beats (0.9 s, no voice) after heavy shots, at most two, only once
+    if(!S.some(x=>x.beat)&&S.length>=10&&S.length<=18){ let added=0; for(let i=0;i<S.length-2&&added<2;i++){ const x=S[i]; if(x.beat) continue; const R=rngOf("b"+i+x.narration), heavy=x.punch||x.elements.some(e=>e.type==="character"&&["shocked","scared"].includes(e.emotion));
+        if(!heavy||R()>0.55||(S[i+1]&&S[i+1].beat)) continue; const ch=x.elements.find(e=>e.type==="character"), pr=x.elements.find(e=>e.type==="prop"); let el;
+        if(ch) el={...ch,x:0.5,y:1.78,scale:3.6,motion:"none",say:"",pin:"",enter:"none",flip:false}; else if(pr) el={...pr,x:0.5,y:0.55,scale:Math.min(2.8,pr.scale*1.15),motion:"shake",enter:"none"}; else continue;
+        S.splice(i+1,0,{...x,narration:"",subEn:"",emph:[],punch:false,tag:"",clock:"",caption:"",speak:undefined,align:undefined,sfx:"none",effect:"none",transition:"cut",camera:"zoom-in",pad:0.35,beat:true,duration:0.9,elements:[el]}); added++; i++; changed.add("เพิ่มช็อตเงียบ 0.9 วินาที"); } }
+    changed.forEach(m=>fixes.push(m)); }
   return [...new Set(fixes)]; }
+function mkRng(str){ let h=1779033703^String(str).length; for(const ch of String(str)){ h=Math.imul(h^ch.charCodeAt(0),3432918353); h=h<<13|h>>>19; } let a=h>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 /* Apply the subtitle/pacing staff's structured plans wherever the head's cut breaks a rule. */
 function staffFallbacks(p,r){ let n=0; const sj=subJSON(r,"editor","subs"), pj=subJSON(r,"editor","pace");
   p.scenes.forEach((x,i)=>{ const a=(Array.isArray(sj?.scenes)?sj.scenes:[]).find(z=>Number(z?.scene)===i+1);
