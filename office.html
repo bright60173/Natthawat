@@ -1197,6 +1197,8 @@ function normalizeProject(p){
     subStyle:pick(p.subStyle,CAT.subStyles,"doc"),
     look:pick(p.look,["bright","cinematic","doc"],"doc"),
     charStyle:pick(p.charStyle,["cute","slim","pk"],"pk"),
+    grammar:pick(p.grammar,["explainer","slowburn","rapid","story"],""), skin:pick(p.skin,["paper","dark","flat","outline"],"paper"), enSub:p.enSub!==false,
+    endStyle:pick(p.endStyle,["chip","plain","black"],"chip"), tint:pick(p.tint,["warm","cool","neutral","green"],"warm"),
     font:pick(p.font,FONT_IDS,pick(store.get("clipFont","Kanit"),FONT_IDS,"Kanit")),
     emphOn:p.emphOn!==false,
     bg3d:p.bg3d!==false,
@@ -1671,26 +1673,33 @@ function pictogram(c,kind,x,y,s,col){ c.fillStyle=col; c.beginPath();
 function countUp(v,q){ v=String(v||""); if(/^(1669|1784|191|199|1129|1441|1193|1155|1137)$/.test(v)) return v; if(q>=1||/\d\s*[-–]\s*\d/.test(v)) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
   const m=v.match(/\d[\d,]*(\.\d+)?/); if(!m) return v; const n=parseFloat(m[0].replace(/,/g,"")), dec=(m[1]||"").length?m[1].length-1:0, cur=n*q;
   let s=cur.toFixed(dec); if(m[0].includes(",")) s=Number(s).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}); return v.slice(0,m.index)+s+v.slice(m.index+m[0].length); }
-function cardPanel(c,x,y,w,h,u,accent){ c.save(); c.shadowColor="rgba(0,0,0,.35)"; c.shadowBlur=u*5; c.shadowOffsetY=u*1.6; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.fill(); c.restore();
-  c.strokeStyle="#d9cdb8"; c.lineWidth=Math.max(1,u*0.35); c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.stroke(); c.fillStyle=accent; c.beginPath(); c.roundRect(x,y,u*1.6,h,[u*2.6,0,0,u*2.6]); c.fill(); }
-function drawInfoCard(c,el,base,since,fam){ if(el.tilt) c.rotate(el.tilt); const {w,h}=cardSize(el,base), u=w/100, q=easeOut(clamp((since-0.15)/0.9,0,1)), ink="#1f1c18", soft="#8a7f70";
-  const accent=el.good===false?"#c8452f":el.good===true?"#2e7a4d":"#d9a23a";
-  const pill=(x,y,text,good,s)=>{ c.font=`600 ${s}px ${fam}`; const tw=c.measureText(text).width+s*1.6; c.fillStyle=good===false?"#c8452f":good===true?"#2e7a4d":"#5f5648"; c.beginPath(); c.roundRect(x,y-s*0.75,tw,s*1.5,s*0.75); c.fill(); c.fillStyle="#fff"; c.textAlign="left"; c.textBaseline="middle"; c.fillText(text,x+s*0.8,y+s*0.05); };
-  if(el.kind==="compare"){ const cw=w*0.45, gap=w-cw*2; [["left",-w/2],["right",-w/2+cw+gap]].forEach(([k,x0],i)=>{ const d=el[k]; const acc=d.good===false?"#c8452f":d.good===true?"#2e7a4d":"#d9a23a"; cardPanel(c,x0,-h/2,cw,h,u,acc);
+/* Card skins: the clip's "grammar" picks one so cards do not look the same in every clip. */
+const SKIN={
+  paper:{fill:"#f5f0e6",edge:"#d9cdb8",ink:"#1f1c18",soft:"#8a7f70",sub:"#5f5648",good:"#2e7a4d",bad:"#c8452f",mid:"#b5851f",blue:"#2f5fa8",track:"#e6dccb",sh:0.35,bar:true},
+  dark:{fill:"#1b2130",edge:"#38425a",ink:"#f2efe6",soft:"#9aa3b2",sub:"#c4cad6",good:"#6fd49a",bad:"#ff7a63",mid:"#f0c05a",blue:"#8fb4ff",track:"#38425a",sh:0.55,bar:true},
+  flat:{fill:"#e9b93d",edge:"#e9b93d",ink:"#15130f",soft:"#6a4f12",sub:"#3a2c08",good:"#0f4d27",bad:"#8c1a0e",mid:"#5a3a00",blue:"#10306e",track:"#cf9f27",sh:0,bar:false},
+  outline:{fill:"rgba(12,16,24,.42)",edge:"#f2efe6",ink:"#f2efe6",soft:"#c9c4b8",sub:"#dcd7ca",good:"#7ee0a4",bad:"#ff8a73",mid:"#f5cc6a",blue:"#a5c4ff",track:"rgba(242,239,230,.25)",sh:0,bar:false}};
+function SKINK(){ return SKIN[CF.skin]||SKIN.paper; }
+function cardPanel(c,x,y,w,h,u,accent){ const K=SKINK(); c.save(); if(K.sh){ c.shadowColor=`rgba(0,0,0,${K.sh})`; c.shadowBlur=u*5; c.shadowOffsetY=u*1.6; } c.fillStyle=K.fill; c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.fill(); c.restore();
+  c.strokeStyle=K.edge; c.lineWidth=Math.max(1,u*(K.bar?0.35:0.8)); c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.stroke(); if(K.bar){ c.fillStyle=accent; c.beginPath(); c.roundRect(x,y,u*1.6,h,[u*2.6,0,0,u*2.6]); c.fill(); } }
+function drawInfoCard(c,el,base,since,fam){ if(el.tilt) c.rotate(el.tilt); const {w,h}=cardSize(el,base), u=w/100, q=easeOut(clamp((since-0.15)/0.9,0,1)), K=SKINK(), ink=K.ink, soft=K.soft;
+  const accent=el.good===false?K.bad:el.good===true?K.good:"#d9a23a";
+  const pill=(x,y,text,good,s)=>{ c.font=`600 ${s}px ${fam}`; const tw=c.measureText(text).width+s*1.6; c.fillStyle=good===false?K.bad:good===true?K.good:K.sub; c.beginPath(); c.roundRect(x,y-s*0.75,tw,s*1.5,s*0.75); c.fill(); c.fillStyle="#fff"; c.textAlign="left"; c.textBaseline="middle"; c.fillText(text,x+s*0.8,y+s*0.05); };
+  if(el.kind==="compare"){ const cw=w*0.45, gap=w-cw*2; [["left",-w/2],["right",-w/2+cw+gap]].forEach(([k,x0],i)=>{ const d=el[k]; const acc=d.good===false?K.bad:d.good===true?K.good:"#d9a23a"; cardPanel(c,x0,-h/2,cw,h,u,acc);
       c.textAlign="center"; c.textBaseline="middle"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(d.label,x0+cw/2,-h/2+u*6,cw*0.9);
-      const vl=String(d.value).length; c.font=`800 ${u*(vl>6?8.5:vl>4?11:15)}px ${fam}`; c.fillStyle=d.good===false?"#c8452f":d.good===true?"#2e7a4d":ink; c.fillText(countUp(d.value,q),x0+cw/2,-h/2+u*17,cw*0.86);
+      const vl=String(d.value).length; c.font=`800 ${u*(vl>6?8.5:vl>4?11:15)}px ${fam}`; c.fillStyle=d.good===false?K.bad:d.good===true?K.good:ink; c.fillText(countUp(d.value,q),x0+cw/2,-h/2+u*17,cw*0.86);
       c.font=`600 ${u*4.4}px ${fam}`; c.fillStyle=ink; c.fillText(d.unit,x0+cw/2,-h/2+u*26.5,cw*0.9);
       if(d.note){ c.font=`600 ${u*3.6}px ${fam}`; const tw=c.measureText(d.note).width+u*5.5; pill(x0+cw/2-tw/2,-h/2+u*32.5,(d.good===false?"✕ ":d.good===true?"✓ ":"")+d.note,d.good,u*3.6); } });
     c.fillStyle="#1f1c18"; c.beginPath(); c.arc(0,0,gap*0.62,0,7); c.fill(); c.fillStyle="#f5f0e6"; c.font=`800 ${gap*0.5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("VS",0,u*0.4); return; }
   const srcLine=()=>{ if(!el.src) return; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=soft; c.font=`500 ${u*2.9}px ${fam}`; c.fillText(el.src,-w/2+u*6,h/2-u*2.6,w-u*12); };
-  if(el.kind==="lesson"){ const a=easeOut(clamp(since/0.5,0,1)); cardPanel(c,-w/2,-h/2,w,h,u,"#2f5fa8"); c.fillStyle="#c8452f"; c.beginPath(); c.arc(0,-h/2,u*4.2,0,7); c.fill(); c.fillStyle="#fff"; c.font=`800 ${u*5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("!",0,-h/2+u*0.3);
-    let y=-h/2+u*12; if(el.strike){ c.font=`600 ${u*5}px ${fam}`; c.fillStyle=ink; c.fillText(el.strike,0,y,w*0.88); const sw=Math.min(c.measureText(el.strike).width,w*0.88)*clamp((since-0.35)/0.4,0,1); c.strokeStyle="#c8452f"; c.lineWidth=u*0.9; c.beginPath(); c.moveTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2,y+u*0.4); c.lineTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2+sw,y+u*0.4); c.stroke(); y+=u*11; }
-    const big=el.label||el.value; c.globalAlpha=clamp((since-(el.strike?0.7:0.1))/0.35,0,1); c.fillStyle="#2f5fa8"; c.font=`800 ${u*7.4}px ${fam}`; const ln=wrap(c,big,w*0.86).slice(0,2); ln.forEach((l,i)=>c.fillText(l,0,y+i*u*9.2,w*0.9)); y+=ln.length*u*9.2-u*1;
-    if(el.labelEn){ c.fillStyle="#5f5648"; c.font=`500 ${u*3.4}px ${fam}`; c.fillText(el.labelEn,0,y+u*2.5,w*0.9); } c.globalAlpha=1; return; }
+  if(el.kind==="lesson"){ const a=easeOut(clamp(since/0.5,0,1)); cardPanel(c,-w/2,-h/2,w,h,u,K.blue); c.fillStyle=K.bad; c.beginPath(); c.arc(0,-h/2,u*4.2,0,7); c.fill(); c.fillStyle="#fff"; c.font=`800 ${u*5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("!",0,-h/2+u*0.3);
+    let y=-h/2+u*12; if(el.strike){ c.font=`600 ${u*5}px ${fam}`; c.fillStyle=ink; c.fillText(el.strike,0,y,w*0.88); const sw=Math.min(c.measureText(el.strike).width,w*0.88)*clamp((since-0.35)/0.4,0,1); c.strokeStyle=K.bad; c.lineWidth=u*0.9; c.beginPath(); c.moveTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2,y+u*0.4); c.lineTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2+sw,y+u*0.4); c.stroke(); y+=u*11; }
+    const big=el.label||el.value; c.globalAlpha=clamp((since-(el.strike?0.7:0.1))/0.35,0,1); c.fillStyle=K.blue; c.font=`800 ${u*7.4}px ${fam}`; const ln=wrap(c,big,w*0.86).slice(0,2); ln.forEach((l,i)=>c.fillText(l,0,y+i*u*9.2,w*0.9)); y+=ln.length*u*9.2-u*1;
+    if(el.labelEn){ c.fillStyle=K.sub; c.font=`500 ${u*3.4}px ${fam}`; c.fillText(el.labelEn,0,y+u*2.5,w*0.9); } c.globalAlpha=1; return; }
   /* note: small labelled sticky card (tag chip + coloured title + English line), stacks well for recaps */
   if(el.kind==="note"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="middle"; let y=-h/2+u*6;
     if(el.tag){ c.font=`600 ${u*3.2}px ${fam}`; const tw=c.measureText(el.tag).width+u*7; c.fillStyle="#1f1c18"; c.beginPath(); c.roundRect(x0,y-u*2.4,tw,u*4.8,u*2.4); c.fill(); c.fillStyle="#e2483d"; c.beginPath(); c.arc(x0+u*2.4,y,u*0.9,0,7); c.fill(); c.fillStyle="#fff"; c.fillText(el.tag,x0+u*4.4,y+u*0.2); }
-    y+=u*7.5; c.fillStyle=el.good===false?"#c8452f":el.good===true?"#2e7a4d":"#b5851f"; c.font=`800 ${u*7}px ${fam}`; const t=[el.value,el.label].filter(Boolean).join(" "); c.fillText(t,x0,y,w-u*12);
+    y+=u*7.5; c.fillStyle=el.good===false?K.bad:el.good===true?K.good:K.mid; c.font=`800 ${u*7}px ${fam}`; const t=[el.value,el.label].filter(Boolean).join(" "); c.fillText(t,x0,y,w-u*12);
     if(el.labelEn){ c.fillStyle=soft; c.font=`600 ${u*2.8}px ${fam}`; c.fillText(el.labelEn,x0,y+u*5.6,w-u*12); } return; }
   /* phone: a hand holding a phone in point-of-view. With value it is a call screen (number + label + running timer), else a notice screen. */
   if(el.kind==="phone"){ const pw=w*0.52, ph=h*0.52, px=-pw/2-u*2, py=-h/2+u*4, skin="#c98b62", skin2="#b47650";
@@ -1718,24 +1727,24 @@ function drawInfoCard(c,el,base,since,fam){ if(el.tilt) c.rotate(el.tilt); const
     const a=clamp((since-0.6)/0.4,0,1), rx=w*0.1, rw=x1-rx-u*7, ry=mid+u*3, rh=y1-mid-u*6; c.globalAlpha=a; c.fillStyle="rgba(95,211,141,.25)"; c.strokeStyle="#7fe0a6"; c.lineWidth=lw*1.4; c.beginPath(); c.roundRect(rx,ry,rw,rh,u*2); c.fill(); c.stroke();
     c.fillStyle="#d8f5e3"; c.textAlign="center"; c.textBaseline="middle"; c.font=`700 ${u*3.8}px ${fam}`; const pl=wrap(c,el.label||"ห้องปลอดภัย",rw*0.86).slice(0,3); pl.forEach((l,i)=>c.fillText(l,rx+rw/2,ry+rh*0.5-(pl.length-1)*u*2.4-u*3+i*u*4.8)); c.fillStyle="#7fe0a6"; c.beginPath(); c.arc(rx+rw/2,ry+rh*0.84,u*1.8+Math.sin(since*5)*u*0.5,0,7); c.fill(); c.globalAlpha=1; return; }
   if(el.kind==="icons"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(el.label,x0,-h/2+u*8.5,w-u*12);
-    const n=Math.round(clamp(parseFloat(String(el.value).replace(/,/g,""))||0,0,el.total)), per=Math.min(10,el.total), rows=Math.ceil(el.total/per), cell=(w-u*12)/per, sz=cell*0.78, hit=el.good===true?"#2e7a4d":"#c8452f";
+    const n=Math.round(clamp(parseFloat(String(el.value).replace(/,/g,""))||0,0,el.total)), per=Math.min(10,el.total), rows=Math.ceil(el.total/per), cell=(w-u*12)/per, sz=cell*0.78, hit=el.good===true?K.good:K.bad;
     for(let i=0;i<el.total;i++){ const r=Math.floor(i/per), k=i%per, on=i<n, pop=easeBack(clamp((since-0.15-i*0.05)/0.3,0,1)); if(pop<=0) continue; c.save(); c.translate(x0+cell*(k+0.5),-h/2+u*17+r*cell*1.05); c.scale(pop,pop); pictogram(c,el.icon,0,0,sz,on?hit:"#b9ae9c"); c.restore(); }
     const vy=-h/2+u*17+(rows-1)*cell*1.05+cell*0.5+u*10; c.fillStyle=hit; c.font=`800 ${u*9}px ${fam}`; c.fillText(`${countUp(String(n),q)} ใน ${el.total}${el.unit?" "+el.unit:""}`,x0,vy,w-u*12); srcLine(); return; }
   if(el.kind==="bars"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6, rw=w-u*12; let y=-h/2+u*(el.label?9:5); c.textBaseline="alphabetic";
     if(el.label){ c.textAlign="left"; c.fillStyle=soft; c.font=`600 ${u*3.6}px ${fam}`; c.fillText(el.label,x0,y,rw); y+=u*3; }
-    (el.rows||[]).forEach((r,i)=>{ const col=r.good===false?"#c8452f":r.good===true?"#2e7a4d":"#2f5fa8", cy=y+u*5.5+i*u*8.5, bq=easeOut(clamp((since-0.2-i*0.15)/0.8,0,1));
+    (el.rows||[]).forEach((r,i)=>{ const col=r.good===false?K.bad:r.good===true?K.good:K.blue, cy=y+u*5.5+i*u*8.5, bq=easeOut(clamp((since-0.2-i*0.15)/0.8,0,1));
       c.textAlign="left"; c.textBaseline="middle"; c.fillStyle=col; c.font=`700 ${u*4.2}px ${fam}`; c.fillText(r.label,x0,cy,rw*0.24);
-      const bx=x0+rw*0.26, bw=rw*0.5; c.fillStyle="#e6dccb"; c.beginPath(); c.roundRect(bx,cy-u*2.2,bw,u*4.4,u*1.2); c.fill(); c.fillStyle=col; c.beginPath(); c.roundRect(bx,cy-u*2.2,Math.max(u*2,bw*r.pct/100*bq),u*4.4,u*1.2); c.fill();
+      const bx=x0+rw*0.26, bw=rw*0.5; c.fillStyle=K.track; c.beginPath(); c.roundRect(bx,cy-u*2.2,bw,u*4.4,u*1.2); c.fill(); c.fillStyle=col; c.beginPath(); c.roundRect(bx,cy-u*2.2,Math.max(u*2,bw*r.pct/100*bq),u*4.4,u*1.2); c.fill();
       c.textAlign="right"; c.font=`800 ${u*5.6}px ${fam}`; c.fillText(countUp(r.value,bq),x0+rw,cy+u*0.3,rw*0.22); }); srcLine(); return; }
   cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6, hb=h/2-(el.src?u*6.25:0); let tx=x0;
   if(el.kind==="timer"){ const r=u*7.5, cx=x0+r, cy=-h/2+h*0.5; c.strokeStyle=ink; c.lineWidth=u*1.3; c.beginPath(); c.arc(cx,cy+u,r,0,7); c.stroke(); c.fillStyle=ink; c.fillRect(cx-u*1.6,cy-r-u*0.9,u*3.2,u*1.6);
-    const a=since*5; c.strokeStyle="#c8452f"; c.lineWidth=u*1.1; c.beginPath(); c.moveTo(cx,cy+u); c.lineTo(cx+Math.sin(a)*r*0.75,cy+u-Math.cos(a)*r*0.75); c.stroke(); tx=x0+r*2+u*5; }
+    const a=since*5; c.strokeStyle=K.bad; c.lineWidth=u*1.1; c.beginPath(); c.moveTo(cx,cy+u); c.lineTo(cx+Math.sin(a)*r*0.75,cy+u-Math.cos(a)*r*0.75); c.stroke(); tx=x0+r*2+u*5; }
   c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*5.4}px ${fam}`; c.fillText(el.label,tx,-h/2+u*9.5,w-(tx-x0)-u*8);
   if(el.labelEn){ c.fillStyle=soft; c.font=`600 ${u*3.2}px ${fam}`; c.fillText(el.labelEn,tx,-h/2+u*14);  }
   c.fillStyle=ink; c.font=`800 ${u*16}px ${fam}`; const val=countUp(el.value,q); c.fillText(val,tx,-h/2+u*(el.labelEn?30:28),w-(tx-x0)-u*22);
   if(el.unit){ const vw=Math.min(c.measureText(val).width,w-(tx-x0)-u*22); c.font=`600 ${u*5.2}px ${fam}`; c.fillText(el.unit,tx+vw+u*2,-h/2+u*(el.labelEn?30:28)); }
-  if(el.pct!=null){ const pq=el.pct*q; c.textAlign="right"; c.fillStyle="#2e7a4d"; c.font=`800 ${u*7}px ${fam}`; c.fillText(Math.round(pq)+"%",w/2-u*5,-h/2+u*28);
-    const by=hb-u*7, bx=tx, bw=w/2-u*5-bx; c.fillStyle="#e6dccb"; c.beginPath(); c.roundRect(bx,by,bw,u*3.2,u*1.6); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.roundRect(bx,by,Math.max(u*3.2,bw*pq/100),u*3.2,u*1.6); c.fill(); }
+  if(el.pct!=null){ const pq=el.pct*q; c.textAlign="right"; c.fillStyle=K.good; c.font=`800 ${u*7}px ${fam}`; c.fillText(Math.round(pq)+"%",w/2-u*5,-h/2+u*28);
+    const by=hb-u*7, bx=tx, bw=w/2-u*5-bx; c.fillStyle=K.track; c.beginPath(); c.roundRect(bx,by,bw,u*3.2,u*1.6); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.roundRect(bx,by,Math.max(u*3.2,bw*pq/100),u*3.2,u*1.6); c.fill(); }
   else if(el.note) pill(tx,hb-u*6.5,(el.good===false?"✕ ":el.good===true?"✓ ":"")+el.note,el.good,u*3.6);
   srcLine();
 }
@@ -2176,7 +2185,7 @@ class Renderer{
   constructor(canvas){ this.cv=canvas; this.c=canvas.getContext("2d"); this.bufA=document.createElement("canvas"); this.bufB=document.createElement("canvas"); this.project=null; }
   load(project){ this.project=project; const [w,h]=project.aspect==="16:9"?[1280,720]:[720,1280]; for(const cv of [this.cv,this.bufA,this.bufB]){ cv.width=w; cv.height=h; } this.W=w; this.H=h; this.layout(); }
   rc(s){ let o=this._rc.get(s); if(!o){ o={}; this._rc.set(s,o); } return o; }
-  layout(){ this._rc=new WeakMap(); const P=this.project; let t=0; this.starts=P.scenes.map(s=>{ const st=t; t+=s.duration; return st; }); this.endStart=t; this.total=t+2.6; this.subs=P.scenes.map((s,i)=>this.buildSubs(s,i)); }
+  layout(){ this._rc=new WeakMap(); const P=this.project; let t=0; this.starts=P.scenes.map(s=>{ const st=t; t+=s.duration; return st; }); this.endStart=t; this.total=t+(P.endStyle==="black"?1.2:2.6); this.subs=P.scenes.map((s,i)=>this.buildSubs(s,i)); }
   buildSubs(s,i){
     const text=s.narration||"", ranges=[];
     if(this.project.emphOn!==false) (s.emph||[]).forEach(ph=>{ let k=text.indexOf(ph); while(ph&&k>=0){ ranges.push([k,k+ph.length]); k=text.indexOf(ph,k+ph.length); } });
@@ -2233,7 +2242,7 @@ class Renderer{
   blockSize(S,style){ const W=this.W,m=Math.min(W,this.H),c=this.c;
     if(style==="pop"){ let w=0,h=0; S.chunks.forEach(ch=>{ const L=this.popLayout(ch); w=Math.max(w,L.w); h=Math.max(h,L.h); }); return {w:w+m*0.04,h:h+m*0.03}; }
     const cfg=this.pageCfg(style), pages=this.pages(c,S,cfg.fs,W*cfg.maxW,cfg.weight); let w=0,lines=1; pages.forEach(p=>{ lines=Math.max(lines,p.lines.length); p.lines.forEach(l=>w=Math.max(w,l.w)); });
-    let hh=lines*cfg.fs*cfg.lh+cfg.fs*(cfg.box?0.9:0.3); if(style==="doc"&&S.scene?.subEn){ hh+=this.enLines(S.scene.subEn).length*cfg.fs*0.62+cfg.fs*0.9; w=Math.max(w,this.W*0.72); }
+    let hh=lines*cfg.fs*cfg.lh+cfg.fs*(cfg.box?0.9:0.3); if(style==="doc"&&S.scene?.subEn&&this.project.enSub!==false){ hh+=this.enLines(S.scene.subEn).length*cfg.fs*0.62+cfg.fs*0.9; w=Math.max(w,this.W*0.72); }
     return {w:w+cfg.fs*1.4,h:hh}; }
   enLines(t){ const c=this.c, fs=Math.round(Math.min(this.W,this.H)*0.066)*0.46; c.font=`600 ${fs}px ${this.fam}`; return wrap(c,t,this.W*0.74).slice(0,2); }
   pageCfg(style){ const m=Math.min(this.W,this.H); if(style==="doc") return {fs:Math.round(m*0.066),maxW:0.86,weight:700,lh:1.35,box:false}; return style==="karaoke"?{fs:Math.round(m*0.06),maxW:0.8,weight:700,lh:1.6,box:true}:style==="bounce"?{fs:Math.round(m*0.072),maxW:0.86,weight:800,lh:1.5,box:false}:{fs:Math.round(m*0.052),maxW:0.84,weight:600,lh:1.55,box:true}; }
@@ -2265,7 +2274,7 @@ class Renderer{
     S._pk=key; S._pages=pages; return pages; }
   curPage(pages,lt){ let k=0; pages.forEach((p,j)=>{ if(lt>=p.from-0.05) k=j; }); return {p:pages[k],k}; }
   sceneAt(t){ const st=this.starts; for(let i=st.length-1;i>=0;i--) if(t>=st[i]) return i; return 0; }
-  drawFrame(t){ CF.ff=this.fam; CF.cs=this.project?.charStyle||"cute";
+  drawFrame(t){ CF.ff=this.fam; CF.cs=this.project?.charStyle||"cute"; CF.skin=this.project?.skin||"paper";
     const P=this.project, c=this.c, W=this.W, H=this.H;
     if(t>=this.endStart){ this.drawEnd(c,t-this.endStart); this.drawProgress(c,t); return; }
     const i=this.sceneAt(t), s=P.scenes[i], lt=t-this.starts[i];
@@ -2381,7 +2390,7 @@ class Renderer{
   // on-screen labels move clear of the caption and of each other (earlier labels keep their place)
   // cinematic look: muted, cooler background with a darker frame, so characters and cards stand out
   /* "doc" look: muted flat illustration with a little film grain and a soft vignette (viral reference style). */
-  gradeDoc(c,W,H,lt){ c.save(); c.globalCompositeOperation="saturation"; c.globalAlpha=0.22; c.fillStyle="#808080"; c.fillRect(0,0,W,H); c.globalCompositeOperation="multiply"; c.globalAlpha=0.12; c.fillStyle="#b89a70"; c.fillRect(0,0,W,H);
+  gradeDoc(c,W,H,lt){ c.save(); c.globalCompositeOperation="saturation"; c.globalAlpha=0.22; c.fillStyle="#808080"; c.fillRect(0,0,W,H); c.globalCompositeOperation="multiply"; c.globalAlpha=0.12; c.fillStyle={warm:"#b89a70",cool:"#7aa0c4",neutral:"#a4a4a4",green:"#8fb08a"}[this.project.tint]||"#b89a70"; c.fillRect(0,H*0,W,H);
     c.globalCompositeOperation="source-over"; c.globalAlpha=1; const v=c.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.35,W/2,H*0.45,Math.hypot(W,H)*0.62); v.addColorStop(0,"rgba(20,16,12,0)"); v.addColorStop(1,"rgba(20,16,12,.38)"); c.fillStyle=v; c.fillRect(0,0,W,H);
     if(!Renderer._grain){ const g=document.createElement("canvas"); g.width=g.height=128; const x=g.getContext("2d"), d=x.createImageData(128,128); for(let i=0;i<d.data.length;i+=4){ const n=Math.random()*255; d.data[i]=d.data[i+1]=d.data[i+2]=n; d.data[i+3]=22; } x.putImageData(d,0,0); Renderer._grain=g; }
     const pat=c.createPattern(Renderer._grain,"repeat"); c.translate(((lt*37)|0)%128,((lt*53)|0)%128); c.fillStyle=pat; c.globalCompositeOperation="overlay"; c.fillRect(-128,-128,W+256,H+256); c.restore(); }
@@ -2448,7 +2457,7 @@ class Renderer{
       this.outlined(c,w2.text,cx,y+dy,f,w2.emph?"#ff5d8f":(lt>=w2.from&&lt<w2.to?"#ffd23f":"#ffffff")); x+=it.width; }); });
     c.restore(); }
   subDoc(c,S,lt){
-    const W=this.W,m=Math.min(W,this.H), cfg=this.pageCfg("doc"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, en=S.scene?.subEn?this.enLines(S.scene.subEn):[];
+    const W=this.W,m=Math.min(W,this.H), cfg=this.pageCfg("doc"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, en=S.scene?.subEn&&this.project.enSub!==false?this.enLines(S.scene.subEn):[];
     const th=p.lines.length*lh, eh=en.length?en.length*fs*0.62+fs*0.9:0, a=reduceMotion||this._still?1:clamp((lt-p.from)/0.18,0,1), y0=this.bandY(S)-(th+eh)/2+(1-easeOut(a))*fs*0.3;
     c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.textAlign="left"; const punch=!!S.scene?.punch, anyEmph=p.lines.some(l=>l.items.some(it=>it.w.emph)), wholeBox=punch&&!anyEmph;
     // promptkub: white text with a soft dark glow; on a punch line the key phrase sits in a red box (whole line only when no key phrase)
@@ -2469,6 +2478,11 @@ class Renderer{
     c.restore(); }
   drawProgress(c,t){ if(this.project.look==="doc") return; c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(0,0,this.W,6); c.fillStyle="#ff5d8f"; c.fillRect(0,0,this.W*clamp(t/this.total,0,1),6); }
   drawEnd(c,lt){ const W=this.W,H=this.H,u=Math.min(W,H)/720;
+    if(this.project.look==="doc"&&this.project.endStyle!=="chip"){ const m=Math.min(W,H), a=easeOut(clamp(lt/0.5,0,1)), P=this.project, black=P.endStyle==="black";
+      c.fillStyle=black?"#07080b":P.skin==="flat"?"#e9b93d":P.skin==="outline"?"#13261e":P.skin==="dark"?"#0d1017":"#141821"; c.fillRect(0,0,W,H);
+      c.save(); c.globalAlpha=a; c.textAlign="center"; c.textBaseline="middle"; c.fillStyle=black?"#8f96a3":P.skin==="flat"?"#15130f":"#f2efe6"; c.font=`${black?600:800} ${m*(black?0.04:0.075)}px ${this.fam}`;
+      const ls=wrap(c,P.endCard.text,W*0.82).slice(0,3); ls.forEach((l,i)=>c.fillText(l,W/2,H*0.44+i*m*(black?0.055:0.095)-(ls.length-1)*m*(black?0.027:0.047)));
+      if(P.endCard.sub&&!black){ c.font=`500 ${m*0.032}px ${this.fam}`; c.globalAlpha=a*0.75; c.fillText(P.endCard.sub,W/2,H*0.44+ls.length*m*0.06+m*0.05,W*0.8); } c.restore(); return; }
     if(this.project.look==="doc"){ // promptkub-style ending: flat dark navy, small "next" chip, the question in white, one red line
       const m=Math.min(W,H), a=easeOut(clamp(lt/0.5,0,1)), P=this.project; c.fillStyle="#141821"; c.fillRect(0,0,W,H); c.save(); c.globalAlpha=a; c.textAlign="center"; c.textBaseline="middle";
       const y=H*0.42-(1-a)*m*0.03; c.font=`600 ${m*0.028}px ${this.fam}`; const chip="• ตอนต่อไป", cw=c.measureText(chip).width+m*0.05; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(W/2-cw/2,y-m*0.13,cw,m*0.05,m*0.025); c.fill(); c.fillStyle="#141821"; c.fillText(chip,W/2,y-m*0.105);
@@ -3620,7 +3634,7 @@ function mergeEdits(base,j,aspect){ const p=clone(base); if(!j||typeof j!=="obje
     delete rest.removeCards; Object.assign(x,rest); });
   return normalizeProject({...p,aspect}); }
 /* Lessons from the owner's viral reference clips (promptkub.ai style, studied Nov 2026). Applied to every format. */
-const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้าของส่งมา (ใช้ทุกคลิป):
+const VIRAL_RULES=`เทคนิคที่เรียนจากคลิปไวรัลที่เจ้าของส่งมา (เจ้าของสั่งชัดว่าให้เรียนเทคนิค ห้ามลอกโครงหรือหน้าตา ต้องตัดไม่ตายตัว เลือกใช้ตามแบบการตัดของคลิปนี้ ไม่ต้องใช้ครบทุกข้อ):
 - เปิดด้วย "ถ้า..." พูดกับคนดูเป็น "คุณ" วางคนดูไว้ในสถานการณ์จริง มีสถานที่จริงและเวลาจริง (ใส่ tag เช่น "หาดบางแสน · ชลบุรี" และ clock เมื่อเวลากดดัน)
 - ทุกตัวเลขต้องมีการ์ด และใส่ src ที่มาของข้อมูลจริงทุกครั้งที่อ้างงานวิจัยหรือสถิติ ห้ามแต่งตัวเลข
 - เลือกการ์ดให้ตรงข้อมูล: สัดส่วน "X ใน 10" ใช้ kind icons, เทียบความเร็ว/ขนาด 2-3 อย่างใช้ kind bars, A ปะทะ B ใช้ compare, เวลาใช้ timer
@@ -3672,7 +3686,9 @@ const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุด
 const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
 function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","zoom-in","pan-left","drone","zoom-out"];
   // house style chosen by the owner from the viral references: documentary subtitles and the muted "doc" look, always
-  if(p.subStyle!=="doc"){ p.subStyle="doc"; fixes.push("ใช้ซับแบบสารคดี (สไตล์ช่อง)"); } if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน (สไตล์ช่อง)"); } if(p.charStyle!=="pk"){ p.charStyle="pk"; fixes.push("ใช้ตัวละครแบบ promptkub"); }
+  if(!p.grammar){ p.grammar=pickGrammarFor(p.title); fixes.push("เลือกแบบการตัด: "+GRAMMAR[p.grammar].label); } const G=GRAMMAR[p.grammar];
+  if(p.subStyle!==G.sub){ p.subStyle=G.sub; fixes.push("ซับแบบ "+G.sub); } p.skin=G.skin; p.enSub=G.en; p.endStyle=G.end; p.tint=G.tint;
+  if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน"); } if(p.charStyle!=="pk"){ p.charStyle="pk"; fixes.push("ใช้ตัวละครแบบเดียวกันทั้งช่อง"); }
   { let st=0, lastReal=null; S.forEach((x,i)=>{ if(x.bg==="studio"){ if(++st>2&&lastReal){ x.bg=lastReal.bg; x.time=lastReal.time; fixes.push(`ฉาก ${i+1} ใช้สถานที่จริงของเรื่องแทนห้องมืด`); } } else lastReal=x; }); }
   S.forEach((x,i)=>{ if(i<S.length-1) x.elements.forEach(e=>{ if(e.type==="card"&&e.kind==="lesson"){ e.kind="note"; e.value=""; e.tag=e.tag||""; fixes.push(`ฉาก ${i+1} การ์ดข้อคิดเก็บไว้ฉากจบ`); } }); });
   const MAP2D={classroom:"school",city:"street",ocean:"beach",room:"nightroom",abstract:"studio"}; S.forEach((x,i)=>{ if(MAP2D[x.bg]){ x.bg=MAP2D[x.bg]; fixes.push(`ฉาก ${i+1} ใช้ฉากวาด 2 มิติแทนฉาก 3 มิติ`); } });
@@ -3713,14 +3729,17 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
   { const rngOf=(k)=>mkRng(p.title+"|"+k), changed=new Set();
     // 1. transitions follow the story (new place = fade/slide/zoom, emphasis = whip, otherwise mostly a plain cut), never the same fancy one twice in a row
     for(let i=1;i<S.length;i++){ const x=S[i], pv=S[i-1], R=rngOf("t"+i+x.narration); let tr;
-      if(x.beat) tr="cut"; else if(x.bg!==pv.bg) tr=["fade","slide","zoom"][Math.floor(R()*3)]; else if(x.punch) tr="whip"; else tr=R()<0.62?"cut":["slide","zoom","fade"][Math.floor(R()*3)];
+      const TP=G.tr; if(x.beat) tr="cut"; else if(x.bg!==pv.bg) tr=TP[Math.floor(R()*TP.length)]; else if(x.punch&&TP.includes("whip")) tr="whip"; else tr=R()<G.cut?"cut":TP[Math.floor(R()*TP.length)];
       if(tr!=="cut"&&tr===pv.transition) tr="cut"; if(x.transition!==tr){ x.transition=tr; changed.add("ทรานซิชันตามเรื่อง ไม่วนเป็นรอบ"); } }
     // 2. breath after each line: urgent lines are clipped short, the last line and a change of place breathe
     S.forEach((x,i)=>{ if(x.beat||!x.narration.trim()) return; const R=rngOf("p"+i+x.narration), urgent=x.punch||/[!?]/.test(x.narration), nx=S[i+1];
-      const pad=i===S.length-1?0.8:urgent?0.1:(nx&&nx.bg!==x.bg)?0.55:+(0.14+R()*0.32).toFixed(2); if(x.pad!==pad){ x.pad=pad; changed.add("ความยาวช็อตไม่เท่ากัน"); } });
+      const [lo,hi]=G.pad, pad=i===S.length-1?hi:urgent?lo:(nx&&nx.bg!==x.bg)?+(lo+(hi-lo)*0.8).toFixed(2):+(lo+R()*(hi-lo)).toFixed(2); if(x.pad!==pad){ x.pad=pad; changed.add("ความยาวช็อตไม่เท่ากัน"); } });
     // 3. chips: place only when the place changes, clock only on some shots
     const firstTag=S.findIndex(x=>x.tag), firstClock=S.findIndex(x=>x.clock);
-    S.forEach((x,i)=>{ const R=rngOf("c"+i+x.narration); if(i!==firstTag&&x.tag&&(i>0&&S[i-1].bg===x.bg)&&R()<0.9){ x.tag=""; changed.add("ป้ายสถานที่เฉพาะตอนเปลี่ยนที่"); } if(i!==firstClock&&x.clock&&R()<0.6){ x.clock=""; changed.add("นาฬิกาเฉพาะบางช็อต"); } });
+    S.forEach((x,i)=>{ const R=rngOf("c"+i+x.narration);
+      if(G.chips==="none"){ if(x.tag||x.clock){ x.tag=""; x.clock=""; changed.add("ไม่ใช้ป้ายและนาฬิกา"); } return; }
+      if(i!==firstTag&&x.tag&&(G.chips==="clock"||(i>0&&S[i-1].bg===x.bg))&&R()<0.9){ x.tag=""; changed.add("ป้ายสถานที่เฉพาะตอนเปลี่ยนที่"); }
+      if(G.chips!=="clock"&&i!==firstClock&&x.clock&&R()<0.6){ x.clock=""; changed.add("นาฬิกาเฉพาะบางช็อต"); } });
     // 4. card layout: position, side and a slight tilt differ shot to shot
     S.forEach((x,i)=>{ const cards=x.elements.filter(e=>e.type==="card"); if(!cards.length) return; const R=rngOf("l"+i+x.narration), solo=!x.elements.some(e=>e.type==="character"||e.type==="prop");
       const small=cards.filter(e=>["note","stat","bars","timer","icons"].includes(e.kind)); if(!small.length) return;
@@ -3728,11 +3747,26 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
       small.forEach((e,k)=>{ e.x=small.length>1?+(0.5+(k%2?0.06:-0.06)).toFixed(2):bx; if(solo&&shift) e.y=+(e.y+shift).toFixed(3); e.tilt=+((R()-0.5)*0.06).toFixed(3); }); changed.add("ตำแหน่งการ์ดสลับ"); });
     // 5. silent reaction beats (0.9 s, no voice) after heavy shots, at most two, only once
     if(!S.some(x=>x.beat)&&S.length>=10&&S.length<=18){ let added=0; for(let i=0;i<S.length-2&&added<2;i++){ const x=S[i]; if(x.beat) continue; const R=rngOf("b"+i+x.narration), heavy=x.punch||x.elements.some(e=>e.type==="character"&&["shocked","scared"].includes(e.emotion));
-        if(!heavy||R()>0.55||(S[i+1]&&S[i+1].beat)) continue; const ch=x.elements.find(e=>e.type==="character"), pr=x.elements.find(e=>e.type==="prop"); let el;
+        if(!heavy||R()>G.beat||(S[i+1]&&S[i+1].beat)) continue; const ch=x.elements.find(e=>e.type==="character"), pr=x.elements.find(e=>e.type==="prop"); let el;
         if(ch) el={...ch,x:0.5,y:1.78,scale:3.6,motion:"none",say:"",pin:"",enter:"none",flip:false}; else if(pr) el={...pr,x:0.5,y:0.55,scale:Math.min(2.8,pr.scale*1.15),motion:"shake",enter:"none"}; else continue;
         S.splice(i+1,0,{...x,narration:"",subEn:"",emph:[],punch:false,tag:"",clock:"",caption:"",speak:undefined,align:undefined,sfx:"none",effect:"none",transition:"cut",camera:"zoom-in",pad:0.35,beat:true,duration:0.9,elements:[el]}); added++; i++; changed.add("เพิ่มช็อตเงียบ 0.9 วินาที"); } }
     changed.forEach(m=>fixes.push(m)); }
   return [...new Set(fixes)]; }
+/* Editing "grammars": four genuinely different ways to cut a clip. The team gets a different one each time (nextGrammar), and the
+   director applies its look and rhythm. The viral references taught technique; none of them is a template. */
+const GRAMMAR={
+  explainer:{label:"อธิบายเป็นขั้น",skin:"paper",sub:"doc",en:true,pad:[0.15,0.45],beat:0.45,cut:0.6,tr:["slide","zoom","fade"],chips:"place",end:"chip",tint:"warm",
+    guide:"14-18 ช็อต ช็อตละ 2.5-4 วินาที ใช้การ์ดข้อมูลประกอบได้ มีป้ายสถานที่ตอนเปลี่ยนที่ จังหวะสม่ำเสมอ ชัดเจน"},
+  slowburn:{label:"เนิบตึง",skin:"dark",sub:"doc",en:false,pad:[0.3,0.9],beat:0.7,cut:0.8,tr:["fade"],chips:"none",end:"black",tint:"cool",
+    guide:"7-10 ช็อต ช็อตยาว 4-8 วินาที เล่าด้วยภาพการกระทำและกล้องที่ค่อยๆ เคลื่อน การ์ดไม่เกิน 2 ใบทั้งคลิป ไม่มีป้ายสถานที่หรือนาฬิกา ซับสั้น เว้นความเงียบให้คนดูอึ้ง ไม่ต้องมีคำแปลอังกฤษ"},
+  rapid:{label:"กระชาก",skin:"flat",sub:"pop",en:false,pad:[0.02,0.12],beat:0.1,cut:0.45,tr:["whip","zoom","slide"],chips:"clock",end:"plain",tint:"neutral",
+    guide:"18-20 ช็อต ช็อตละ 1.2-2.2 วินาที ประโยคสั้นมาก 3-7 คำ ใช้ภาพแทรกและการเคลื่อนไหวเร็ว การ์ดเฉพาะตัวเลขสำคัญ นาฬิกานับถอยหลังได้ ไม่ต้องมีคำแปลอังกฤษ"},
+  story:{label:"เล่าเรื่อง",skin:"outline",sub:"classic",en:true,pad:[0.2,0.6],beat:0.5,cut:0.7,tr:["fade","slide"],chips:"place",end:"plain",tint:"green",
+    guide:"10-14 ช็อต เน้นตัวละครกับบทพูดในบอลลูน (say) ฉากเปลี่ยนด้วยเฟด การ์ดไม่เกิน 3 ใบ จบด้วยภาพตัวละคร ไม่ต้องมีการ์ดข้อคิด"}};
+function pickGrammarFor(title){ const k=Object.keys(GRAMMAR); return k[Math.floor(mkRng("g|"+title)()*k.length)]; }
+/* the least recently used grammar goes next, so two clips in a row never share a way of cutting */
+function nextGrammar(r){ const keys=Object.keys(GRAMMAR), recent=Object.values(recs).filter(x=>x.id!==r.id&&x.out?.plan?.grammar).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,4).map(x=>x.out.plan.grammar);
+  const score=k=>recent.reduce((a,g,i)=>a+(g===k?4-i:0),0), R=mkRng("n|"+(r.topic||"")); return keys.map(k=>[k,score(k)+R()*0.5]).sort((a,b)=>a[1]-b[1])[0][0]; }
 function mkRng(str){ let h=1779033703^String(str).length; for(const ch of String(str)){ h=Math.imul(h^ch.charCodeAt(0),3432918353); h=h<<13|h>>>19; } let a=h>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 /* Apply the subtitle/pacing staff's structured plans wherever the head's cut breaks a rule. */
 function staffFallbacks(p,r){ let n=0; const sj=subJSON(r,"editor","subs"), pj=subJSON(r,"editor","pace");
@@ -3756,7 +3790,7 @@ const STEP_FN={
     const topic=r.topic||str(j?.topic,140); if(!topic) throw new Error("น้องโฟลว์ยังเลือกหัวข้อไม่ได้ ลองกดทำต่ออีกครั้ง");
     r.topic=topic; if(!r.title) r.title=topic;
     const notes={}; ["creative","animator","editor","voice"].forEach(k=>{ const v=str(j?.notes?.[k],300); if(v) notes[k]=v; });
-    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["guide","scenario","story","whatif"],nextFmt),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
+    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["guide","scenario","story","whatif"],nextFmt),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes,grammar:nextGrammar(r)};
     r.out.brief={text:r.out.plan.brief,music:r.out.plan.music};
     try{ const f=await staffWork(r,"facts",[{id:"fact",prompt:`หัวข้อคลิป: "${topic}"\nบรีฟ: ${r.out.plan.brief}\n\nรวบรวมข้อเท็จจริงและตัวเลขที่ถูกต้อง 5-8 ข้อสำหรับใช้ในคลิปนี้ บอกด้วยว่าข้อไหนเป็นการประมาณหรือสมมติ และเรื่องที่คนมักเข้าใจผิด`}]); if(f) r.out.plan.facts=f.replace(/^\[งานจาก[^\]]*\]\n/,""); }catch{ logAct(r,"coord","ค้นข้อมูลไม่สำเร็จ ให้ทีมเขียนบทตามบรีฟไปก่อน"); }
     const it=plan.find(x=>!x.recId&&x.topic===topic); if(it){ it.recId=r.id; savePlan(); }
@@ -3836,12 +3870,12 @@ const STEP_FN={
   async animator(r){ const scr=String(r.out.creative).split(/```json/i)[0].slice(0,6000);
     const team=await staffWork(r,"animator",[{id:"shot",prompt:`บทคลิป (สัดส่วน ${r.aspect}):\n${scr}\n\nทำ shot list ทีละฉาก: ฉากหลัง เวลา กล้อง เอฟเฟกต์ และเหตุผลสั้นๆ`},{id:"acting",prompt:`บทคลิป:\n${scr}\n\nกำหนดทีละฉาก: ตัวละคร อารมณ์ ท่าทาง พร็อพ และคำพูดในบับเบิล (ถ้ามี)`}]);
     const house=r.out.plan?.format==="whatif"?`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): subStyle "doc" พร้อม subEn ทุกฉาก (ซับเต็มประโยค ไม่ตัดเป็นเศษคำ), look "doc" (ภาพ 2 มิติแบนสีหม่น มีเกรน แบบคลิปไวรัล) ใช้ฉากวาดตามสถานการณ์ (beach, estate, school, nightroom, aerial, street) ก่อนฉาก 3 มิติ, ตัวเลขสำคัญทุกตัวเป็นการ์ดข้อมูล, ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้, ใช้พร็อพเฉพาะที่สื่อความหมายตรงบท (ถ้าไม่แน่ใจ ใช้การ์ดตัวเลขแทน)`:`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): look "doc", subStyle "doc" พร้อม subEn ทุกฉาก, ฉากวาดตามสถานการณ์จริงของเรื่อง (beach, estate, school, nightroom, aerial, street, studio, warehouse) เลือกเวลา day/sunset/night ตามเรื่อง ตัวเลขทุกตัวเป็นการ์ดข้อมูล ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้`;
-    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${house}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}\n\nเกณฑ์คุณภาพ: ภาพทุกฉากต้องเล่าเรื่องได้แม้ปิดเสียง ตัวละครแสดงอารมณ์ตรงกับบท มีพร็อพหรือข้อความที่สื่อตัวเลข/ข้อเท็จจริงสำคัญ ฉากหลังและมุมกล้องไม่ซ้ำติดกัน มีอย่างน้อย 1 ฉากมุมกว้าง (drone หรือ orbit):\n\n${r.out.creative}`);
+    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${house}${GRAMMAR[r.out.plan?.grammar]?`\n\nแบบการตัดของคลิปนี้ (${GRAMMAR[r.out.plan.grammar].label}) ต้องทำตามนี้ เพราะเจ้าของต้องการให้ทุกคลิปตัดไม่เหมือนกัน: ${GRAMMAR[r.out.plan.grammar].guide}`:""}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}\n\nเกณฑ์คุณภาพ: ภาพทุกฉากต้องเล่าเรื่องได้แม้ปิดเสียง ตัวละครแสดงอารมณ์ตรงกับบท มีพร็อพหรือข้อความที่สื่อตัวเลข/ข้อเท็จจริงสำคัญ ฉากหลังและมุมกล้องไม่ซ้ำติดกัน มีอย่างน้อย 1 ฉากมุมกว้าง (drone หรือ orbit):\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
-    r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
+    r.out.animator=normalizeProject({...b,aspect:r.aspect,grammar:r.out.plan?.grammar}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
   async editor(r){ const sum=scriptOf(r.out.animator);
     const team=await staffWork(r,"editor",[{id:"pace",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nวางจังหวะทีละฉาก: duration ที่เหมาะ transition และ sfx เฉพาะจังหวะสำคัญ อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"scenes":[{"scene":1,"duration":3.2,"transition":"${CAT.transitions.join("|")}","sfx":"${CAT.sfx.join("|")}"}]}\n\x60\x60\x60`},{id:"subs",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nเลือก subStyle ของคลิป และทีละฉาก: คำเน้น 1-2 คำ (ต้องอยู่ในบทพูดตรงตัว) ข้อความบนจอไม่เกิน 18 ตัวอักษร และ subPos อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"subStyle":"${CAT.subStyles.join("|")}","scenes":[{"scene":1,"emph":["คำ"],"caption":"ข้อความสั้น","subPos":"${CAT.subPos.join("|")}"}]}\n\x60\x60\x60`}]);
-    const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปัง${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}\n\nสตอรี่บอร์ดตอนนี้ (title "${r.out.animator.title}", music ${r.out.animator.music}, subStyle ${r.out.animator.subStyle}):\n${sum}\n\nสรุปสิ่งที่ตัดต่อเป็น bullet 3-5 ข้อ แล้ว${EDIT_FORMAT}`));
+    const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปัง${GRAMMAR[r.out.plan?.grammar]?` ด้วยแบบการตัด "${GRAMMAR[r.out.plan.grammar].label}": ${GRAMMAR[r.out.plan.grammar].guide}`:""}${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}\n\nสตอรี่บอร์ดตอนนี้ (title "${r.out.animator.title}", music ${r.out.animator.music}, subStyle ${r.out.animator.subStyle}):\n${sum}\n\nสรุปสิ่งที่ตัดต่อเป็น bullet 3-5 ข้อ แล้ว${EDIT_FORMAT}`));
     let f; try{ f=mergeEdits(r.out.animator,cut,r.aspect); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
     const nFix=staffFallbacks(f,r), dir=directorPass(f); r.out.polish={staff:nFix,director:dir};
     if(nFix||dir.length) logAct(r,"editor",`เกลางานรอบสุดท้าย: ${[nFix?`ใช้แผนของน้องซับ/น้องจังหวะ ${nFix} จุด`:"",...dir].filter(Boolean).slice(0,4).join(" · ")}`);

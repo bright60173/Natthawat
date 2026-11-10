@@ -18,4 +18,7 @@ Key rules (details in the files above):
   branch contains its latest commits.
 - ElevenLabs voice needs the cloud environment "Natthawat (TikTok access)" (key is a network secret;
   never put keys in files or chat).
+- IMPORTANT (owner's final word, 10 Nov 2026): the viral reference clips are for learning editing TECHNIQUE only. In real clips do NOT copy
+  their structure, card look or cutting pattern, and do not cut every clip the same way. Each clip uses a different editing "grammar"
+  (GRAMMAR in office.html: explainer / slowburn / rapid / story), chosen by nextGrammar so consecutive clips differ.
 - Main formats (alternate): `guide` (Sigma Lens "what to do when...") and `scenario` (promptkub "if you are at...").
