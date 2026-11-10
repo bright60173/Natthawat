@@ -99,3 +99,10 @@ the whole team with real Claude through the Claude Code CLI.
    video export on iPhone Safari.
 5. The owner wants 10/10 clips; send viral reference clips are welcome (TikTok
    blocks automated download, so the owner uploads the video file).
+
+## Turn-based game (หอคอยเงา)
+
+- Source: `game.html`; published at https://claude.ai/artifact/WHFxVyBRKakyKMeAoDZ3cy (update that link).
+- Fantasy turn-based RPG, 10 floors, party of 3 (knight / mage / cleric), bosses on floors 5 and 10,
+  elements and status effects, level-ups unlock skills, camp (rest or treasure) and shop between floors,
+  auto mode, speed toggle, progress saved to localStorage. Pixel-art sprites drawn from strings in `ROWS`.
