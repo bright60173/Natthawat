@@ -1124,12 +1124,12 @@ const FONT_IDS=CLIP_FONTS.map(f=>f[0]);
 const famOf=f=>`"${FONT_IDS.includes(f)?f:"Kanit"}", Kanit, sans-serif`;
 const CF={ff:famOf("Kanit"),cs:"cute"};
 const CAT = {
-  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint","home","hospital","canal","carin","cabin"],
+  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint","home","hospital","canal","carin","cabin","stadium"],
   times:["day","sunset","night"],
-  characters:["boy","girl","kid","man","woman","crew","scientist","robot","cat","alien"],
+  characters:["boy","girl","kid","man","woman","crew","sprinter","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry","droop"],
-  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer","powerbank","safebag","extinguisher","handbank","bag","smokebank"],
-  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie","handup","reach","hold","duck","sithandup","sitreach","sithold","sitduck"],
+  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer","powerbank","safebag","extinguisher","handbank","bag","smokebank","stopwatch","blocks","bed"],
+  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie","handup","reach","hold","duck","crouch","sithandup","sitreach","sithold","sitduck"],
   enters:["none","pop","fade","left","right","top","bottom"],
   cameras:["static","zoom-in","zoom-out","pan-left","pan-right","orbit","drone","shake"],
   effects:["none","rain","snow","sparkles","confetti","speedlines","fireworks","flash","darken","heat","bubbles"],
@@ -1285,6 +1285,17 @@ const BG={
     c.fillStyle=n?"#4b525f":"#6f7885"; c.fillRect(0,H*0.8,W,H*0.2); c.fillStyle="rgba(255,255,255,.12)"; for(let y=H*0.84;y<H;y+=H*0.05) c.fillRect(0,y,W,H*0.003);
     for(let x=-W*0.05;x<W*1.1;x+=W*0.34){ c.fillStyle=n?"#2b3f56":"#3b6f9e"; c.beginPath(); c.roundRect(x,H*0.5,W*0.24,H*0.31,W*0.04); c.fill(); c.fillStyle=n?"#b8b3a6":"#d2cec2"; c.beginPath(); c.roundRect(x+W*0.02,H*0.5,W*0.2,H*0.055,W*0.02); c.fill(); c.fillStyle="rgba(0,0,0,.14)"; c.fillRect(x,H*0.75,W*0.24,H*0.012); }
     if(n){ c.fillStyle="rgba(10,14,30,.25)"; c.fillRect(0,0,W,H); } },
+  /* Athletics stadium, side-on: crowd stands, boards, infield, red track with lanes, start and finish lines. */
+  stadium(c,W,H,t,time){ const n=time==="night"; c.fillStyle=n?"#1d2340":"#a9c4d6"; c.fillRect(0,0,W,H*0.2); c.fillStyle=n?"#262c4a":"#2e3955"; c.fillRect(0,H*0.15,W,H*0.3);
+    for(let r=0;r<5;r++){ const y=H*(0.17+r*0.055); c.fillStyle="rgba(255,255,255,.07)"; c.fillRect(0,y+H*0.045,W,H*0.003); const cols=["#6b4a52","#7a6a3a","#3f5f8a","#8a8f9a","#3f7a58","#7a5a3a"]; c.globalAlpha=0.55; for(let x=0;x<W;x+=W*0.05){ const k=Math.floor(rnd(x*0.37+r*11)*6), bob=Math.sin(t*2.4+x*0.2+r)*H*0.002*(rnd(x+r)>0.7?1:0); c.fillStyle=cols[k]; c.beginPath(); c.arc(x+rnd(x+r*3)*W*0.02,y+H*0.03+bob,W*0.014,0,7); c.fill(); c.fillRect(x+rnd(x+r*3)*W*0.02-W*0.012,y+H*0.036+bob,W*0.024,H*0.012); } c.globalAlpha=1; }
+    c.fillStyle=n?"#101426":"#1f2740"; c.fillRect(0,H*0.15,W,H*0.012); [0.14,0.86].forEach(x=>{ c.fillStyle="#2a2e38"; c.fillRect(W*x-W*0.004,H*0.02,W*0.008,H*0.14); c.fillStyle=n?"#fff6d8":"#e9e4d0"; c.fillRect(W*x-W*0.05,H*0.02,W*0.1,H*0.022); if(n){ c.save(); c.globalCompositeOperation="lighter"; c.fillStyle="rgba(255,244,200,.12)"; c.beginPath(); c.moveTo(W*x-W*0.05,H*0.042); c.lineTo(W*x+W*0.05,H*0.042); c.lineTo(W*x+W*0.3,H*0.7); c.lineTo(W*x-W*0.3,H*0.7); c.closePath(); c.fill(); c.restore(); } });
+    ["#e2483d","#2f6fa8","#f2c230","#46b56a","#e2483d","#2f6fa8"].forEach((col,k)=>{ c.fillStyle=col; c.fillRect(W*(k/6),H*0.445,W/6-W*0.004,H*0.028); c.fillStyle="rgba(255,255,255,.55)"; c.fillRect(W*(k/6)+W*0.02,H*0.455,W*0.09,H*0.006); });
+    c.fillStyle=n?"#2f5a38":"#4f8a50"; c.fillRect(0,H*0.473,W,H*0.09); c.fillStyle="rgba(255,255,255,.06)"; for(let x=0;x<W;x+=W*0.12) c.fillRect(x,H*0.473,W*0.06,H*0.09);
+    c.fillStyle=n?"#7a3a2c":"#b4553a"; c.fillRect(0,H*0.56,W,H*0.42); c.fillStyle="rgba(255,255,255,.85)"; [0.565,0.66,0.76,0.86,0.96].forEach(y=>c.fillRect(0,H*y,W,H*0.004));
+    c.fillStyle="rgba(255,255,255,.55)"; c.font=`700 ${W*0.035}px sans-serif`; c.textAlign="center"; c.textBaseline="middle"; [2,3,4,5].forEach((k,i)=>c.fillText(String(k),W*0.04,H*(0.61+i*0.1)));
+    c.fillStyle="#f4f1ea"; c.fillRect(W*0.1,H*0.565,W*0.007,H*0.395);
+    const fx=W*0.905; for(let r=0;r<22;r++){ c.fillStyle=r%2?"#17130f":"#f4f1ea"; c.fillRect(fx,H*0.565+r*H*0.018,W*0.014,H*0.018); c.fillStyle=r%2?"#f4f1ea":"#17130f"; c.fillRect(fx+W*0.014,H*0.565+r*H*0.018,W*0.014,H*0.018); }
+    if(n){ c.fillStyle="rgba(8,10,24,.22)"; c.fillRect(0,0,W,H); } },
   blueprint(c,W,H){ c.fillStyle="#1f4a73"; c.fillRect(0,0,W,H); c.strokeStyle="rgba(255,255,255,.06)"; c.lineWidth=1; const g=W/18; c.beginPath(); for(let x=0;x<W;x+=g){ c.moveTo(x,0); c.lineTo(x,H); } for(let y=0;y<H;y+=g){ c.moveTo(0,y); c.lineTo(W,y); } c.stroke(); },
   beach(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.5);
     c.fillStyle=P.hill; c.beginPath(); c.moveTo(W*0.45,H*0.5); c.bezierCurveTo(W*0.6,H*0.36,W*0.78,H*0.33,W*0.92,H*0.4); c.bezierCurveTo(W*1.0,H*0.43,W*1.05,H*0.46,W*1.1,H*0.5); c.closePath(); c.fill();
@@ -1444,6 +1455,13 @@ const CONTINENTS=[
 ];
 function globeProj(lon,lat,rot,r){ const L=(lon-rot)*Math.PI/180, A=lat*Math.PI/180; return [r*Math.cos(A)*Math.sin(L), -r*Math.sin(A), Math.cos(A)*Math.cos(L)]; }
 const PROPS_HQ={
+  /* Stopwatch that counts up to 9.58 s about three times faster than real time, then flashes. */
+  stopwatch(c,t){ const v=Math.min(9.58,t*3.2), done=v>=9.58, fl=done&&Math.sin(t*14)>0; c.fillStyle="#6a7078"; c.beginPath(); c.roundRect(-9,-84,18,16,3); c.fill(); c.fillStyle="#22262d"; c.beginPath(); c.roundRect(-58,-70,116,142,22); c.fill(); c.fillStyle="#3a4048"; c.beginPath(); c.roundRect(-52,-64,104,130,18); c.fill();
+    c.fillStyle="#0e1014"; c.beginPath(); c.roundRect(-44,-38,88,50,8); c.fill(); c.fillStyle=fl?"#fff2b0":"#ff4a3a"; c.font="800 34px monospace"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(v.toFixed(2),0,-12);
+    c.fillStyle="#9aa3b2"; c.font="700 11px sans-serif"; c.fillText("SEC",0,-50); c.fillStyle=done?"#46b56a":"#c8352b"; c.beginPath(); c.arc(0,38,12,0,7); c.fill(); c.fillStyle="#fff"; c.font="800 10px sans-serif"; c.fillText(done?"STOP":"RUN",0,38); },
+  blocks(c,t){ c.fillStyle="#3a3f47"; c.fillRect(-52,12,104,8); [[-34,0],[24,0]].forEach(([x])=>{ c.fillStyle="#c8352b"; c.beginPath(); c.moveTo(x-6,12); c.lineTo(x+16,-26); c.lineTo(x+26,-20); c.lineTo(x+12,12); c.closePath(); c.fill(); c.fillStyle="#1f2226"; c.fillRect(x-8,10,30,5); }); c.fillStyle="#d9d4c7"; c.fillRect(-52,6,104,3); },
+  bed(c,t){ c.fillStyle="#6b4f3a"; c.fillRect(-82,10,10,26); c.fillRect(72,10,10,26); c.fillStyle="#e9e4da"; c.beginPath(); c.roundRect(-80,-12,160,28,8); c.fill(); c.fillStyle="#f4f1e8"; c.beginPath(); c.roundRect(-74,-26,44,20,10); c.fill();
+    c.fillStyle="#3b6f9e"; c.beginPath(); c.roundRect(-30,-24,106,40,8); c.fill(); c.fillStyle="rgba(255,255,255,.18)"; c.fillRect(-30,-24,106,6); c.fillRect(-30,-10,106,2); },
   /* Swollen power bank (bulging case, split seam, warm LED); heat shimmer above. */
   /* the same bank held in a fist from below; shakes harder and gets smokier as t grows */
   handbank(c,t){ const heat=Math.min(1,t/4), sh2=Math.sin(t*(9+heat*14))*(0.8+heat*2.6), skin="#e2ae86", sk2="#d39c74"; c.save(); c.translate(sh2,0);
@@ -1789,6 +1807,7 @@ function drawSlim(c,el,lt,talking){ const L=LOOKS[el.look]||LOOKS.boy, T=SLIM_TO
    dot eyes, thin straight limbs, flat muted colours, no outlines. Feet at (0,0), about 300 units tall. */
 const PK_TONES={boy:{top:"#3f6fb0",bottom:"#2a2f3c",hair:"#1d1b1a",skin:"#e2ae86"},girl:{top:"#f1f0ec",bottom:"#283457",hair:"#151413",skin:"#ecbf98",skirt:true},
   scientist:{top:"#f3f3f0",bottom:"#3b4050",hair:"#cfcac2",skin:"#dcaa82",coat:true,glasses:true},kid:{top:"#f1f0ec",bottom:"#2b3550",hair:"#1d1b1a",skin:"#e6b48c"},
+  sprinter:{top:"#f2c230",bottom:"#1f7a3c",hair:"#17130f",skin:"#6a4330"},
   crew:{top:"#1f3a63",bottom:"#1f3a63",hair:"#2a2422",skin:"#e8b891",skirt:true,scarf:"#c8352b"},
   man:{top:"#6b7f5a",bottom:"#7d6f57",hair:"#4a4644",skin:"#d9a47c"},woman:{top:"#b5694f",bottom:"#3a3f4d",hair:"#2a2422",skin:"#e4b38f",skirt:true}};
 function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=el.emotion, mo=el.motion, run=mo==="run", walk=mo==="walk"||mo==="move"||run, sw=walk?Math.sin(lt*(run?14:7.5)):0;
@@ -1799,14 +1818,14 @@ function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=e
   const hip=-140, sh=-236, legW=11;
   if(sit&&!CF.noChair){ c.fillStyle="#6b4f3a"; c.fillRect(-26,hip+8,44,7); c.fillRect(-22,hip+15,5,56); c.fillRect(9,hip+15,5,56); }
   // legs: straight, swing from the hip; skirt for the girl look
-  const leg=(x,ph,col)=>{ if(sit){ ln([x,hip,x+50,hip+2,x+50,hip+62],legW,col); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(x+56,hip+67,11,5,0,0,7); c.fill(); return; } const a=ph*(run?0.55:0.35), fx=x+Math.sin(a)*140, fy=hip+Math.cos(a)*140; ln([x,hip,fx,fy-4],legW,col); c.fillStyle="#f2f2ee"; c.fillRect(fx-5,fy-16,10,12); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(fx+5,fy-3,11,5,0,0,7); c.fill(); };
+  const leg=(x,ph,col)=>{ if(pz==="crouch"){ const f=x>0; ln([x,hip+40,x+(f?42:22),hip+82,x+(f?6:-34),hip+130],legW,col); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(x+(f?12:-28),hip+133,12,5,0,0,7); c.fill(); return; } if(sit){ ln([x,hip,x+50,hip+2,x+50,hip+62],legW,col); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(x+56,hip+67,11,5,0,0,7); c.fill(); return; } const a=ph*(run?0.55:0.35), fx=x+Math.sin(a)*140, fy=hip+Math.cos(a)*140; ln([x,hip,fx,fy-4],legW,col); c.fillStyle="#f2f2ee"; c.fillRect(fx-5,fy-16,10,12); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(fx+5,fy-3,11,5,0,0,7); c.fill(); };
   leg(5,-sw,T.skirt?T.skin:T.bottom); leg(-5,sw,T.skirt?shade(T.skin,-0.06):shade(T.bottom,-0.12));
-  if(pz==="duck"){ const dk=Math.min(1,lt/0.45); c.translate(10*dk,hip); c.rotate(0.62*dk); c.translate(0,-hip); }   // fold forward at the hips, hands to the face
+  if(pz==="duck"||pz==="crouch"){ const dk=Math.min(1,lt/0.45), ang=pz==="crouch"?0.8:0.62; if(pz==="crouch") c.translate(0,40*dk); c.translate(10*dk,hip); c.rotate(ang*dk); c.translate(0,-hip); }   // fold forward at the hips, hands to the face
   c.translate(0,breath);
   if(T.skirt){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-17,hip-14); c.lineTo(17,hip-14); c.lineTo(25,hip+44); c.lineTo(-25,hip+44); c.closePath(); c.fill(); }
   else { c.fillStyle=T.bottom; c.fillRect(-15,hip-14,30,22); }
   // arms (thin, sleeve then skin)
-  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=pz==="handup"&&side>0?[sx,sh+8,sx+16,sh-40,sx+8+Math.sin(lt*4)*10,sh-98]:pz==="reach"?[sx,sh+8,sx+34,sh+58,sx+62+Math.sin(lt*6)*4,sh+104]:pz==="hold"?[sx,sh+8,sx+20,sh+46,sx+46+side*2,sh+26]:pz==="duck"?[sx,sh+8,sx+side*12,sh-6,sx+side*4+6,sh-38]:sit&&!armsUp&&!(droop&&side<0)&&mo!=="point"?[sx,sh+8,sx+16,sh+52,sx+44,sh+60]:armsUp&&!lie?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
+  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=pz==="handup"&&side>0?[sx,sh+8,sx+16,sh-40,sx+8+Math.sin(lt*4)*10,sh-98]:pz==="reach"?[sx,sh+8,sx+34,sh+58,sx+62+Math.sin(lt*6)*4,sh+104]:pz==="hold"?[sx,sh+8,sx+20,sh+46,sx+46+side*2,sh+26]:pz==="duck"?[sx,sh+8,sx+side*12,sh-6,sx+side*4+6,sh-38]:pz==="crouch"?[sx,sh+8,sx+16,sh+70,sx+26,sh+132]:sit&&!armsUp&&!(droop&&side<0)&&mo!=="point"?[sx,sh+8,sx+16,sh+52,sx+44,sh+60]:armsUp&&!lie?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
     ln(a.slice(0,4),10,T.coat?T.top:T.top); ln(a.slice(2),8.5,T.skin); };
   arm(-16,-1,-sw); 
   // torso: flat shirt block (lab coat longer)
@@ -3743,7 +3762,7 @@ function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","
     // 4. card layout: position, side and a slight tilt differ shot to shot
     S.forEach((x,i)=>{ const cards=x.elements.filter(e=>e.type==="card"); if(!cards.length) return; const R=rngOf("l"+i+x.narration), solo=!x.elements.some(e=>e.type==="character"||e.type==="prop");
       const small=cards.filter(e=>["note","stat","bars","timer","icons"].includes(e.kind)); if(!small.length) return;
-      const xs=[0.5,0.38,0.62], bx=xs[Math.floor(R()*3)], low=solo&&R()<0.38, top=Math.min(...small.map(e=>e.y)), shift=low?0.46-top:0;
+      const wide=small.some(e=>e.kind==="bars"||e.kind==="icons"), xs=wide?[0.5,0.46,0.54]:[0.5,0.38,0.62], bx=xs[Math.floor(R()*3)], low=solo&&R()<0.38, top=Math.min(...small.map(e=>e.y)), shift=low?0.46-top:0;
       small.forEach((e,k)=>{ e.x=small.length>1?+(0.5+(k%2?0.06:-0.06)).toFixed(2):bx; if(solo&&shift) e.y=+(e.y+shift).toFixed(3); e.tilt=+((R()-0.5)*0.06).toFixed(3); }); changed.add("ตำแหน่งการ์ดสลับ"); });
     // 5. silent reaction beats (0.9 s, no voice) after heavy shots, at most two, only once
     if(!S.some(x=>x.beat)&&S.length>=10&&S.length<=18){ let added=0; for(let i=0;i<S.length-2&&added<2;i++){ const x=S[i]; if(x.beat) continue; const R=rngOf("b"+i+x.narration), heavy=x.punch||x.elements.some(e=>e.type==="character"&&["shocked","scared"].includes(e.emotion));
