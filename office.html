@@ -1128,8 +1128,8 @@ const CAT = {
   times:["day","sunset","night"],
   characters:["boy","girl","kid","man","woman","crew","scientist","robot","cat","alien"],
   emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry","droop"],
-  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer","powerbank","safebag","extinguisher"],
-  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie"],
+  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer","powerbank","safebag","extinguisher","handbank","bag","smokebank"],
+  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie","handup","reach","hold","duck","sithandup","sitreach","sithold","sitduck"],
   enters:["none","pop","fade","left","right","top","bottom"],
   cameras:["static","zoom-in","zoom-out","pan-left","pan-right","orbit","drone","shake"],
   effects:["none","rain","snow","sparkles","confetti","speedlines","fireworks","flash","darken","heat","bubbles"],
@@ -1443,16 +1443,27 @@ const CONTINENTS=[
 function globeProj(lon,lat,rot,r){ const L=(lon-rot)*Math.PI/180, A=lat*Math.PI/180; return [r*Math.cos(A)*Math.sin(L), -r*Math.sin(A), Math.cos(A)*Math.cos(L)]; }
 const PROPS_HQ={
   /* Swollen power bank (bulging case, split seam, warm LED); heat shimmer above. */
+  /* the same bank held in a fist from below; shakes harder and gets smokier as t grows */
+  handbank(c,t){ const heat=Math.min(1,t/4), sh2=Math.sin(t*(9+heat*14))*(0.8+heat*2.6), skin="#e2ae86", sk2="#d39c74"; c.save(); c.translate(sh2,0);
+    c.fillStyle="#3a4a5f"; c.beginPath(); c.moveTo(-34,130); c.lineTo(-26,74); c.lineTo(30,74); c.lineTo(40,130); c.closePath(); c.fill(); c.fillStyle=sk2; c.beginPath(); c.roundRect(-24,40,50,42,12); c.fill();
+    c.save(); c.translate(0,-24); c.scale(0.8,0.8); PROPS_HQ.powerbank(c,t); c.restore();
+    c.fillStyle=skin; c.beginPath(); c.roundRect(-34,10,64,52,[10,10,18,18]); c.fill(); [[-26,5],[-9,-1],[8,-1],[24,5]].forEach(([x,y])=>{ c.beginPath(); c.roundRect(x-7,y-4,14,27,7); c.fill(); });
+    c.fillStyle=sk2; c.save(); c.translate(-38,28); c.rotate(-0.5); c.beginPath(); c.roundRect(-7,-24,14,36,7); c.fill(); c.restore(); c.restore(); },
+  smokebank(c,t){ PROPS_HQ.powerbank(c,t+3); },
+  bag(c,t){ c.fillStyle="#34425a"; c.beginPath(); c.roundRect(-50,-48,100,96,[16,16,12,12]); c.fill(); c.fillStyle="#2a3548"; c.beginPath(); c.roundRect(-38,2,76,40,10); c.fill(); c.strokeStyle="#c9cfd4"; c.lineWidth=2; c.beginPath(); c.moveTo(-26,12); c.lineTo(26,12); c.stroke();
+    c.fillStyle="#1d2430"; c.beginPath(); c.ellipse(0,-48,42,9,0,0,7); c.fill(); c.strokeStyle="#34425a"; c.lineWidth=7; c.lineCap="round"; c.beginPath(); c.arc(0,-52,15,Math.PI,0); c.stroke(); },
   powerbank(c,t){ const bl=5+Math.sin(t*2)*0.8; c.save(); c.rotate(-0.12);
     c.fillStyle="#2c3138"; c.beginPath(); c.moveTo(-34,-58); c.lineTo(34,-58); c.quadraticCurveTo(34+bl*3.2,0,34,58); c.lineTo(-34,58); c.quadraticCurveTo(-34-bl*3.2,0,-34,-58); c.closePath(); c.fill();
     c.fillStyle="#3b424b"; c.beginPath(); c.moveTo(-30,-54); c.lineTo(30,-54); c.quadraticCurveTo(30+bl*2.6,0,30,54); c.lineTo(-30,54); c.quadraticCurveTo(-30-bl*2.6,0,-30,-54); c.closePath(); c.fill();
     c.strokeStyle="#15181c"; c.lineWidth=2; c.beginPath(); c.moveTo(-36-bl*1.4,-4); c.quadraticCurveTo(0,-9-bl*0.6,36+bl*1.4,-4); c.stroke(); c.strokeStyle="rgba(255,255,255,.18)"; c.lineWidth=2.4; c.beginPath(); c.moveTo(-24,-46); c.lineTo(-24,-14); c.stroke();
     c.fillStyle="#d9d4c7"; c.fillRect(-20,12,40,5); c.fillRect(-20,22,26,4); c.fillStyle="#15181c"; c.fillRect(-12,-58,24,6); const on=Math.sin(t*6)>0; c.fillStyle=on?"#ff8a3a":"#7a3a18"; for(let k=0;k<4;k++){ c.beginPath(); c.arc(-15+k*10,-36,2.6,0,7); c.fill(); }
-    c.restore(); c.strokeStyle="rgba(255,150,80,.55)"; c.lineWidth=2.2; c.lineCap="round"; for(let k=0;k<3;k++){ c.beginPath(); for(let y=0;y<=34;y+=4) c.lineTo(-18+k*18+Math.sin(y*0.3+t*5+k*2)*3.5,-72-y); c.stroke(); } },
+    c.restore(); c.strokeStyle="rgba(255,150,80,.55)"; c.lineWidth=2.2; c.lineCap="round"; for(let k=0;k<3;k++){ c.beginPath(); for(let y=0;y<=34;y+=4) c.lineTo(-18+k*18+Math.sin(y*0.3+t*5+k*2)*3.5,-72-y); c.stroke(); }
+    if(t>2.2){ for(let k=0;k<5;k++){ const u=((t-2.2)*34+k*20)%100; c.fillStyle=`rgba(210,212,218,${0.62*(1-u/100)})`; c.beginPath(); c.arc(-14+k*8+Math.sin(u*0.09+k)*7,-76-u,6+u*0.16,0,7); c.fill(); } } },
   safebag(c,t){ c.fillStyle="#5d646c"; c.beginPath(); c.roundRect(-52,-36,104,76,10); c.fill(); c.fillStyle="#6f777f"; c.beginPath(); c.roundRect(-46,-30,92,64,7); c.fill(); c.fillStyle="#e8862e"; c.fillRect(-52,-36,104,12); c.fillStyle="#2c3138"; for(let x=-46;x<46;x+=8) c.fillRect(x,-33,4,5);
     c.fillStyle="#f4f1ea"; c.beginPath(); c.moveTo(0,-14); c.lineTo(18,18); c.lineTo(-18,18); c.closePath(); c.fill(); c.fillStyle="#c8352b"; c.font="800 18px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("!",0,7); c.fillStyle="#d9d4c7"; c.font="700 9px sans-serif"; c.fillText("FIRE CONTAINMENT",0,30); },
-  extinguisher(c,t){ c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(-20,-30,40,84,14); c.fill(); c.fillStyle="#9e2a21"; c.fillRect(-20,28,40,8); c.fillStyle="#2c3138"; c.fillRect(-7,-44,14,16); c.fillRect(-7,-44,36,7); c.strokeStyle="#2c3138"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(29,-40); c.quadraticCurveTo(46,-32,40,-6); c.stroke();
-    c.fillStyle="#f4f1ea"; c.beginPath(); c.roundRect(-13,-8,26,26,3); c.fill(); c.fillStyle="#c8352b"; c.fillRect(-8,-3,16,3); c.fillRect(-8,4,16,3); c.fillRect(-8,11,10,3); },
+  extinguisher(c,t){ c.save(); c.scale(-1,1); c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(-20,-30,40,84,14); c.fill(); c.fillStyle="#9e2a21"; c.fillRect(-20,28,40,8); c.fillStyle="#2c3138"; c.fillRect(-7,-44,14,16); c.fillRect(-7,-44,36,7); c.strokeStyle="#2c3138"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(29,-40); c.quadraticCurveTo(46,-32,40,-6); c.stroke();
+    c.fillStyle="#f4f1ea"; c.beginPath(); c.roundRect(-13,-8,26,26,3); c.fill(); c.fillStyle="#c8352b"; c.fillRect(-8,-3,16,3); c.fillRect(-8,4,16,3); c.fillRect(-8,11,10,3); c.restore();
+    if(t>0.7){ const k=Math.min(1,(t-0.7)/1.2); for(let i=0;i<9;i++){ const d=i*14*k, r=5+i*3.4*k; c.fillStyle=`rgba(246,248,250,${Math.max(0,0.92-i*0.08)})`; c.beginPath(); c.arc(-46-d,-4+Math.sin(i*1.7+t*9)*(2+i*1.2)*k,r,0,7); c.fill(); } } },
   /* Car-in-water inserts (flat style). */
   sinkcar(c,t){ c.save(); c.rotate(0.3+Math.sin(t*1.2)*0.02); c.translate(0,Math.sin(t*1.5)*2); c.fillStyle="#c8452f"; c.beginPath(); c.roundRect(-58,-12,116,30,8); c.fill(); c.beginPath(); c.moveTo(-32,-12); c.lineTo(-18,-36); c.lineTo(24,-36); c.lineTo(40,-12); c.closePath(); c.fill();
       c.fillStyle="#9fc1d1"; c.beginPath(); c.moveTo(-24,-13); c.lineTo(-14,-31); c.lineTo(1,-31); c.lineTo(1,-13); c.closePath(); c.fill(); c.beginPath(); c.moveTo(6,-13); c.lineTo(6,-31); c.lineTo(21,-31); c.lineTo(32,-13); c.closePath(); c.fill();
@@ -1774,18 +1785,19 @@ const PK_TONES={boy:{top:"#3f6fb0",bottom:"#2a2f3c",hair:"#1d1b1a",skin:"#e2ae86
 function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=el.emotion, mo=el.motion, run=mo==="run", walk=mo==="walk"||mo==="move"||run, sw=walk?Math.sin(lt*(run?14:7.5)):0;
   const lift=mo==="jump"||mo==="celebrate"||emo==="excited"?-Math.abs(Math.sin(lt*6))*14:run?-Math.abs(Math.sin(lt*14))*5:0, breath=Math.sin(lt*2)*0.8, armsUp=mo==="celebrate"||emo==="excited"||mo==="jump", handsIn=emo==="shocked"||emo==="scared"||emo==="sad";
   const ln=(pts,w,col)=>{ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w; c.strokeStyle=col; c.beginPath(); c.moveTo(pts[0],pts[1]); for(let k=2;k<pts.length;k+=2) c.lineTo(pts[k],pts[k+1]); c.stroke(); };
-  const sit=mo==="sit", lie=mo==="lie", droop=emo==="droop";
+  const sit=mo.startsWith("sit"), pz=mo.replace(/^sit/,""), lie=mo==="lie", droop=emo==="droop";
   c.save(); if(run) c.rotate(0.12); c.translate(0,lift); if(lie){ c.translate(-135,-17); c.rotate(Math.PI/2); } if(sit) c.translate(0,70);
   const hip=-140, sh=-236, legW=11;
   if(sit&&!CF.noChair){ c.fillStyle="#6b4f3a"; c.fillRect(-26,hip+8,44,7); c.fillRect(-22,hip+15,5,56); c.fillRect(9,hip+15,5,56); }
   // legs: straight, swing from the hip; skirt for the girl look
   const leg=(x,ph,col)=>{ if(sit){ ln([x,hip,x+50,hip+2,x+50,hip+62],legW,col); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(x+56,hip+67,11,5,0,0,7); c.fill(); return; } const a=ph*(run?0.55:0.35), fx=x+Math.sin(a)*140, fy=hip+Math.cos(a)*140; ln([x,hip,fx,fy-4],legW,col); c.fillStyle="#f2f2ee"; c.fillRect(fx-5,fy-16,10,12); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(fx+5,fy-3,11,5,0,0,7); c.fill(); };
   leg(5,-sw,T.skirt?T.skin:T.bottom); leg(-5,sw,T.skirt?shade(T.skin,-0.06):shade(T.bottom,-0.12));
+  if(pz==="duck"){ const dk=Math.min(1,lt/0.45); c.translate(10*dk,hip); c.rotate(0.62*dk); c.translate(0,-hip); }   // fold forward at the hips, hands to the face
   c.translate(0,breath);
   if(T.skirt){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-17,hip-14); c.lineTo(17,hip-14); c.lineTo(25,hip+44); c.lineTo(-25,hip+44); c.closePath(); c.fill(); }
   else { c.fillStyle=T.bottom; c.fillRect(-15,hip-14,30,22); }
   // arms (thin, sleeve then skin)
-  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=sit&&!armsUp&&!(droop&&side<0)&&mo!=="point"?[sx,sh+8,sx+16,sh+52,sx+44,sh+60]:armsUp&&!lie?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
+  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=pz==="handup"&&side>0?[sx,sh+8,sx+16,sh-40,sx+8+Math.sin(lt*4)*10,sh-98]:pz==="reach"?[sx,sh+8,sx+34,sh+58,sx+62+Math.sin(lt*6)*4,sh+104]:pz==="hold"?[sx,sh+8,sx+20,sh+46,sx+46+side*2,sh+26]:pz==="duck"?[sx,sh+8,sx+side*12,sh-6,sx+side*4+6,sh-38]:sit&&!armsUp&&!(droop&&side<0)&&mo!=="point"?[sx,sh+8,sx+16,sh+52,sx+44,sh+60]:armsUp&&!lie?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
     ln(a.slice(0,4),10,T.coat?T.top:T.top); ln(a.slice(2),8.5,T.skin); };
   arm(-16,-1,-sw); 
   // torso: flat shirt block (lab coat longer)
@@ -3631,6 +3643,9 @@ const VIRAL_RULES=`กฎจากคลิปไวรัลที่เจ้�
 - ห้ามใช้ของไม่ตรงเรื่อง (เช่น คลื่นสึนามิแทนน้ำคลอง ประตูบ้านแทนประตูรถ) ถ้าคลังไม่มีภาพที่ตรง ให้ใช้การ์ดเล่าแทน เรื่องรถ/น้ำ: ฉาก canal (คลองข้างถนน), carin (ในรถกำลังจม), พร็อพ sinkcar cardoor seatbelt winswitch hammer
 - ท่าทางตัวละครต้องตรงบท (ตกใจ = เอามือแตะหน้า, กังวล = กอดอก, คุย = talk, ชี้ = point) ไม่ยกแขนซ้ำทุกฉาก
 - ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
+- บทต้องเล่าเป็นเหตุการณ์ตามลำดับเวลา ภาษาพูดสั้นๆ ไม่ใช่รายการข้อเท็จจริง ห้ามเฉลยก่อนเกิดเรื่อง (ห้ามพูดว่า "ผิด!" ก่อนที่ตัวละครจะทำผิดให้เห็น) ห้ามสั่งสิ่งที่ทำไม่ได้ในสถานการณ์นั้น (นั่งอยู่บนเครื่องบินจะ "ถอยห่าง" ไม่ได้)
+- ทุกช็อตต้องมีสิ่งที่ขยับจริงอย่างน้อย 1 อย่าง: ตัวละครทำท่า (motion handup/reach/hold/duck/walk/move, ใส่ sit นำหน้าได้ เช่น sithandup) หรือของเคลื่อนที่ (motion move + toX,toY) หรือควัน/ฟองในพร็อพ หรือการ์ดที่ทยอยเข้าตามจังหวะพูด (ใส่ at) ห้ามมีแต่ตัวละครยืนนิ่งกับการ์ดผุดขึ้นเฉยๆ
+- ของที่ถูกกระทำต้องเห็นเหตุและผล เช่น แบตถูกยัดลงกระเป๋า (ใส่พร็อพ bag ทับด้านหน้า) ลูกเรือเดินเข้ามา (ตัวละคร move จากนอกจอ) ถังดับเพลิงฉีดใส่แบตที่มีควัน (พร็อพ smokebank + extinguisher)
 - ห้ามตัดตามสูตรเดิมทุกคลิป (เจ้าของบอกว่า "ดูออกว่าคัดลอกมา") โครงสร้างต้องต่างกันตามเรื่อง:
   เปิดคลิปสลับกัน: ภาพแทรกใกล้ก่อนแล้วถอยออก / ฉากกว้างพร้อมป้ายสถานที่ / การ์ดตัวเลขตัวเดียว / หน้าตัวละครพูดคำถาม ห้ามเปิดแบบเดียวกับคลิปก่อน
   ความยาวช็อตไม่เท่ากัน: ช็อตเร่ง 1.2-2 วินาทีตอนลน ช็อตหนัก 4-5 วินาทีตอนอธิบายตัวเลข (ระบบกำหนด pad ต่อฉากให้)
