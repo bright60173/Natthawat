@@ -77,7 +77,7 @@ function placeActors(sh, S, lt) {
     const dist = Math.hypot(p2[0] - p[0], p2[1] - p[1]) * e; const phase = sp.p2 ? dist * (act.cur === 'run' ? 2.7 : 4.4) + (sp.ph || 0) : (lt + (sp.ph || 0)) * (act.cur === 'run' ? 9 : 5.5);
     pose(a, act.cur, act.k, { phase, dur: sp.dur });
     if (sp.look) { const tv = resolveTarget(sp.look, lt); if (tv) { a.g.updateMatrixWorld(); const hp = new THREE.Vector3(); a.J.head.getWorldPosition(hp); let yaw = angTo(hp, tv) - ang; yaw = ((yaw + Math.PI) % TAU + TAU) % TAU - Math.PI; const pit = -Math.atan2(tv.y - hp.y - 0.15, Math.hypot(tv.x - hp.x, tv.z - hp.z)); a.J.head.rotation.y = clamp(yaw, -1.1, 1.1); a.J.head.rotation.x = clamp(pit, -0.6, 0.6); } }
-    if (sp.hx != null) a.J.head.rotation.x = sp.hx; if (sp.hy != null) a.J.head.rotation.y = sp.hy;
+    for (const [key, ax] of [['hx', 'x'], ['hy', 'y']]) { if (sp[key] == null) continue; const hk = keyed(sp[key], lt, 0); a.J.head.rotation[ax] = hk.prev != null ? lerp(hk.prev, hk.cur, ease(hk.since / 0.6)) : hk.cur; }
     if (a.J.cloak) a.J.cloak.rotation.x = (moving ? (act.cur === 'run' ? 0.38 : 0.15) : 0.04) + Math.sin(lt * 2.3 + x) * 0.04 + (sp.wind || 0);
     if (a.J.skirt) a.J.skirt.rotation.x = moving ? 0.08 : 0;
     setEyes(a, sp.eye || null);
