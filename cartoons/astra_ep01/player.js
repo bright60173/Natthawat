@@ -54,7 +54,7 @@ function angTo(from, v) { return Math.atan2(v.x - from.x, v.z - from.z); }
 function angLerp(a, b, u) { let d = ((b - a + Math.PI) % TAU + TAU) % TAU - Math.PI; return a + d * u; }
 const ONSTAGE = new Map();
 function placeActors(sh, S, lt) {
-  const A = sh.A || {}; const want = new Set(Object.keys(A));
+  const A = sh.A || {}; for (const k in A) if (!A[k]) delete A[k]; const want = new Set(Object.keys(A));
   for (const [id, sc] of ONSTAGE) if (!want.has(id) || sc !== S.scene) { sc.remove(actor(id).g); ONSTAGE.delete(id); }
   const order = Object.keys(A).sort((a, b) => (typeof A[a].f === 'string' ? 1 : 0) - (typeof A[b].f === 'string' ? 1 : 0));
   for (const id of order) {
