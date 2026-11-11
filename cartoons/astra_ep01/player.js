@@ -18,10 +18,10 @@ function findShot(t) { const s = TL.shots; let lo = 0, hi = s.length - 1; while 
 // ---------- renderer & overlay ----------
 let RND, CAM, OUT, OX, GLC; const VIGN = document.createElement('canvas'); const GRAIN = [];
 function initPlayer() {
-  GLC = document.createElement('canvas'); GLC.width = W; GLC.height = H;
-  RND = new THREE.WebGLRenderer({ canvas: GLC, antialias: true, preserveDrawingBuffer: true }); RND.setSize(W, H, false); RND.setPixelRatio(1);
+  GLC = document.createElement('canvas'); GLC.width = GLW; GLC.height = GLH;
+  RND = new THREE.WebGLRenderer({ canvas: GLC, antialias: AA, preserveDrawingBuffer: true }); RND.setPixelRatio(1); RND.setSize(GLW, GLH, false);
   CAM = new THREE.PerspectiveCamera(40, W / H, 0.05, 1200);
-  OUT = document.getElementById('cv'); OUT.width = W; OUT.height = H; OX = OUT.getContext('2d');
+  OUT = document.getElementById('cv'); OUT.width = W; OUT.height = H; OX = OUT.getContext('2d', { willReadFrequently: true }); OX.imageSmoothingQuality = 'high';
   VIGN.width = W; VIGN.height = H; const v = VIGN.getContext('2d'); const g = v.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.75)'); v.fillStyle = g; v.fillRect(0, 0, W, H);
   for (let k = 0; k < 4; k++) { const c = document.createElement('canvas'); c.width = 480; c.height = 270; const x = c.getContext('2d'); const id = x.createImageData(480, 270); for (let i = 0; i < id.data.length; i += 4) { const n = hash(i * 0.37 + k * 999) * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = n; id.data[i + 3] = 255; } x.putImageData(id, 0, 0); GRAIN.push(c); }
   buildTimeline();
@@ -116,10 +116,10 @@ function drawSubs(sh, lt) {
 function speedLines(alpha, cx, cy, col, t) { const x = OX; x.save(); x.globalAlpha = alpha; x.fillStyle = col; for (let i = 0; i < 90; i++) { const a = hash(i + Math.floor(t * 12) * 0.13) * TAU, r0 = 260 + hash(i + 3) * 380, r1 = 1500; const w = 0.004 + hash(i + 7) * 0.012; x.beginPath(); x.moveTo(cx + Math.cos(a - w) * r1, cy + Math.sin(a - w) * r1); x.lineTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); x.lineTo(cx + Math.cos(a + w) * r1, cy + Math.sin(a + w) * r1); x.fill(); } x.restore(); }
 function overlay(sh, lt, F, t) {
   const x = OX; const L = LIGHTS[sh.L || 'day'] || LIGHTS.day; const gr = sh.grade || L.grade;
-  if (gr && gr[1] > 0) { x.save(); x.globalCompositeOperation = 'overlay'; x.globalAlpha = Math.min(1, gr[1] * 1.6); x.fillStyle = '#' + C(gr[0]).getHexString(); x.fillRect(0, 0, W, H); x.restore(); }
+  if (gr && gr[1] > 0) { x.save(); x.globalAlpha = Math.min(1, gr[1] * 0.9); x.fillStyle = '#' + C(gr[0]).getHexString(); x.fillRect(0, 0, W, H); x.restore(); }
   if (F.rays > 0) speedLines(F.rays, F.raysAt[0], F.raysAt[1], F.raysCol || '#ff2a1a', t);
   if (F.lines > 0) speedLines(F.lines, W / 2, H / 2, '#ffffff', t);
-  x.drawImage(VIGN, 0, 0); x.save(); x.globalAlpha = 0.06; x.globalCompositeOperation = 'overlay'; x.drawImage(GRAIN[Math.floor(t * FPS) % 4], 0, 0, W, H); x.restore();
+  x.drawImage(VIGN, 0, 0);
   if (sh.bars) { x.fillStyle = '#000'; x.fillRect(0, 0, W, 110); x.fillRect(0, H - 110, W, 110); }
   let fade = 0; if (sh.fadeIn && lt < sh.fadeIn) fade = 1 - lt / sh.fadeIn; if (sh.fadeOut && lt > sh.d - sh.fadeOut) fade = Math.max(fade, (lt - (sh.d - sh.fadeOut)) / sh.fadeOut); fade = Math.max(fade, F.dark || 0);
   if (sh.flash) for (const [ft, fd, fc] of sh.flash) { if (lt >= ft && lt < ft + fd) { F.flash = Math.max(F.flash, 1 - (lt - ft) / fd); F.flashCol = fc || '#ffffff'; } }
@@ -147,7 +147,9 @@ function draw(t) {
   F._lt = lt; if (sh.fx) sh.fx(F, lt, u, t);
   if (F.shake > 0) { const s = F.shake; CAM.position.x += noise1(t * 31) * s; CAM.position.y += noise1(t * 27 + 3) * s; CAM.rotation.z += noise1(t * 23 + 7) * s * 0.3; }
   RND.render(S.scene, CAM);
-  OX.globalAlpha = 1; OX.globalCompositeOperation = 'source-over'; OX.drawImage(GLC, 0, 0);
+  OX.globalAlpha = 1; OX.globalCompositeOperation = 'source-over'; if (QS.get('blit') === 'direct') OX.drawImage(GLC, 0, 0, W, H);
+  else { const gl = RND.getContext(); if (!draw.buf) { draw.buf = new Uint8ClampedArray(GLW * GLH * 4); draw.tmp = document.createElement('canvas'); draw.tmp.width = GLW; draw.tmp.height = GLH; draw.tx = draw.tmp.getContext('2d', { willReadFrequently: true }); draw.id = new ImageData(draw.buf, GLW, GLH); }
+    gl.readPixels(0, 0, GLW, GLH, gl.RGBA, gl.UNSIGNED_BYTE, draw.buf); draw.tx.putImageData(draw.id, 0, 0); OX.save(); OX.setTransform(1, 0, 0, -1, 0, H); OX.drawImage(draw.tmp, 0, 0, W, H); OX.restore(); }
   overlay(sh, lt, F, t);
 }
 window.EP = { FPS, W, H, get DUR() { return TL.total; } };

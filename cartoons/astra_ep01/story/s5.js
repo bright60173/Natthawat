@@ -1,7 +1,7 @@
 // ฉากที่ 5 — เปลวเพลิงที่หลับใหล
 const R5 = [-3.5, 5], G5 = [2, 2.5];
 const SOL5 = () => { const A = {}; for (let i = 0; i < 6; i++) A['s' + i] = { p: [4.2 + (i % 3) * 1.4, 0.6 + Math.floor(i / 3) * 2.6 + hash(i) * 0.5], a: 'idle', f: 'ren', ph: i }; return A; };
-const ARMFLAME = (F, lt, k = 1, n = 320) => { FX.blackFlame(F, 'arm', FX.armBases(F, 'ren', 'R'), lt, { n, h: 0.45, w: 0.09, k, size: 0.9 }); const h = F.joint('ren', 'handR'); F.light(2, 0xff1a10, 1.6 * k, h.x, h.y, h.z, 5); };
+const ARMFLAME = (F, lt, k = 1, n = 320) => { FX.blackFlame(F, 'arm', FX.armBases(F, 'ren', 'R'), lt, { n, h: 0.45, w: 0.09, k, size: 0.9 }); const h = F.joint('ren', 'handR'); F.light(1, 0xff1a10, 1.6 * k, h.x, h.y, h.z, 5); };
 FX.wolfFlame = (F, key, lt, k = 1, n = 900) => { const w = actor('wolf'); const b = new THREE.Vector3(), hd = new THREE.Vector3(); w.J.body.getWorldPosition(b); w.J.head.getWorldPosition(hd); const s = w.g.scale.x;
   FX.blackFlame(F, key, i => { const u = hash(i * 1.7); const p = b.clone().lerp(hd, u * 0.9); p.add(V3((hash(i) - 0.5) * 0.7 * s, (hash(i + 1) - 0.3) * 0.7 * s, (hash(i + 2) - 0.5) * 0.9 * s)); return p; }, lt, { n, h: 0.5 * s, w: 0.12 * s, k, size: 1.2 * s * 0.6, life: 0.6 }); };
 function base5(extra = {}, sol = true) { return Object.assign({ gron: { p: G5, a: 'cast', f: 'ren' }, sera: { p: [-6.6, 7.4], a: 'cane', f: 'ren' }, mira: { p: [5.4, -6.3], a: 'sit', f: 'ren', L: 'crystal' } }, sol ? SOL5() : {}, extra); }

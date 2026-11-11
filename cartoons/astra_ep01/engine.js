@@ -1,6 +1,7 @@
 // อาณาจักรอัสตรา ตอนที่ 1 — engine: every frame is built from code (three.js r128 + canvas 2D). No generative AI.
 'use strict';
 const W = 1920, H = 1080, FPS = 24;
+const QS = new URLSearchParams(location.search); const GS = +(QS.get('gs') || 0.6667), AA = QS.get('aa') !== '0'; const GLW = Math.round(W * GS), GLH = Math.round(H * GS);
 const TAU = Math.PI * 2;
 const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -19,6 +20,7 @@ function toon(color, emissive = 0, extra = {}) {
   if (!MATS[k]) MATS[k] = new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: GRAD, emissive }, extra));
   return MATS[k];
 }
+function flat(color, emissive = 0, extra = {}) { const k = 'L' + color + ':' + emissive + JSON.stringify(extra); if (!MATS[k]) MATS[k] = new THREE.MeshLambertMaterial(Object.assign({ color, emissive }, extra)); return MATS[k]; }
 function basic(color, extra = {}) { const k = 'b' + color + JSON.stringify(extra); if (!MATS[k]) MATS[k] = new THREE.MeshBasicMaterial(Object.assign({ color }, extra)); return MATS[k]; }
 const OLM = {};
 function outlineMat(th, color = 0x07050a) {
@@ -56,7 +58,7 @@ class PS {
     g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setAttribute('size', new THREE.BufferAttribute(this.size, 1));
     g.setAttribute('alpha', new THREE.BufferAttribute(this.alpha, 1)); g.setAttribute('pcol', new THREE.BufferAttribute(this.col, 3));
     const mat = new THREE.ShaderMaterial({ vertexShader: PS_VS, fragmentShader: PS_FS, transparent: true, depthWrite: false,
-      blending: o.blend === 'normal' ? THREE.NormalBlending : THREE.AdditiveBlending, uniforms: { scale: { value: H * 0.5 * 2.75 }, soft: { value: o.soft == null ? 0.2 : o.soft } } });
+      blending: o.blend === 'normal' ? THREE.NormalBlending : THREE.AdditiveBlending, uniforms: { scale: { value: GLH * 0.5 * 2.75 }, soft: { value: o.soft == null ? 0.2 : o.soft } } });
     this.pts = new THREE.Points(g, mat); this.pts.frustumCulled = false; this.pts.renderOrder = o.order || 5; this.g = g;
   }
   set(fn) { const o = { x: 0, y: 0, z: 0, s: 0, a: 0, r: 1, g: 1, b: 1 };
@@ -115,7 +117,7 @@ function buildHuman(d) {
         head.add(rot(at(new THREE.Mesh(BOX(0.05, 0.009, 0.01), basic(0x1a1014)), s * 0.065, 0.19, 0.152), 0, 0, s * (d.old ? -0.15 : 0.12))); }
     }
     if (!hood) { const mouth = new THREE.Mesh(BOX(0.04, 0.01, 0.01), basic(0x3a1418)); at(mouth, 0, 0.065, 0.158); head.add(mouth); J.mouth = mouth; }
-    if (hood) { head.add(at(P(SPH(0.21, 14, 10), d.cloak, { ol: 0.015 }), 0, 0.17, -0.03, [1, 1.15, 1.05])); head.add(at(P(CONE(0.17, 0.3, 10), d.cloak, { ol: 0.012 }), 0, 0.38, -0.05)); head.add(at(new THREE.Mesh(BOX(0.25, 0.18, 0.02), basic(0x000000)), 0, 0.13, 0.16)); for (const s of [-1, 1]) { const e = new THREE.Mesh(SPH(0.022, 8, 6), s > 0 ? eyeMat : eyeMatR); at(e, s * 0.055, 0.15, 0.172, [1.4, 0.6, 0.4]); head.add(e); } }
+    if (hood) { head.add(at(P(SPH(0.21, 14, 10), d.cloak, { ol: 0.015 }), 0, 0.17, -0.03, [1, 1.15, 1.05])); head.add(at(P(CONE(0.17, 0.3, 10), d.cloak, { ol: 0.012 }), 0, 0.38, -0.05)); head.add(at(new THREE.Mesh(BOX(0.25, 0.18, 0.02), basic(0x000000)), 0, 0.13, 0.16)); for (const s of [-1, 1]) { const e = new THREE.Mesh(SPH(0.026, 8, 6), s > 0 ? eyeMat : eyeMatR); at(e, s * 0.06, 0.15, 0.18, [1.6, 0.6, 0.6]); head.add(e); } }
   }
   // hair
   const hc = d.hair, hp = (g, x, y, z, s, r) => { const m = P(g, hc, { ol: 0.01 }); at(m, x, y, z, s); if (r) rot(m, r[0], r[1], r[2]); head.add(m); return m; };
@@ -278,7 +280,7 @@ function mountains(scene, rad, n, col, hmin, hmax, y0 = -2, seed = 0) {
 }
 function forest(scene, list, trunkCol = 0xc8ccd8, leafCol = 0x9fb0cc) {
   const n = list.length; const tg = CYL(0.12, 0.2, 1, 6); const lg = new THREE.IcosahedronGeometry(1, 0); const cg = CONE(1, 1, 7);
-  const tm = new THREE.InstancedMesh(tg, toon(trunkCol, 0x101418), n); const lm = new THREE.InstancedMesh(lg, toon(leafCol, 0x0a1020), n); const cm = new THREE.InstancedMesh(cg, toon(leafCol, 0x0a1020), n);
+  const tm = new THREE.InstancedMesh(tg, flat(trunkCol, 0x101418), n); const lm = new THREE.InstancedMesh(lg, flat(leafCol, 0x0a1020, { flatShading: true }), n); const cm = new THREE.InstancedMesh(cg, flat(leafCol, 0x0a1020, { flatShading: true }), n);
   const d = new THREE.Object3D();
   list.forEach(([x, z, s, y = 0], i) => { const h = 4 * s; d.position.set(x, y + h / 2, z); d.scale.set(s, h, s); d.rotation.set(0, 0, 0); d.updateMatrix(); tm.setMatrixAt(i, d.matrix);
     d.position.set(x, y + h * 0.95, z); d.scale.set(1.5 * s, 1.3 * s, 1.5 * s); d.rotation.set(hash(i), hash(i + 1) * 3, 0); d.updateMatrix(); lm.setMatrixAt(i, d.matrix);
@@ -298,7 +300,7 @@ function house(scene, x, z, face, s = 1, o = {}) {
 
 function addLights(scene) {
   const hemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.8); const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(5, 10, 6);
-  const pts = [0, 1, 2].map(() => { const p = new THREE.PointLight(0xff3300, 0, 14, 2); scene.add(p); return p; });
+  const pts = [0, 1].map(() => { const p = new THREE.PointLight(0xff3300, 0, 14, 2); scene.add(p); return p; });
   scene.add(hemi, dir, dir.target); return { hemi, dir, pts };
 }
 
@@ -347,7 +349,7 @@ function updFire(set, t, level) {
 const BUILD = {
   void() {
     const S = baseSet(); const sc = S.scene;
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(60, 48), toon(0x120c0e)); ground.rotation.x = -Math.PI / 2; sc.add(ground);
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(60, 48), flat(0x120c0e)); ground.rotation.x = -Math.PI / 2; sc.add(ground);
     const ring = new THREE.Group(); for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; const h = 2.2 + hash(i) * 1.6; const st = P(BOX(0.7, h, 0.5), 0x4a3a44, { olS: 1.03 }); at(st, Math.cos(a) * 4.5, h / 2, Math.sin(a) * 4.5); st.rotation.y = -a + hash(i + 2) * 0.3; st.rotation.z = (hash(i + 4) - 0.5) * 0.15; ring.add(st); } sc.add(ring);
     sc.add(at(P(CYL(1.3, 1.5, 0.45, 12), 0x302830, { ol: 0.03 }), 0, 0.22, 0));
     const glyph = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.08, 48), basic(0x801010, { side: THREE.DoubleSide })); glyph.rotation.x = -Math.PI / 2; at(glyph, 0, 0.46, 0); sc.add(glyph);
@@ -374,7 +376,7 @@ const BUILD = {
   },
   room() {
     const S = baseSet(); const sc = S.scene;
-    const room = new THREE.Mesh(BOX(7, 3.4, 7), toon(0x5a3e2a, 0, { side: THREE.BackSide })); at(room, 0, 1.7, 0); sc.add(room);
+    const room = new THREE.Mesh(BOX(7, 3.4, 7), flat(0x5a3e2a, 0, { side: THREE.BackSide })); at(room, 0, 1.7, 0); sc.add(room);
     for (let i = 0; i < 6; i++) sc.add(at(new THREE.Mesh(BOX(7, 0.06, 0.12), toon(0x3a2618)), 0, 0.5 + i * 0.55, -3.45));
     sc.add(at(P(BOX(2.2, 0.45, 1.1), 0x6a4a30, { olS: 1.02 }), -1.6, 0.25, -2.3)); sc.add(at(P(BOX(2.0, 0.15, 1.0), 0xc8c0b0, { olS: 1.02 }), -1.6, 0.55, -2.3)); sc.add(at(P(BOX(0.5, 0.12, 0.7), 0xe8e0d0, { olS: 1.04 }), -2.35, 0.66, -2.3));
     sc.add(at(P(BOX(1.4, 0.8, 0.8), 0x5a3a22, { olS: 1.02 }), 2.2, 0.4, -2.8)); for (let i = 0; i < 6; i++) sc.add(at(P(CYL(0.03, 0.03, 0.3, 6), 0x8a9098, { ol: 0.005 }), 1.8 + i * 0.15, 0.9, -2.7));
@@ -386,11 +388,11 @@ const BUILD = {
   },
   village() {
     const S = baseSet(); const sc = S.scene;
-    const top = new THREE.Mesh(new THREE.CircleGeometry(60, 64), toon(0x55604a)); top.rotation.x = -Math.PI / 2; sc.add(top); S.groundMat = top.material;
-    const cliff = new THREE.Mesh(CYL(60, 52, 40, 40, true), toon(0x3a3438)); at(cliff, 0, -20, 0); sc.add(cliff);
-    const valley = new THREE.Mesh(new THREE.CircleGeometry(400, 32), toon(0x1e2430)); valley.rotation.x = -Math.PI / 2; valley.position.y = -40; sc.add(valley);
-    const plaza = new THREE.Mesh(CYL(7, 7, 0.06, 32), toon(0x7a7470)); at(plaza, 0, 0.03, 0); sc.add(plaza);
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(56, 3.2), toon(0x6a5a44)); road.rotation.x = -Math.PI / 2; at(road, 32, 0.02, 0); sc.add(road);
+    const top = new THREE.Mesh(new THREE.CircleGeometry(60, 64), flat(0x55604a)); top.rotation.x = -Math.PI / 2; sc.add(top); S.groundMat = top.material;
+    const cliff = new THREE.Mesh(CYL(60, 52, 40, 40, true), flat(0x3a3438)); at(cliff, 0, -20, 0); sc.add(cliff);
+    const valley = new THREE.Mesh(new THREE.CircleGeometry(400, 32), flat(0x1e2430)); valley.rotation.x = -Math.PI / 2; valley.position.y = -40; sc.add(valley);
+    const plaza = new THREE.Mesh(CYL(7, 7, 0.06, 32), flat(0x7a7470)); at(plaza, 0, 0.03, 0); sc.add(plaza);
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(56, 3.2), flat(0x6a5a44)); road.rotation.x = -Math.PI / 2; at(road, 32, 0.02, 0); sc.add(road);
     // bell tower
     const tower = new THREE.Group(); for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) tower.add(at(P(BOX(0.3, 6, 0.3), 0x5a3a24, { olS: 1.05 }), x * 0.9, 3, z * 0.9));
     tower.add(at(P(BOX(2.6, 0.3, 2.6), 0x4a2a1e, { olS: 1.02 }), 0, 6.1, 0)); tower.add(at(P(CONE(2.0, 1.6, 4), 0x3a1a16, { olS: 1.02 }), 0, 7.0, 0)); tower.children[tower.children.length - 1].rotation.y = Math.PI / 4;
@@ -433,8 +435,8 @@ const BUILD = {
   },
   forest() {
     const S = baseSet(); const sc = S.scene;
-    const g = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), toon(0x3a4448)); g.rotation.x = -Math.PI / 2; sc.add(g);
-    const path = new THREE.Mesh(new THREE.PlaneGeometry(3, 300), toon(0x4e4a40)); path.rotation.x = -Math.PI / 2; at(path, 0, 0.02, 0); sc.add(path);
+    const g = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), flat(0x3a4448)); g.rotation.x = -Math.PI / 2; sc.add(g);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(3, 300), flat(0x4e4a40)); path.rotation.x = -Math.PI / 2; at(path, 0, 0.02, 0); sc.add(path);
     const stream = new THREE.Mesh(new THREE.PlaneGeometry(300, 2.4), new THREE.MeshToonMaterial({ color: 0x3a7ab8, emissive: 0x0a2a48, gradientMap: GRAD })); stream.rotation.x = -Math.PI / 2; at(stream, 0, 0.03, -30); sc.add(stream);
     for (let i = 0; i < 10; i++) { const pd = new THREE.Mesh(new THREE.CircleGeometry(0.6 + hash(i) * 0.8, 16), toon(0x4a7aa8, 0x0a1a30)); pd.rotation.x = -Math.PI / 2; at(pd, (hash(i + 1) - 0.5) * 6, 0.03, 10 - i * 7); sc.add(pd); }
     const trees = []; for (let i = 0; i < 420; i++) { const x = (hash(i) - 0.5) * 120, z = (hash(i + 1) - 0.5) * 220; if (Math.abs(x) < 2.6) continue; trees.push([x, z, 0.8 + hash(i + 2) * 1.2]); }
@@ -449,9 +451,9 @@ const BUILD = {
     const S = baseSet(); const sc = S.scene;
     const gy = (x, z) => 0.12 * z + Math.sin(x * 0.15) * 0.6 + Math.max(0, Math.abs(x) - 4) * 0.25; S.groundY = gy;
     const geo = new THREE.PlaneGeometry(200, 200, 80, 80); geo.rotateX(-Math.PI / 2); const p = geo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, gy(p.getX(i), p.getZ(i))); geo.computeVertexNormals();
-    sc.add(new THREE.Mesh(geo, toon(0x2a3038)));
+    sc.add(new THREE.Mesh(geo, flat(0x2a3038)));
     const pg = new THREE.PlaneGeometry(2.4, 200, 2, 100); pg.rotateX(-Math.PI / 2); const pp = pg.attributes.position; for (let i = 0; i < pp.count; i++) { const x = pp.getX(i) + Math.sin(pp.getZ(i) * 0.08) * 2; pp.setX(i, x); pp.setY(i, gy(x, pp.getZ(i)) + 0.03); }
-    sc.add(new THREE.Mesh(pg, toon(0x4a4038))); S.pathX = z => Math.sin(z * 0.08) * 2;
+    sc.add(new THREE.Mesh(pg, flat(0x4a4038))); S.pathX = z => Math.sin(z * 0.08) * 2;
     for (let i = 0; i < 60; i++) { const x = (hash(i) - 0.5) * 40, z = (hash(i + 1) - 0.5) * 120; if (Math.abs(x - Math.sin(z * 0.08) * 2) < 2) continue; sc.add(at(P(new THREE.DodecahedronGeometry(0.3 + hash(i + 2) * 0.9, 0), 0x3e4048, { ol: 0.02 }), x, gy(x, z) + 0.2, z)); }
     const trees = []; for (let i = 0; i < 120; i++) { const x = (hash(i + 7) - 0.5) * 120, z = (hash(i + 8) - 0.5) * 160; if (Math.abs(x) < 8) continue; trees.push([x, z, 0.8 + hash(i + 9), gy(x, z)]); } forest(sc, trees, 0x9aa0b0, 0x5a6478);
     // village lights far below (behind, -z)
@@ -464,13 +466,13 @@ const BUILD = {
     for (let i = 0; i < 4; i++) { const lg = new THREE.Mesh(CYL(2, 1.5, 16, 6), mm); at(lg, -12 + i * 8, -12, 0); mon.add(lg); } mon.add(rot(at(new THREE.Mesh(CONE(3, 22, 6), mm), -26, 2, 0), 0, 0, 1.9));
     for (let i = 0; i < 6; i++) mon.add(rot(at(new THREE.Mesh(CONE(1.6, 6, 4), mm), -10 + i * 5, 10, 0), 0, 0, 0.2));
     const eye = new THREE.Mesh(SPH(0.9, 8, 6), basic(0xff2010, { fog: false })); at(eye, 24, 5, 3, [1.5, 0.5, 0.5]); mon.add(eye);
-    at(mon, -160, 40, -170); mon.rotation.y = 0;
-    for (const [x, h, r] of [[-90, 34, 80], [30, 30, 70], [150, 40, 80]]) { const rg = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), basic(0x08090e)); at(rg, x, h / 2 - 12, -150); sc.add(rg); } mon.visible = false; sc.add(mon); S.mon = mon;
+    mon.children.slice().forEach(ch => { if (ch.material === mm) { const o = new THREE.Mesh(ch.geometry, outlineMat(0.35, 0x9a1410)); o.material.fog = false; o.position.copy(ch.position); o.rotation.copy(ch.rotation); o.scale.copy(ch.scale); mon.add(o); } });
+    at(mon, -160, 40, -150, 1.5); mon.rotation.y = 0; mon.visible = false; sc.add(mon); S.mon = mon;
     // near ridge in front of the monster (+z)
     const ridge = new THREE.Mesh(new THREE.ConeGeometry(70, 45, 7), basic(0x0a0b10)); at(ridge, 20, 10, 140); sc.add(ridge); const ridge2 = new THREE.Mesh(new THREE.ConeGeometry(60, 40, 6), basic(0x0a0b10)); at(ridge2, -60, 8, 130); sc.add(ridge2);
     ambient(S, 'ember', 160, { r: 12, h: 8, sp: 0.2, col: 0xff3020 }); ambient(S, 'dust', 200, { r: 14, h: 6, sp: 0.05, col: 0xa0b0ff });
     S.update = (sh, t, lt) => { S.sky.userData.u.t.value = t; const c = sh.camPos || { x: 0, z: 0 }; const st = sh.st || {}; updAmbient(S, 'ember', t, c.x, c.z, true); updAmbient(S, 'dust', t, c.x, c.z, true);
-      S.mon.visible = st.mon != null; if (st.mon != null) { const u = st.mon; S.mon.position.set(-170 + u * 300, 37 + Math.sin(u * 20) * 1.5, -175); } };
+      S.mon.visible = st.mon != null; if (st.mon != null) { const u = st.mon; S.mon.position.set(-170 + u * 260, 9 + Math.sin(u * 20) * 1.2, -110); } };
     return S;
   },
   throne() {
@@ -480,7 +482,7 @@ const BUILD = {
     for (let i = 0; i < 6; i++) for (const s of [-1, 1]) { sc.add(at(P(CYL(0.6, 0.7, 14, 8), 0x1a161c, { ol: 0.03 }), s * 5, 7, -12 + i * 5)); const br = new PS(30, { soft: 0.1 }); br.pts.userData.b = [s * 3.6, 1.6, -12 + i * 5]; sc.add(br.pts); (S.braz = S.braz || []).push(br); sc.add(at(P(CYL(0.35, 0.2, 1.4, 8), 0x2a2228, { ol: 0.02 }), s * 3.6, 0.7, -12 + i * 5)); }
     const th = new THREE.Group(); th.add(at(P(BOX(3, 0.6, 3), 0x15121a, { olS: 1.02 }), 0, 0.3, 0)); th.add(at(P(BOX(2.2, 0.8, 1.6), 0x0e0c12, { olS: 1.02 }), 0, 1.0, 0)); th.add(at(P(BOX(2.2, 4.5, 0.4), 0x0e0c12, { olS: 1.02 }), 0, 3.0, -0.7));
     for (let i = 0; i < 5; i++) th.add(at(P(CONE(0.22, 1.6 + (i === 2 ? 1 : 0), 4), 0x0e0c12, { ol: 0.02 }), -0.9 + i * 0.45, 5.6 + (i === 2 ? 0.5 : 0), -0.7)); at(th, 0, 0, -16); sc.add(th);
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), toon(0x0a080c)); at(back, 0, 12, -20); sc.add(back);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), flat(0x0a080c)); at(back, 0, 12, -20); sc.add(back);
     // mural
     const c = document.createElement('canvas'); c.width = 768; c.height = 1024; const x = c.getContext('2d'); x.fillStyle = '#120608'; x.fillRect(0, 0, 768, 1024);
     x.fillStyle = '#2a0a0e'; x.fillRect(260, 120, 250, 860); x.beginPath(); x.moveTo(230, 130); x.lineTo(385, 10); x.lineTo(540, 130); x.fill(); x.fillStyle = '#ff9040'; x.globalAlpha = 0.8; x.fillRect(340, 330, 90, 120); x.globalAlpha = 1;
