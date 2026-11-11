@@ -1,0 +1,78 @@
+// ฉากที่ 5 — เปลวเพลิงที่หลับใหล
+const R5 = [-3.5, 5], G5 = [2, 2.5];
+const SOL5 = () => { const A = {}; for (let i = 0; i < 6; i++) A['s' + i] = { p: [4.2 + (i % 3) * 1.4, 0.6 + Math.floor(i / 3) * 2.6 + hash(i) * 0.5], a: 'idle', f: 'ren', ph: i }; return A; };
+const ARMFLAME = (F, lt, k = 1, n = 320) => { FX.blackFlame(F, 'arm', FX.armBases(F, 'ren', 'R'), lt, { n, h: 0.45, w: 0.09, k, size: 0.9 }); const h = F.joint('ren', 'handR'); F.light(2, 0xff1a10, 1.6 * k, h.x, h.y, h.z, 5); };
+FX.wolfFlame = (F, key, lt, k = 1, n = 900) => { const w = actor('wolf'); const b = new THREE.Vector3(), hd = new THREE.Vector3(); w.J.body.getWorldPosition(b); w.J.head.getWorldPosition(hd); const s = w.g.scale.x;
+  FX.blackFlame(F, key, i => { const u = hash(i * 1.7); const p = b.clone().lerp(hd, u * 0.9); p.add(V3((hash(i) - 0.5) * 0.7 * s, (hash(i + 1) - 0.3) * 0.7 * s, (hash(i + 2) - 0.5) * 0.9 * s)); return p; }, lt, { n, h: 0.5 * s, w: 0.12 * s, k, size: 1.2 * s * 0.6, life: 0.6 }); };
+function base5(extra = {}, sol = true) { return Object.assign({ gron: { p: G5, a: 'cast', f: 'ren' }, sera: { p: [-6.6, 7.4], a: 'cane', f: 'ren' }, mira: { p: [5.4, -6.3], a: 'sit', f: 'ren', L: 'crystal' } }, sol ? SOL5() : {}, extra); }
+const CAGED = (lt0 = 0) => ({ p: R5, a: 'struggle', f: 'gron', R: 'pendant', y: 0.3 });
+const CAGE = (F, lt, u = 1, th = 0) => { const c = F.apos('ren'); c.y -= 0.3; FX.cage(F, 'cage', c, u, th, { r: 0.55 }); F.light(0, 0xff1020, 2.5 * u, c.x, 1.5, c.z, 6); };
+const MEM = (o) => Object.assign({ set: 'void', L: 'memory', m: 'memory', still: 0 }, o);
+scene({ id: 5, title: 'เปลวเพลิงที่หลับใหล', shots: [
+  { d: 8, set: 'village', L: 'battle', m: 'villain', st: { fire: 0.8, debris: true }, sfx: [[0.5, 'bloodform', 1], [1.8, 'whoosh', 0.9], [2.6, 'cageclose', 1]],
+    A: base5({ ren: { p: R5, a: [[0, 'guard'], [2.6, 'struggle']], f: 'gron', R: 'pendant', y: 0, y2: 0.3, t: [2.6, 3.4] }, gron: { p: G5, a: [[0, 'idle'], [0.6, 'cast']], f: 'ren' } }),
+    cam: { p: [-1.5, 1.6, 9.8], p2: [-2, 1.8, 9.3], l: [-2.4, 1.3, 4.2], fov: 44 },
+    fx: (F, lt) => { const h = F.joint('gron', 'handR'); const r = F.apos('ren'); FX.whip(F, 'w', h, r.clone().add(V3(0, 1.2, 0)), clamp((lt - 1.4) / 1.0) * (lt < 2.8 ? 1 : 0), { arc: 1.0, r: 0.07 }); if (lt > 2.4) CAGE(F, lt, clamp((lt - 2.4) / 0.6)); F.shake = lt > 2.6 && lt < 3 ? 0.1 : 0; } },
+  { d: 6, set: 'village', L: 'battle', m: 'villain', st: { fire: 0.8, debris: true }, sub: [['gron', 'ภาชนะเพลิง จงตื่นขึ้น!', 1.0]],
+    A: base5({ ren: CAGED() }), cam: { p: [0.4, 1.2, 1.6], p2: [0.7, 1.3, 1.9], l: [2, 2.4, 2.5], fov: 34 }, fx: (F, lt) => CAGE(F, lt) },
+  { d: 7, set: 'village', L: 'battle', m: 'mystery', st: { fire: 0.8 }, sfx: [[0.8, 'sizzle', 0.8], [2.5, 'heartbeat', 0.9], [4.5, 'heartbeat', 1]],
+    A: base5({ ren: CAGED() }, false), cam: { f: 'ren', p: [0.55, 1.15, 0.9], l: [0.05, 0.95, 0.3], fov: 30 },
+    fx: (F, lt) => { CAGE(F, lt); const h = F.joint('ren', 'handR'); const k = clamp(lt / 4); FX.glow(F, 'pg', h, 0.5 * k, 0xff3010, 0.4 + 0.3 * Math.sin(lt * 6)); FX.burst(F, 'steam', h, lt % 1.2, 0, { n: 40, col: 0xffa080, speed: 0.8, size: 0.2, life: 1.2, up: 1 }); F.light(1, 0xff3010, 2 * k, h.x, h.y, h.z, 3); } },
+  MEM({ d: 4, flash: [[0, 0.5, '#ffffff']], sfx: [[0, 'flashback', 1]], st: { flame: 0.5 }, cam: { p: [8, 5, 8], p2: [6, 4, 6], l: [0, 1, 0], fov: 40 } }),
+  MEM({ d: 4, flash: [[0, 0.3, '#ff2a1a']], sfx: [[0, 'flare', 0.8]], st: { flame: 1 }, cam: { p: [0.6, 1.3, 1.2], l: [0, 0.6, -0.1], fov: 32 } }),
+  MEM({ d: 5, flash: [[0, 0.3, '#ff2a1a']], st: { flame: 1, crack: 1, giant: 1 }, sfx: [[0.2, 'growl', 0.7]], cam: { p: [0, 1.6, 6], l: [2, 30, -50], fov: 55 } }),
+  MEM({ d: 9, flash: [[0, 0.3, '#ffffff']], st: { flame: 0.3, nobaby: true }, sub: [['mom', 'เรน ลูกต้องมีชีวิตอยู่ อย่าให้ความมืดกลืนหัวใจของลูก', 1.2]], sfx: [[0.5, 'cry', 0.4]],
+    A: { mom: { p: [0.5, 1.6], a: 'carrybaby', f: Math.PI, F: 'baby', hx: 0.45 } }, cam: { p: [0.2, 1.7, -0.5], p2: [0.3, 1.65, -0.2], l: [0.5, 1.55, 1.6], fov: 32 },
+    fx: (F, lt) => { const h = F.joint('mom', 'head'); for (const s of [-1, 1]) FX.burst(F, 'tear' + s, h.clone().add(V3(s * 0.06, 0.12, -0.15)), lt % 1.5, 0, { n: 3, col: 0xbfe0ff, speed: 0.2, size: 0.04, life: 1.5, grav: 0.8 }); } }),
+  { d: 7, set: 'village', L: 'battle', m: 'battle', st: { fire: 0.8 }, flash: [[0, 0.4, '#ffffff']], sfx: [[0.6, 'thorns', 1], [1.6, 'bonecrack', 0.9], [2, 'scream', 0.8]],
+    A: base5({ ren: CAGED(), gron: { p: G5, a: 'clench', f: 'ren' } }), cam: { p: [-2.6, 1.3, 6.3], p2: [-3.0, 1.4, 6.0], l: [-3.5, 1.4, 5], fov: 38 },
+    fx: (F, lt) => { CAGE(F, lt, 1, clamp((lt - 0.5) / 1.2)); F.shake = lt > 1.5 && lt < 2.2 ? 0.06 : 0.01; } },
+  { d: 6, set: 'village', L: 'battle', m: 'sad', st: { fire: 0.8, debris: true }, sfx: [[0.5, 'groan', 0.6], [2.5, 'tumble', 0.5]],
+    A: { mira: { p: [5.4, -6.3], a: [[0, 'sit'], [0.6, 'getup'], [2.2, 'hurt']], dur: 1.6, f: 'ren', L: 'crystal' } }, cam: { p: [6.6, 1.0, -4.6], l: [5.4, 0.8, -6.3], fov: 36 } },
+  { d: 7, set: 'village', L: 'battle', m: 'magic', st: { fire: 0.8, debris: true }, sub: [['mira', 'เรน! ฟังฉัน อย่าต่อต้านพลังนั้นด้วยความกลัว!', 0.8]],
+    A: { mira: { p: [5.4, -6.3], a: 'hurt', f: 'ren', L: 'crystal', hx: -0.2 } }, cam: { p: [4.4, 1.3, -4.8], p2: [4.6, 1.3, -5.1], l: [5.4, 1.1, -6.3], fov: 32 } },
+  { d: 5, set: 'village', L: 'battle', m: 'battle', st: { fire: 0.8 }, sub: [['ren', 'ฉันไม่รู้ด้วยซ้ำว่ามันคืออะไร!', 0.6]],
+    A: base5({ ren: CAGED() }, false), cam: { f: 'ren', p: [0.9, 1.75, 1.1], l: [0, 1.45, 0], fov: 32 }, fx: (F, lt) => CAGE(F, lt, 1, 1) },
+  { d: 5, set: 'village', L: 'battle', m: 'magic', st: { fire: 0.8, debris: true }, sub: [['mira', 'มันกำลังฟังหัวใจของนายอยู่!', 0.6]], sfx: [[0.2, 'heartbeat', 0.8]],
+    A: { mira: { p: [5.4, -6.3], a: 'hurt', f: 'ren', L: 'crystal', hx: -0.25 } }, cam: { p: [5.1, 1.2, -5.4], l: [5.4, 1.15, -6.3], fov: 28 } },
+  { d: 7, set: 'village', L: 'battle', m: 'villain', st: { fire: 0.8 }, sub: [['gron', 'จงแสดงเปลวเพลิงของราชันออกมา!', 1.8]], sfx: [[0.6, 'thorns', 1], [0.8, 'scream', 0.6]],
+    A: base5({ ren: CAGED(), gron: { p: G5, a: [[0, 'cast'], [0.5, 'clench']], f: 'ren' } }), cam: { p: [3.4, 1.0, 0.6], p2: [3.1, 1.1, 1.0], l: [2, 2.4, 2.5], fov: 34 },
+    fx: (F, lt) => { CAGE(F, lt, 1, 1.3); } },
+  { d: 11, set: 'void', L: 'void', Lk: 0.6, m: 'inner', st: { nobaby: true }, sub: [['sera', 'เจ้าจะหนี หรือจะปกป้องพวกเขา?', 5.5]], sfx: [[0.5, 'heartbeat', 0.8], [1.5, 'kidcry', 0.6], [3.0, 'crowd', 0.5], [5, 'heartbeat', 0.8], [8.5, 'heartbeat', 1]],
+    A: { ren: { p: [0, 0], y: 1.0, a: 'clench', f: 0, hx: 0.35 } }, cam: { p: [3, 1.6, 3], p2: [-2.5, 1.9, 3.4], l: [0, 1.8, 0], fov: 38, e: 'lin' },
+    fx: (F, lt) => { F.dark = 0.25; F.light(0, 0xff1a10, 1.5, -1, 2, -1, 6); } },
+  { d: 5, set: 'village', L: 'battle', m: 'inner', st: { fire: 0.8 }, sfx: [[1, 'clench', 0.8], [1, 'heartbeat', 1]],
+    A: base5({ ren: CAGED() }, false), cam: { f: 'ren', p: [-0.55, 1.05, 0.45], l: [-0.1, 0.95, 0.05], fov: 28 },
+    fx: (F, lt) => { CAGE(F, lt, 1, 1.3); const h = F.joint('ren', 'handR'); FX.blackFlame(F, 'h', [h], lt, { n: 80, h: 0.2, w: 0.08, k: clamp((lt - 1.5) / 2) * 0.6, size: 0.5 }); } },
+  { d: 7, set: 'village', L: 'battle', m: 'awaken', st: { fire: 0.8 }, sub: [['ren', 'ผม...จะไม่ยอมให้ใครต้องตายอีก!', 0.8, 4.6]], sfx: [[0.5, 'riser', 1]],
+    A: base5({ ren: Object.assign(CAGED(), { a: 'shout', hx: -0.3 }) }, false), cam: { f: 'ren', p: [1.4, 1.2, 1.5], p2: [1.0, 1.25, 1.1], l: [0, 1.65, 0], fov: 32 },
+    fx: (F, lt) => { CAGE(F, lt, 1, 1.3); FX.blackFlame(F, 'body', FX.bodyBases(F, 'ren'), lt, { n: 500, h: 0.6, w: 0.12, k: clamp(lt / 6), size: 0.9 }); F.shake = 0.01 + lt * 0.01; } },
+  { d: 7, set: 'village', L: 'battle', m: 'awaken', st: { fire: 0.8, cracks: true, crackAt: R5 }, flash: [[0.2, 0.9, '#000000'], [0.25, 0.5, '#ff2a1a']], sfx: [[0.2, 'explosion', 1], [0.2, 'flamewhoosh', 1], [0.3, 'shatter', 0.8]],
+    A: base5({ ren: { p: R5, a: 'spread', f: 'gron', eye: 'gold', y: 0.3, y2: 0, t: [0.5, 2] }, gron: { p: G5, p2: [2.6, 2.1], t: [0.2, 0.8], a: 'guard', f: 'ren', e: 'out' } }),
+    cam: { p: [-1, 2.5, 11], p2: [-1.5, 3, 12.5], l: [-3, 1.2, 4.5], fov: 48 },
+    fx: (F, lt) => { const c = F.apos('ren'); FX.burst(F, 'ash', c.clone().add(V3(0, 1.3, 0)), lt, 0.25, { n: 300, col: 0x1a0a0a, speed: 6, size: 0.25, life: 1.5, blend: 'normal' }); FX.burst(F, 'red', c.clone().add(V3(0, 1.3, 0)), lt, 0.25, { n: 200, col: 0xff2010, speed: 9, size: 0.4 }); FX.ring(F, 'sw', c, lt, 0.25, { r: 18, life: 1.2, col: 0xff2a10 });
+      FX.blackFlame(F, 'body', FX.bodyBases(F, 'ren'), lt, { n: 900, h: 1.4 * Math.max(0.3, 1 - lt / 4), w: 0.3, k: 1, size: 1.6 }); F.shake = Math.max(0, 0.3 - lt * 0.1); F.rays = lt < 1.5 ? 0.4 : 0; F.raysAt = [W * 0.42, H * 0.5]; F.light(0, 0xff1a10, 4, c.x, 1.5, c.z, 14); } },
+  { d: 8, set: 'village', L: 'battle', m: 'awaken', st: { fire: 0.8, cracks: true, crackAt: R5 }, sfx: [[0, 'flameloop', 0.7]],
+    A: base5({ ren: { p: R5, a: 'stance', f: 'gron', eye: 'gold' } }), cam: { p: [-3.0, 0.4, 6.4], p2: [-3.2, 0.6, 5.9], l: [-3.5, 1.8, 5], fov: 38 },
+    fx: (F, lt) => { ARMFLAME(F, lt); } },
+  { d: 6, set: 'village', L: 'battle', m: 'awaken', st: { fire: 0.8, cracks: true, crackAt: R5, ash: true },
+    A: Object.assign(base5({ ren: { p: R5, a: 'stance', f: 'gron', eye: 'gold' } }), { kid: { p: [-1, -2.5], a: 'idle', f: 'ren' }, v1: { p: [-2, -3.2], a: 'idle', f: 'ren' }, v2: { p: [0, -3.4], a: 'cower', f: 'ren' }, man: { p: [-3, -2.8], a: 'idle', f: 'ren' } }),
+    cam: { p: [-5.5, 6.5, -2], p2: [-6, 7, -2.6], l: [-1, 1, 2.5], fov: 46 }, fx: (F, lt) => { ARMFLAME(F, lt); } },
+  { d: 6, set: 'village', L: 'battle', m: 'villain', st: { fire: 0.8, cracks: true, crackAt: R5 }, sub: [['gron', 'ในที่สุดก็พบเจ้า...', 1.6]], sfx: [[0.8, 'laugh_low', 0.7]],
+    A: base5({ ren: { p: R5, a: 'stance', f: 'gron', eye: 'gold' }, gron: { p: [2.6, 2.1], a: 'idle', f: 'ren', hx: -0.1 } }), cam: ots(R5, [2.6, 2.1], { y: 1.8, ly: 2.25, side: 0.7, push: 0.3 }), fx: (F, lt) => { ARMFLAME(F, lt); } },
+  { d: 6, set: 'village', L: 'battle', m: 'awaken', st: { fire: 0.8, cracks: true, crackAt: R5 }, sub: [['ren', 'นี่มันอะไรกัน?', 1.6]],
+    A: base5({ ren: { p: R5, a: 'lookhand', f: 'gron', eye: 'gold' } }), cam: { f: 'ren', p: [0.9, 1.6, 1.2], l: [0, 1.35, 0.3], fov: 32 }, fx: (F, lt) => { ARMFLAME(F, lt); } },
+  { d: 9, set: 'village', L: 'battle', m: 'wolf', st: { fire: 0.8, cracks: true, crackAt: R5 }, sfx: [[0.8, 'punch', 0.8], [0.9, 'flamewhoosh', 1], [2.6, 'wolfhowl', 1], [3.5, 'roar', 0.8]],
+    A: base5({ ren: { p: R5, a: [[0, 'stance'], [0.6, 'punch']], f: 'gron', eye: 'gold' }, wolf: { p: [-2.4, 4.4], p2: [-0.6, 3.6], t: [1.0, 2.4], a: [[0, 'run'], [2.4, 'roar']], f: 'gron', s: 0.01 } }),
+    cam: { p: [-4.5, 1.6, 10.5], p2: [-5, 2.4, 11.4], l: [-1.5, 1.6, 3.8], fov: 46 },
+    fx: (F, lt) => { const sc = 2.4 * ease((lt - 0.9) / 1.4); actor('wolf').g.scale.setScalar(Math.max(0.01, sc)); if (sc > 0.05) FX.wolfFlame(F, 'wf', lt, 1, 900); ARMFLAME(F, lt);
+      F.shake = lt > 2.5 && lt < 4 ? 0.06 : 0; FX.ring(F, 'r', F.apos('wolf'), lt, 2.6, { r: 14, life: 1.0, col: 0xff2010 }); F.light(0, 0xff1a10, 3, -1, 2, 4, 14); } },
+  { d: 7, set: 'village', L: 'battle', m: 'wolf', st: { fire: 0.8, cracks: true, crackAt: R5 }, sfx: [[0.3, 'roar', 1], [0.6, 'wind', 0.8]],
+    A: Object.assign(base5({ wolf: { p: [-0.6, 3.6], a: 'roar', f: 'gron', s: 2.4 }, ren: { p: R5, a: 'stance', f: 'gron', eye: 'gold' } }), (() => { const A = SOL5(); for (const k in A) { A[k].p2 = [A[k].p[0] + 2.4, A[k].p[1] - 0.6]; A[k].a = [[0, 'idle'], [0.6, 'flinch']]; A[k].t = [0.6, 2.6]; A[k].e = 'out'; } return A; })()),
+    cam: { p: [1.6, 1.4, 7.4], p2: [1.8, 1.6, 7.9], l: [0.2, 2.6, 3.4], fov: 40 },
+    fx: (F, lt) => { FX.wolfFlame(F, 'wf', lt, 1, 900); FX.ring(F, 'r', F.apos('wolf'), lt, 0.4, { r: 16, life: 1.0, col: 0xff2010 }); F.shake = lt > 0.3 && lt < 2 ? 0.08 : 0; F.rays = lt > 0.3 && lt < 1.4 ? 0.3 : 0; F.raysAt = [W * 0.5, H * 0.35]; F.light(0, 0xff1a10, 3, 0, 2.5, 3.6, 14); } },
+  { d: 8, set: 'village', L: 'battle', m: 'wolf', st: { fire: 0.8, cracks: true, crackAt: R5, ash: true }, fadeOut: 1, sfx: [[0, 'flameloop', 0.7], [3, 'growl', 0.8]],
+    A: base5({ wolf: { p: [-0.6, 3.6], a: 'crouch', f: 'gron', s: 2.4 }, ren: { p: R5, a: 'stance', f: 'gron', eye: 'gold' } }),
+    cam: { p: [-8, 2.6, 2], p2: [-9.5, 3.4, 0.5], l: [-1.5, 1.5, 3.8], fov: 44 },
+    fx: (F, lt) => { FX.wolfFlame(F, 'wf', lt, 1, 900); ARMFLAME(F, lt); F.light(0, 0xff1a10, 3, 0, 2.5, 3.6, 14); } },
+] });
