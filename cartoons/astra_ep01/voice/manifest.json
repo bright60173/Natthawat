@@ -1,0 +1,437 @@
+{
+ "01": {
+  "who": "เสียงชายลึกลับ",
+  "voice": "George",
+  "sec": 3.866
+ },
+ "02": {
+  "who": "เสียงหญิงสาว",
+  "voice": "Sarah",
+  "sec": 1.881
+ },
+ "03": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.724
+ },
+ "04": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.508
+ },
+ "05": {
+  "who": "เด็กชาย",
+  "voice": "Laura",
+  "sec": 4.127
+ },
+ "06": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.396
+ },
+ "07": {
+  "who": "ชาวบ้าน",
+  "voice": "Eric",
+  "sec": 7.471
+ },
+ "08": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 5.329
+ },
+ "09": {
+  "who": "ชาวบ้าน",
+  "voice": "Eric",
+  "sec": 4.206
+ },
+ "10": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 3.971
+ },
+ "11": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 4.362
+ },
+ "12": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.411
+ },
+ "13": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 3.318
+ },
+ "14": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.724
+ },
+ "15": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 1.802
+ },
+ "16": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.866
+ },
+ "17": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 1.567
+ },
+ "18": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 3.161
+ },
+ "19": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.847
+ },
+ "20": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 5.146
+ },
+ "21": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 2.926
+ },
+ "22": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 0.993
+ },
+ "23": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 4.519
+ },
+ "24": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 2.769
+ },
+ "25": {
+  "who": "เด็กชาย",
+  "voice": "Laura",
+  "sec": 0.993
+ },
+ "26": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.586
+ },
+ "27": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 3.474
+ },
+ "28": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.071
+ },
+ "29": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 2.194
+ },
+ "30": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 5.068
+ },
+ "31": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 4.754
+ },
+ "32": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 3.788
+ },
+ "33": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 1.567
+ },
+ "34": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 0.993
+ },
+ "35": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 5.329
+ },
+ "36": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.769
+ },
+ "37": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 4.441
+ },
+ "38": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 1.567
+ },
+ "39": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 2.508
+ },
+ "40": {
+  "who": "เสียงหญิงสาว",
+  "voice": "Sarah",
+  "sec": 5.146
+ },
+ "41": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 4.206
+ },
+ "42": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.116
+ },
+ "43": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 2.429
+ },
+ "44": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 2.847
+ },
+ "45": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 2.586
+ },
+ "46": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.847
+ },
+ "47": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 2.038
+ },
+ "48": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.228
+ },
+ "49": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 3.318
+ },
+ "50": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.553
+ },
+ "51": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 5.251
+ },
+ "52": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.646
+ },
+ "53": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 4.362
+ },
+ "54": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.802
+ },
+ "55": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 3.971
+ },
+ "56": {
+  "who": "ราชันเงา",
+  "voice": "Daniel",
+  "sec": 2.038
+ },
+ "57": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 3.004
+ },
+ "58": {
+  "who": "ราชันเงา",
+  "voice": "Daniel",
+  "sec": 6.426
+ },
+ "59": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 5.642
+ },
+ "60": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.194
+ },
+ "61": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.161
+ },
+ "62": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 3.318
+ },
+ "63": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.881
+ },
+ "64": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 2.429
+ },
+ "65": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 4.989
+ },
+ "66": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 3.161
+ },
+ "67": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 3.161
+ },
+ "68": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 3.318
+ },
+ "69": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 5.068
+ },
+ "70": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.411
+ },
+ "71": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 1.802
+ },
+ "72": {
+  "who": "ยายเซรา",
+  "voice": "Matilda",
+  "sec": 3.004
+ },
+ "73": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 2.769
+ },
+ "74": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 1.306
+ },
+ "75": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.866
+ },
+ "76": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 3.082
+ },
+ "77": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 4.754
+ },
+ "78": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.161
+ },
+ "79": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 2.926
+ },
+ "80": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 4.049
+ },
+ "81": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.396
+ },
+ "82": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 3.709
+ },
+ "83": {
+  "who": "โกรน",
+  "voice": "Callum",
+  "sec": 3.474
+ },
+ "84": {
+  "who": "ราชันเงา",
+  "voice": "Daniel",
+  "sec": 4.676
+ },
+ "85": {
+  "who": "ราชันเงา",
+  "voice": "Daniel",
+  "sec": 4.754
+ },
+ "86": {
+  "who": "ราชันเงา",
+  "voice": "Daniel",
+  "sec": 3.318
+ },
+ "87": {
+  "who": "เสียงเด็กหญิง",
+  "voice": "Lily",
+  "sec": 2.273
+ }
+}
