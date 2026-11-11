@@ -1,7 +1,8 @@
 // อาณาจักรอัสตรา ตอนที่ 1 — engine: every frame is built from code (three.js r128 + canvas 2D). No generative AI.
 'use strict';
 const W = 1920, H = 1080, FPS = 24;
-const QS = new URLSearchParams(location.search); const GS = +(QS.get('gs') || 0.6667), AA = QS.get('aa') !== '0'; const GLW = Math.round(W * GS), GLH = Math.round(H * GS);
+const QS = new URLSearchParams(location.search); const GS = +(QS.get('gs') || 0.6667), AA = QS.get('aa') !== '0'; const ANIME = QS.get('anime') === '1';
+const GLW = Math.round(W * GS), GLH = Math.round(H * GS);
 const TAU = Math.PI * 2;
 const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -13,13 +14,16 @@ const noise1 = t => Math.sin(t * 1.7) * 0.5 + Math.sin(t * 3.1 + 1.3) * 0.3 + Ma
 const C = c => new THREE.Color(c);
 
 // ---------- materials ----------
-const GRAD = (() => { const d = new Uint8Array([70, 70, 70, 165, 165, 165, 255, 255, 255]); const t = new THREE.DataTexture(d, 3, 1, THREE.RGBFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; })();
+const GRAD = (() => { const d = ANIME ? new Uint8Array([118, 112, 132, 118, 112, 132, 255, 255, 255, 255, 255, 255]) : new Uint8Array([70, 70, 70, 165, 165, 165, 255, 255, 255]); const t = new THREE.DataTexture(d, ANIME ? 4 : 3, 1, THREE.RGBFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; })();
 const MATS = {};
+const RIM = { value: new THREE.Color(0x8899ff) }, RIMK = { value: 0.0 };
 function toon(color, emissive = 0, extra = {}) {
   const k = color + ':' + emissive + ':' + JSON.stringify(extra);
-  if (!MATS[k]) MATS[k] = new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: GRAD, emissive }, extra));
+  if (!MATS[k]) { const m = MATS[k] = new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: GRAD, emissive }, extra));
+    if (ANIME) { m.onBeforeCompile = sh => { sh.uniforms.rimCol = RIM; sh.uniforms.rimK = RIMK; sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 rimCol; uniform float rimK;').replace('#include <tonemapping_fragment>', 'float rimF = pow(1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0), 3.0); gl_FragColor.rgb += rimCol * rimF * rimK;\n#include <tonemapping_fragment>'); }; m.customProgramCacheKey = () => 'rim'; } }
   return MATS[k];
 }
+
 function flat(color, emissive = 0, extra = {}) { const k = 'L' + color + ':' + emissive + JSON.stringify(extra); if (!MATS[k]) MATS[k] = new THREE.MeshLambertMaterial(Object.assign({ color, emissive }, extra)); return MATS[k]; }
 function basic(color, extra = {}) { const k = 'b' + color + JSON.stringify(extra); if (!MATS[k]) MATS[k] = new THREE.MeshBasicMaterial(Object.assign({ color }, extra)); return MATS[k]; }
 const OLM = {};
@@ -76,13 +80,13 @@ function flameP(i, t, o, bx, by, bz, h, w, life = 0.8, seed = 0) {
 
 // ---------- characters ----------
 const CASTDEF = {
-  ren: { name: 'เรน', skin: 0xf0c8a8, hair: 0x17121a, hs: 'spiky', top: 0x5c1a1d, pants: 0x1e1e26, boots: 0x3b2a22, cloth: 'cloak', cloak: 0x2c2e36, eye: 0x3a1410 },
-  mira: { name: 'มีรา', skin: 0xf6d8c4, hair: 0xd8e2f4, hs: 'long', top: 0x2f4f8f, pants: 0x1c2438, boots: 0x2a2f45, cloth: 'coat', cloak: 0x5a6e9e, eye: 0x2a6fd0, female: 1 },
+  ren: { name: 'เรน', skin: 0xf0c8a8, hair: 0x17121a, hs: 'spiky', top: 0x5c1a1d, pants: 0x1e1e26, boots: 0x3b2a22, cloth: 'cloak', cloak: 0x2c2e36, eye: 0x3a1410, iris: 0xc8542a },
+  mira: { name: 'มีรา', skin: 0xf6d8c4, hair: 0xd8e2f4, hs: 'long', top: 0x2f4f8f, pants: 0x1c2438, boots: 0x2a2f45, cloth: 'coat', cloak: 0x5a6e9e, eye: 0x2a6fd0, iris: 0x3d8fe8, female: 1 },
   gron: { name: 'โกรน', skin: 0x2a1e1e, hair: 0x101014, hs: 'helm', top: 0x16161c, pants: 0x121216, boots: 0x0c0c10, cloth: 'armor', cloak: 0x6a0a0e, eye: 0xff2020, scale: 1.22 },
   sera: { name: 'ยายเซรา', skin: 0xe2b79a, hair: 0xa4a4ac, hs: 'bun', top: 0x5b4636, pants: 0x4a3a2e, boots: 0x2e241c, cloth: 'robe', cloak: 0x6b5442, eye: 0x2b1d14, female: 1, old: 1, scale: 0.92 },
   kid: { name: 'เด็กชาย', skin: 0xf0c4a0, hair: 0x5a3a22, hs: 'messy', top: 0x3f6a3a, pants: 0x4a3a2a, boots: 0x3a2a1e, eye: 0x2b1d14, scale: 0.68 },
   man: { name: 'ชาวบ้าน', skin: 0xd9a988, hair: 0x3b2a1e, hs: 'short', top: 0xb89a6a, pants: 0x3e4a5a, boots: 0x3a2a1e, eye: 0x2b1d14, mark: 1, scale: 1.05 },
-  mom: { name: 'แม่', skin: 0xf3d2bd, hair: 0x15101a, hs: 'longdark', top: 0xe8ecf5, pants: 0xe8ecf5, boots: 0xd0d4dd, cloth: 'robe', cloak: 0xc7cfe0, eye: 0x6a1a10, female: 1 },
+  mom: { name: 'แม่', skin: 0xf3d2bd, hair: 0x15101a, hs: 'longdark', top: 0xe8ecf5, pants: 0xe8ecf5, boots: 0xd0d4dd, cloth: 'robe', cloak: 0xc7cfe0, eye: 0x6a1a10, iris: 0xb8503a, female: 1 },
   king: { name: 'ราชันเงา', skin: 0x0a0608, hair: 0x050406, hs: 'hood', top: 0x0b0a0e, pants: 0x0b0a0e, boots: 0x060508, cloth: 'robe', cloak: 0x0d0b10, eye: 0xff1010, scale: 1.45 },
 };
 const VILLAGER_COLORS = [[0x8a5a3a, 0x3a3a4a], [0x6a7a4a, 0x4a3a2a], [0x9a6a5a, 0x2e3a4a], [0x5a6a8a, 0x3a2e24], [0xa08050, 0x3a3030], [0x7a4a5a, 0x2a2a34]];
@@ -90,7 +94,7 @@ function soldierDef(i) { return { name: 'ทหารเงา', skin: 0x111, ha
 function villagerDef(i) { const c = VILLAGER_COLORS[i % VILLAGER_COLORS.length]; return { name: 'ชาวบ้าน', skin: [0xf0c8a8, 0xd9a988, 0xc89878][i % 3], hair: [0x3b2a1e, 0x1a1414, 0x6a4a2a, 0x8a8a8a][i % 4], hs: i % 2 ? 'short' : 'bun', top: c[0], pants: c[1], boots: 0x3a2a1e, eye: 0x2b1d14, scale: 0.9 + hash(i + 9) * 0.18, simple: 1, female: i % 2 }; }
 
 function buildHuman(d) {
-  const root = new THREE.Group(); const J = {}; const simple = !!d.simple; const ol = simple ? 0 : 0.012;
+  const root = new THREE.Group(); const J = {}; const simple = !!d.simple; const ol = simple ? 0 : (ANIME ? 0.016 : 0.012);
   const hip = new THREE.Group(); hip.position.y = 0.86; root.add(hip); J.hip = hip;
   const torso = new THREE.Group(); hip.add(torso); J.torso = torso;
   torso.add(at(P(SPH(0.15, 12, 8), d.pants, { ol }), 0, 0.03, 0, [1.12, 0.75, 0.85]));
@@ -112,6 +116,9 @@ function buildHuman(d) {
     head.add(at(P(BOX(0.04, 0.12, 0.3), 0x2a0a0c, { olS: 1.08 }), 0, 0.3, -0.02));
   } else {
     for (const s of [-1, 1]) {
+      if (ANIME && !hood) { const tx = eyeTextures(d); const em = new THREE.MeshBasicMaterial({ map: tx.base, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }); em.userData.tx = tx; if (s > 0) J.eyeL = em; else J.eyeR = em;
+        const e = new THREE.Mesh(new THREE.PlaneGeometry(0.108, 0.13), em); at(e, s * 0.071, 0.13, 0.151); e.rotation.y = s * 0.42; e.scale.x = s; e.renderOrder = 3; head.add(e); J.animeEyes = 1;
+        head.add(rot(at(new THREE.Mesh(BOX(0.062, 0.011, 0.008), basic(d.hair === 0xd8e2f4 ? 0x8a94aa : 0x1a1014)), s * 0.07, 0.205, 0.15), 0, s * 0.42, s * (d.old ? -0.18 : 0.14))); continue; }
       const e = new THREE.Mesh(SPH(0.034, 10, 8), s > 0 ? eyeMat : eyeMatR); at(e, s * 0.064, 0.135, 0.138, [0.8, 1.35, 0.5]); head.add(e);
       if (!hood) { head.add(at(new THREE.Mesh(SPH(0.007, 6, 6), basic(0xffffff)), s * 0.056, 0.152, 0.158));
         head.add(rot(at(new THREE.Mesh(BOX(0.05, 0.009, 0.01), basic(0x1a1014)), s * 0.065, 0.19, 0.152), 0, 0, s * (d.old ? -0.15 : 0.12))); }
@@ -178,10 +185,28 @@ function buildHuman(d) {
     torso.add(at(P(CYL(0.19, 0.24, 0.22, 10, true), 0x1a1a20, { ol: 0.012, side: THREE.DoubleSide }), 0, -0.06, 0));
     if (!d.simple) { const ck = new THREE.Group(); ck.position.set(0, 0.48, -0.1); torso.add(ck); J.cloak = ck; ck.add(at(P(new THREE.PlaneGeometry(0.5, 1.1, 1, 4), d.cloak, { ol: 0, side: THREE.DoubleSide }), 0, -0.55, 0)); }
   }
+  let hipY = 0.86;
+  if (ANIME && !simple) { const tall = d.old || (d.scale || 1) < 0.8 ? 1.0 : 1.13; for (const k of ['L', 'R']) { J['leg' + k].scale.set(0.86, tall, 0.86); J['sh' + k].scale.set(0.84, 1.04, 0.84); }
+    hipY = 0.86 * tall; hip.position.y = hipY; torso.scale.set(0.9, 1.0, 0.9); head.scale.set(1.0, 0.93, 1.0); if ((d.scale || 1) >= 0.8) head.scale.multiplyScalar(0.93); }
   const sc = d.scale || 1; root.scale.setScalar(sc);
-  return { g: root, J, d, hipY: 0.86, props: {} };
+  return { g: root, J, d, hipY, props: {} };
 }
 
+const EYETEX = {};
+function eyeTextures(d) {
+  const iris = d.iris || { ren: 0xc2562c }[d.name] || 0x7a5232; const key = iris + ':' + (d.female ? 1 : 0) + ':' + (d.old ? 1 : 0); if (EYETEX[key]) return EYETEX[key];
+  const mk = (col, glow) => { const c = document.createElement('canvas'); c.width = 160; c.height = 192; const x = c.getContext('2d'); const cc = C(col), hx = v => '#' + v.getHexString();
+    x.save(); x.beginPath(); x.moveTo(12, 96); x.bezierCurveTo(30, 28, 120, 22, 150, 80); x.bezierCurveTo(140, 150, 50, 168, 12, 96); x.closePath(); x.fillStyle = '#fbf8f4'; x.fill(); x.clip();
+    const g = x.createLinearGradient(0, 40, 0, 160); g.addColorStop(0, hx(cc.clone().multiplyScalar(0.35))); g.addColorStop(0.55, hx(cc)); g.addColorStop(1, hx(cc.clone().lerp(C(0xffffff), 0.45)));
+    x.fillStyle = g; x.beginPath(); x.ellipse(84, 98, 44, 58, 0, 0, TAU); x.fill(); x.fillStyle = glow ? hx(cc.clone().lerp(C(0xffffff), 0.6)) : '#120a10'; x.beginPath(); x.ellipse(84, 100, 17, 26, 0, 0, TAU); x.fill();
+    x.fillStyle = 'rgba(0,0,0,0.28)'; x.fillRect(0, 0, 160, 62); x.fillStyle = '#fff'; x.beginPath(); x.ellipse(104, 70, 13, 16, 0.3, 0, TAU); x.fill(); x.beginPath(); x.ellipse(66, 128, 6, 7, 0, 0, TAU); x.fill(); x.restore();
+    x.strokeStyle = '#140c12'; x.lineCap = 'round'; x.lineWidth = d.female ? 13 : 11; x.beginPath(); x.moveTo(8, 100); x.bezierCurveTo(28, 26, 122, 18, 154, 78); x.stroke();
+    if (d.female) { x.lineWidth = 6; x.beginPath(); x.moveTo(150, 74); x.lineTo(158, 56); x.moveTo(8, 98); x.lineTo(2, 84); x.stroke(); }
+    x.lineWidth = 3; x.globalAlpha = 0.6; x.beginPath(); x.moveTo(40, 156); x.quadraticCurveTo(90, 172, 132, 138); x.stroke(); x.globalAlpha = 1;
+    if (d.old) { x.lineWidth = 2; x.globalAlpha = 0.5; x.beginPath(); x.moveTo(140, 110); x.lineTo(158, 118); x.moveTo(138, 124); x.lineTo(154, 136); x.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t; };
+  return (EYETEX[key] = { base: mk(iris, 0), gold: mk(0xffc21a, 1), glow: mk(0xff3018, 1) });
+}
 // ---------- props ----------
 function makeProp(name) {
   const g = new THREE.Group();
@@ -517,6 +542,7 @@ function applyLight(S, name, k = 1, moon) {
   const L = LIGHTS[name]; const u = S.sky.userData.u; u.top.value.set(L.sky[0]); u.mid.value.set(L.sky[1]); u.bot.value.set(L.sky[2]);
   S.scene.fog.color.set(L.fog[0]); S.scene.fog.near = L.fog[1]; S.scene.fog.far = L.fog[2];
   S.L.hemi.color.set(L.hemi[0]); S.L.hemi.groundColor.set(L.hemi[1]); S.L.hemi.intensity = L.hemi[2] * k; S.L.dir.color.set(L.dir[0]); S.L.dir.intensity = L.dir[1] * k; S.L.dir.position.set(...L.dir[2]);
+  RIM.value.set(L.dir[0]).lerp(C(0xffffff), 0.35); RIMK.value = ANIME ? (L.rim == null ? 0.55 : L.rim) : 0;
   const night = name === 'night' || name === 'blood' || name === 'void' || name === 'memory'; S.stars.pts.visible = name === 'night' || name === 'blood';
 }
 
@@ -589,4 +615,6 @@ function pose(a, act, k, st) {
   }
 }
 function setMouth(a, talking, t) { if (!a.J || !a.J.mouth) return; a.J.mouth.scale.y = talking ? 1 + Math.abs(Math.sin(t * 17) * Math.sin(t * 6.1 + 1)) * 4 : 1; }
-function setEyes(a, mode) { if (!a.J || !a.J.eyeL) return; const base = a.d.eye; a.J.eyeL.color.set(mode === 'glow' ? 0xff4020 : base); a.J.eyeR.color.set(mode === 'gold' || mode === 'glow' ? 0xffc030 : base); }
+function setEyes(a, mode) { if (!a.J || !a.J.eyeL) return; const base = a.d.eye;
+  if (a.J.animeEyes) { const L = a.J.eyeL, R = a.J.eyeR; L.color.set(0xffffff); R.color.set(0xffffff); L.map = mode === 'glow' ? L.userData.tx.glow : L.userData.tx.base; R.map = mode === 'gold' ? R.userData.tx.gold : mode === 'glow' ? R.userData.tx.glow : R.userData.tx.base; return; }
+  a.J.eyeL.color.set(mode === 'glow' ? 0xff4020 : base); a.J.eyeR.color.set(mode === 'gold' || mode === 'glow' ? 0xffc030 : base); }

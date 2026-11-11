@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><title>อัสตรา ทีเซอร์ (2D)</title><link rel="stylesheet" href="fonts.css">
+<style>html,body{margin:0;background:#000}canvas{display:block;width:100vw;height:auto}</style></head><body><canvas id="cv" width="1920" height="1080"></canvas>
+<script>
+const W = 1920, H = 1080, TAU = Math.PI * 2; const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x; const lerp = (a, b, t) => a + (b - a) * t; const ease = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }; const ANIME = true; const OX = document.getElementById('cv').getContext('2d', { willReadFrequently: true });
+</script><script src="teaser.js"></script><script src="teaser2d.js"></script>
+<script>window.ready = (async () => { for (const f of ['800 50px Kanit', '500 34px Kanit']) { await document.fonts.load(f, 'ก'); await document.fonts.load(f, 'A1'); } return true; })();
+window.addEventListener('load', async () => { await window.ready; const q = new URLSearchParams(location.search); if (q.has('auto')) return; let t = +(q.get('t') || 0), play = false, last = 0; draw2d(t); addEventListener('keydown', e => { if (e.code === 'Space') play = !play; });
+  const loop = ts => { if (play) { t += Math.min(0.1, (ts - last) / 1000); draw2d(t % TEASER.total); } last = ts; requestAnimationFrame(loop); }; requestAnimationFrame(loop); });</script></body></html>

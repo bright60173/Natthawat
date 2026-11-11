@@ -59,6 +59,10 @@ function drawTeaser(t) {
   if (s.mont && !s.black && lt < 0.12) { x.save(); x.globalAlpha = 0.5 * (1 - lt / 0.12); x.fillStyle = '#fff'; x.fillRect(0, BAR, W, H - 2 * BAR); x.restore(); }
   // dip in/out of every shot (2 frames) for a punchy cut
   const dip = Math.max(0, 1 - lt / 0.08, 1 - (s.d - lt) / 0.06); if (dip > 0 && !s.black) { x.save(); x.globalAlpha = dip * 0.6; x.fillStyle = '#000'; x.fillRect(0, 0, W, H); x.restore(); }
+  if (ANIME && s.hit === 'impact' && lt < 0.13) { x.save(); x.globalCompositeOperation = 'difference'; x.fillStyle = '#fff'; x.fillRect(0, BAR, W, H - 2 * BAR); x.restore(); speedLines(0.5, W / 2, H / 2, '#000', t); }
+  if (ANIME && s.voice === '24' && lt > 0.8) { const a = clamp(Math.min((lt - 0.8) / 0.12, (s.d - lt) / 0.2)); const pop = 1 + Math.max(0, 0.25 - (lt - 0.8)) * 1.6; x.save(); x.globalAlpha = a; x.translate(W * 0.7, H * 0.62); x.rotate(-0.09); x.scale(pop, pop); x.textAlign = 'center'; x.lineJoin = 'round';
+    x.font = '500 46px Kanit'; x.lineWidth = 10; x.strokeStyle = '#000'; x.strokeText('พลังโลหิต', 0, -92); x.fillStyle = '#fff'; x.fillText('พลังโลหิต', 0, -92);
+    x.font = '800 128px Kanit'; x.lineWidth = 22; x.strokeStyle = '#000'; x.strokeText('ฝนหอกแดง', 0, 30); x.lineWidth = 8; x.strokeStyle = '#fff'; x.strokeText('ฝนหอกแดง', 0, 30); x.fillStyle = '#e8121c'; x.fillText('ฝนหอกแดง', 0, 30); x.restore(); }
   if (s.card) { const a0 = s.cardAt || 0; const a = clamp(Math.min((lt - a0) / 0.25, (s.d - lt) / 0.25)); if (a > 0) teaserCard(x, s.card, a); }
   if (s.title) { const a = clamp(Math.min((lt - 0.15) / 0.6, (s.d - lt) / 0.5)); const sc = 1 + lt * 0.02; x.save(); x.translate(W / 2, H / 2); x.scale(sc, sc); x.translate(-W / 2, -H / 2);
     teaserCard(x, [['อาณาจักรอัสตรา', 132, '#ffffff', -40], ['เปลวเพลิงไร้นาม', 72, '#ff3a2a', 70, 500]], a); x.restore(); }

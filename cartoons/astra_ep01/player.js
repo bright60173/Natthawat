@@ -115,6 +115,8 @@ function drawSubs(sh, lt) {
 }
 function speedLines(alpha, cx, cy, col, t) { const x = OX; x.save(); x.globalAlpha = alpha; x.fillStyle = col; for (let i = 0; i < 90; i++) { const a = hash(i + Math.floor(t * 12) * 0.13) * TAU, r0 = 260 + hash(i + 3) * 380, r1 = 1500; const w = 0.004 + hash(i + 7) * 0.012; x.beginPath(); x.moveTo(cx + Math.cos(a - w) * r1, cy + Math.sin(a - w) * r1); x.lineTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); x.lineTo(cx + Math.cos(a + w) * r1, cy + Math.sin(a + w) * r1); x.fill(); } x.restore(); }
 function overlay(sh, lt, F, t) {
+  if (ANIME) { if (!overlay.sm) { overlay.sm = document.createElement('canvas'); overlay.sm.width = 480; overlay.sm.height = 270; overlay.sx = overlay.sm.getContext('2d'); }
+    const sx = overlay.sx; sx.filter = 'blur(5px) brightness(1.15) contrast(1.35)'; sx.drawImage(OUT, 0, 0, 480, 270); OX.save(); OX.globalCompositeOperation = 'screen'; OX.globalAlpha = 0.32; OX.drawImage(overlay.sm, 0, 0, W, H); OX.restore(); }
   const x = OX; const L = LIGHTS[sh.L || 'day'] || LIGHTS.day; const gr = sh.grade || L.grade;
   if (gr && gr[1] > 0) { x.save(); x.globalAlpha = Math.min(1, gr[1] * 0.9); x.fillStyle = '#' + C(gr[0]).getHexString(); x.fillRect(0, 0, W, H); x.restore(); }
   if (F.rays > 0) speedLines(F.rays, F.raysAt[0], F.raysAt[1], F.raysCol || '#ff2a1a', t);
