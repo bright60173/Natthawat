@@ -406,7 +406,7 @@ const BUILD = {
     const cart = new THREE.Group(); cart.add(at(P(BOX(1.6, 0.35, 1.0), 0x8a6a42, { olS: 1.03 }), 0, 0.65, 0)); cart.add(rot(at(P(BOX(1.4, 0.06, 0.08), 0x5a3a24, { olS: 1.05 }), 1.3, 0.6, 0), 0, 0, 0.3));
     const wheelA = P(new THREE.TorusGeometry(0.32, 0.05, 6, 14), 0x4a3020, { ol: 0.01 }); at(wheelA, -0.2, 0.34, 0.55); cart.add(wheelA); const wheelB = P(new THREE.TorusGeometry(0.32, 0.05, 6, 14), 0x4a3020, { ol: 0.01 }); at(wheelB, -0.2, 0.34, -0.55); cart.add(wheelB); S.wheel = wheelB;
     at(cart, 2.5, 0, 2); cart.rotation.y = 0.4; sc.add(cart); S.cart = cart;
-    for (let i = 0; i < 8; i++) sc.add(at(P(BOX(0.6, 0.5, 0.6), 0x8a6a42, { olS: 1.04 }), 5.5 + hash(i) * 2, 0.25 + (i > 4 ? 0.5 : 0), -5.5 + hash(i + 3) * 2));
+    for (let i = 0; i < 8; i++) sc.add(at(P(BOX(0.6, 0.5, 0.6), 0x8a6a42, { olS: 1.04 }), -6 + hash(i) * 2, 0.25 + (i > 4 ? 0.5 : 0), -9 + hash(i + 3) * 2));
     // stone wall (scene 6 crash)
     const wall = new THREE.Group(); for (let i = 0; i < 6; i++) wall.add(at(P(BOX(1.0, 1.4, 0.6), 0x6a6670, { olS: 1.03 }), i * 1.02, 0.7, 0)); at(wall, 2.4, 0, -7); sc.add(wall); S.wall = wall;
     // silver forest around
@@ -464,12 +464,13 @@ const BUILD = {
     for (let i = 0; i < 4; i++) { const lg = new THREE.Mesh(CYL(2, 1.5, 16, 6), mm); at(lg, -12 + i * 8, -12, 0); mon.add(lg); } mon.add(rot(at(new THREE.Mesh(CONE(3, 22, 6), mm), -26, 2, 0), 0, 0, 1.9));
     for (let i = 0; i < 6; i++) mon.add(rot(at(new THREE.Mesh(CONE(1.6, 6, 4), mm), -10 + i * 5, 10, 0), 0, 0, 0.2));
     const eye = new THREE.Mesh(SPH(0.9, 8, 6), basic(0xff2010, { fog: false })); at(eye, 24, 5, 3, [1.5, 0.5, 0.5]); mon.add(eye);
-    at(mon, -160, 40, 120); mon.rotation.y = Math.PI; mon.visible = false; sc.add(mon); S.mon = mon;
+    at(mon, -160, 40, -170); mon.rotation.y = 0;
+    for (const [x, h, r] of [[-90, 34, 80], [30, 30, 70], [150, 40, 80]]) { const rg = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), basic(0x08090e)); at(rg, x, h / 2 - 12, -150); sc.add(rg); } mon.visible = false; sc.add(mon); S.mon = mon;
     // near ridge in front of the monster (+z)
     const ridge = new THREE.Mesh(new THREE.ConeGeometry(70, 45, 7), basic(0x0a0b10)); at(ridge, 20, 10, 140); sc.add(ridge); const ridge2 = new THREE.Mesh(new THREE.ConeGeometry(60, 40, 6), basic(0x0a0b10)); at(ridge2, -60, 8, 130); sc.add(ridge2);
     ambient(S, 'ember', 160, { r: 12, h: 8, sp: 0.2, col: 0xff3020 }); ambient(S, 'dust', 200, { r: 14, h: 6, sp: 0.05, col: 0xa0b0ff });
     S.update = (sh, t, lt) => { S.sky.userData.u.t.value = t; const c = sh.camPos || { x: 0, z: 0 }; const st = sh.st || {}; updAmbient(S, 'ember', t, c.x, c.z, true); updAmbient(S, 'dust', t, c.x, c.z, true);
-      S.mon.visible = st.mon != null; if (st.mon != null) { const u = st.mon; S.mon.position.set(-150 + u * 260, 34 + Math.sin(u * 20) * 1.5, 150); } };
+      S.mon.visible = st.mon != null; if (st.mon != null) { const u = st.mon; S.mon.position.set(-170 + u * 300, 37 + Math.sin(u * 20) * 1.5, -175); } };
     return S;
   },
   throne() {
@@ -486,7 +487,7 @@ const BUILD = {
     x.strokeStyle = '#c0c8e0'; x.fillStyle = '#d8dff0'; x.beginPath(); x.ellipse(385, 365, 16, 20, 0, 0, TAU); x.fill(); x.beginPath(); x.moveTo(365, 385); x.lineTo(405, 385); x.lineTo(420, 450); x.lineTo(350, 450); x.fill(); x.fillStyle = '#1a1014'; x.beginPath(); x.ellipse(385, 360, 18, 16, 0, Math.PI, TAU); x.fill(); x.fillRect(367, 360, 7, 40); x.fillRect(396, 360, 7, 40);
     x.strokeStyle = '#8a1010'; x.lineWidth = 4; for (let i = 0; i < 5; i++) { x.beginPath(); x.moveTo(340 + i * 22, 330); x.lineTo(340 + i * 22, 450); x.stroke(); }
     x.strokeStyle = '#601010'; x.lineWidth = 10; x.strokeRect(20, 20, 728, 984); x.globalAlpha = 0.25; for (let i = 0; i < 200; i++) { x.fillStyle = hash(i) > 0.5 ? '#000' : '#401010'; x.fillRect(hash(i + 1) * 768, hash(i + 2) * 1024, 20, 20); } x.globalAlpha = 1;
-    const mural = new THREE.Mesh(new THREE.PlaneGeometry(6, 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0 })); at(mural, 7.5, 6, -15); mural.rotation.y = -0.6; sc.add(mural); S.mural = mural;
+    const mural = new THREE.Mesh(new THREE.PlaneGeometry(6, 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0 })); at(mural, 0, 11.5, -19.6); sc.add(mural); S.mural = mural;
     ambient(S, 'ember', 200, { r: 10, h: 8, sp: 0.15, col: 0xff2010 });
     S.update = (sh, t) => { const st = sh.st || {}; updAmbient(S, 'ember', t, 0, -8, true); S.mural.material.opacity = st.mural || 0;
       for (const br of S.braz) { const b = br.pts.userData.b; br.set((i, o) => { const ph = flameP(i, t, o, b[0], b[1], b[2], 1.0, 0.2, 0.7, i); o.s = (1 - ph) * 0.6; o.a = Math.sin(Math.PI * ph); o.r = 1; o.g = 0.15 + 0.3 * (1 - ph); o.b = 0.05; }); } };
@@ -507,7 +508,7 @@ const LIGHTS = {
   battle: { sky: [0x0a0204, 0x3a0a08, 0x100204], fog: [0x2a0806, 12, 100], hemi: [0xe8a090, 0x201010, 0.75], dir: [0xffb080, 0.8, [-10, 12, 6]], grade: [0x500000, 0.08] },
   ash: { sky: [0x1a1418, 0x4a3a3a, 0x1a1414], fog: [0x3a3030, 10, 120], hemi: [0xd0b0a0, 0x201818, 0.7], dir: [0xffa070, 0.55, [10, 10, -8]], grade: [0x200808, 0.08] },
   night: { sky: [0x02040e, 0x0e1a34, 0x05060c], fog: [0x0a1020, 12, 160], hemi: [0x8aa0ff, 0x0a0a14, 0.55], dir: [0xa8c0ff, 0.6, [-8, 14, 10]], grade: [0x000010, 0.05] },
-  blood: { sky: [0x0a0206, 0x2a0810, 0x05020a], fog: [0x1a0610, 12, 170], hemi: [0xff6a7a, 0x0a0410, 0.6], dir: [0xff3a3a, 0.8, [-8, 14, 30]], grade: [0x300008, 0.1] },
+  blood: { sky: [0x0a0206, 0x4a1018, 0x05020a], fog: [0x1a0610, 12, 170], hemi: [0xff6a7a, 0x0a0410, 0.6], dir: [0xff3a3a, 0.8, [-8, 14, 30]], grade: [0x300008, 0.1] },
   throne: { sky: [0, 0, 0], fog: [0x080204, 6, 40], hemi: [0x803040, 0x080004, 0.45], dir: [0xff2a20, 0.6, [0, 8, 6]], grade: [0x200000, 0.08] },
 };
 function applyLight(S, name, k = 1, moon) {
@@ -579,6 +580,9 @@ function pose(a, act, k, st) {
     case 'carrybaby': r(J.shL, -0.6, null, -0.3); r(J.shR, -0.7, null, 0.4); r(J.elL, -1.5); r(J.elR, -1.3); r(J.head, 0.35); r(J.torso, 0.05); break;
     case 'reach': r(J.torso, 0.4); r(J.shR, -1.4, null, -0.1); r(J.shL, -1.2, null, 0.1); r(J.head, 0.1); break;
     case 'staff': idleArms(); r(J.shR, -0.25, null, -0.1); r(J.elR, -1.2); break;
+    case 'wave': idleArms(); r(J.shR, -2.6 + Math.sin(k * 6) * 0.15, null, -0.5 + Math.sin(k * 6) * 0.25); r(J.elR, -0.3); break;
+    case 'throne': J.hip.position.y = 0.45; r(J.legL, -1.5, null, 0.12); r(J.legR, -1.5, null, -0.12); r(J.kneeL, 1.45); r(J.kneeR, 1.45); r(J.torso, -0.08 + br * 0.3); r(J.shL, -0.7, null, 0.25); r(J.shR, -0.7, null, -0.25); r(J.elL, -0.6); r(J.elR, -0.6); break;
+    case 'throneraise': J.hip.position.y = 0.45; r(J.legL, -1.5, null, 0.12); r(J.legR, -1.5, null, -0.12); r(J.kneeL, 1.45); r(J.kneeR, 1.45); r(J.torso, -0.05); r(J.shL, -0.7, null, 0.25); r(J.elL, -0.6); r(J.shR, -1.3 - 0.4 * ease(k / 1.2), null, -0.5); r(J.elR, -0.2); break;
     case 'portal': idleArms(); r(J.shR, -1.0, null, -0.1); r(J.elR, -0.2); r(J.torso, 0.25); r(J.head, 0.2); break;
   }
 }

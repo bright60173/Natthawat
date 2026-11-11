@@ -124,9 +124,9 @@ function overlay(sh, lt, F, t) {
   let fade = 0; if (sh.fadeIn && lt < sh.fadeIn) fade = 1 - lt / sh.fadeIn; if (sh.fadeOut && lt > sh.d - sh.fadeOut) fade = Math.max(fade, (lt - (sh.d - sh.fadeOut)) / sh.fadeOut); fade = Math.max(fade, F.dark || 0);
   if (sh.flash) for (const [ft, fd, fc] of sh.flash) { if (lt >= ft && lt < ft + fd) { F.flash = Math.max(F.flash, 1 - (lt - ft) / fd); F.flashCol = fc || '#ffffff'; } }
   if (F.flash > 0) { x.save(); x.globalAlpha = clamp(F.flash); x.fillStyle = F.flashCol; x.fillRect(0, 0, W, H); x.restore(); }
+  if (fade > 0) { x.save(); x.globalAlpha = clamp(fade); x.fillStyle = '#000'; x.fillRect(0, 0, W, H); x.restore(); }
   if (sh.title) sh.title(x, lt, sh.d);
   drawSubs(sh, lt);
-  if (fade > 0) { x.save(); x.globalAlpha = clamp(fade); x.fillStyle = '#000'; x.fillRect(0, 0, W, H); x.restore(); }
 }
 function titleCard(lines, o = {}) { return (x, lt, d) => { const a = clamp(Math.min((lt - (o.at || 0)) / 1.0, (d - lt) / 1.0)); if (a <= 0) return; x.save(); x.globalAlpha = a; x.textAlign = 'center'; lines.forEach(([txt, size, col, dy, w]) => { x.font = (w || 800) + ' ' + size + 'px Kanit'; x.lineJoin = 'round'; x.lineWidth = size * 0.16; x.strokeStyle = 'rgba(0,0,0,0.85)'; x.strokeText(txt, W / 2, H / 2 + dy); x.fillStyle = col; x.shadowColor = o.glow || 'rgba(255,40,20,0.7)'; x.shadowBlur = o.blur == null ? 30 : o.blur; x.fillText(txt, W / 2, H / 2 + dy); x.shadowBlur = 0; }); x.restore(); }; }
 
