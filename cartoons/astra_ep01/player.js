@@ -125,6 +125,7 @@ function overlay(sh, lt, F, t) {
   if (sh.flash) for (const [ft, fd, fc] of sh.flash) { if (lt >= ft && lt < ft + fd) { F.flash = Math.max(F.flash, 1 - (lt - ft) / fd); F.flashCol = fc || '#ffffff'; } }
   if (F.flash > 0) { x.save(); x.globalAlpha = clamp(F.flash); x.fillStyle = F.flashCol; x.fillRect(0, 0, W, H); x.restore(); }
   if (fade > 0) { x.save(); x.globalAlpha = clamp(fade); x.fillStyle = '#000'; x.fillRect(0, 0, W, H); x.restore(); }
+  if (window.NOSUB) return;
   if (sh.title) sh.title(x, lt, sh.d);
   drawSubs(sh, lt);
 }
@@ -140,7 +141,7 @@ function draw(t) {
   if (sh.moon) { const m = sh.moon; S.moon.visible = true; S.moon.position.set(m.p[0], m.p[1], m.p[2]); S.moon.scale.setScalar(m.s || 30); const red = typeof m.red === 'function' ? m.red(lt, u) : (m.red || 0);
     S.moon.userData.disc.material.color.copy(C(0xf4f0ff).lerp(C(0xff2a1a), red)); S.moon.userData.glow.material.color.copy(C(0x8090c0).lerp(C(0xff1a0a), red)); S.moon.lookAt(0, 0, 0); } else S.moon.visible = false;
   placeActors(sh, S, lt); S.scene.updateMatrixWorld();
-  placeCamera(sh, lt, u); sh.camPos = CAM.position;
+  placeCamera(sh, lt, u); if (window.CAMOVR) { const c = window.CAMOVR(sh, lt); if (c) { CAM.position.set(c.p[0], c.p[1], c.p[2]); CAM.fov = c.fov || CAM.fov; CAM.updateProjectionMatrix(); CAM.lookAt(c.l[0], c.l[1], c.l[2]); } } sh.camPos = CAM.position;
   sh._st = sh._st || sh.st || {}; const st = {}; for (const k in sh._st) { const v = sh._st[k]; st[k] = typeof v === 'function' ? v(lt, u) : v; } sh.st = st;
   S.update(sh, t, lt);
   S.scene.updateMatrixWorld();
