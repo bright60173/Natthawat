@@ -130,6 +130,7 @@ function speedLines(alpha, cx, cy, col, t) { const x = OX; x.save(); x.globalAlp
 function overlay(sh, lt, F, t) {
   if (ANIME) { if (!overlay.sm) { overlay.sm = document.createElement('canvas'); overlay.sm.width = 480; overlay.sm.height = 270; overlay.sx = overlay.sm.getContext('2d'); }
     const sx = overlay.sx; sx.filter = 'blur(5px) brightness(1.15) contrast(1.35)'; sx.drawImage(OUT, 0, 0, 480, 270); OX.save(); OX.globalCompositeOperation = 'screen'; OX.globalAlpha = 0.32; OX.drawImage(overlay.sm, 0, 0, W, H); OX.restore(); }
+  if (window.POSTFX) window.POSTFX(sh, lt, F, t);
   const x = OX; const L = LIGHTS[sh.L || 'day'] || LIGHTS.day; const gr = sh.grade || L.grade;
   if (gr && gr[1] > 0) { x.save(); x.globalAlpha = Math.min(1, gr[1] * 0.9); x.fillStyle = '#' + C(gr[0]).getHexString(); x.fillRect(0, 0, W, H); x.restore(); }
   if (F.rays > 0) speedLines(F.rays, F.raysAt[0], F.raysAt[1], F.raysCol || '#ff2a1a', t);
