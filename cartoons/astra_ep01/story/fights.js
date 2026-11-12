@@ -54,7 +54,7 @@ const HIT = (F, lt, t0, x, y, z, o) => FX.impact(F, V3(x, y, z), lt, t0, o);
   const duelA = [
     FT(1.15, { sfx: [[0.05, 'dash', 1], [0.1, 'runsteps', 0.8]], A: { ren: REN(), gron: GRON({ p2: G1, t: [0.08, 1.0], a: 'dash', e: 'in' }) },
       cam: { p: [8.6, 0.6, -2.6], p2: [7.0, 0.7, -0.2], l: [5, 1.3, -3.3], l2: [3.9, 1.3, -0.3], fov: 46, e: 'in' }, fx: (F, lt) => { RF(F, lt); F.lines = 0.3; FX.dust(F, 'd', V3(5, 0.1, -3.4), lt, 0.1); } }),
-    FT(0.85, { sfx: [[0, 'heartbeat', 0.7]], A: { ren: REN({ a: 'block', bl: 0 }) }, cam: { f: 'ren', p: [0.42, 1.66, -0.95], p2: [0.36, 1.66, -0.8], l: [0, 1.62, 0], fov: 26 }, still: 1, fx: (F, lt) => { F.light(0, 0xff2010, 2, 3.2, 1.6, 0.2, 4); } }),
+    FT(0.85, { sfx: [[0, 'heartbeat', 0.7]], A: { ren: REN({ a: 'stance', bl: 0 }) }, cam: { f: 'ren', p: [0.42, 1.66, -0.95], p2: [0.36, 1.66, -0.8], l: [0, 1.62, 0], fov: 26 }, still: 1, fx: (F, lt) => { F.light(0, 0xff2010, 2, 3.2, 1.6, 0.2, 4); } }),
     FT(2.3, { imp: [0.3], tw: slowmo(0.3, 0.5, 0.2), sfx: [[0.1, 'whoosh', 0.9], [0.3, 'clash', 1], [0.32, 'explosion', 0.7], [1.3, 'clashgrind', 0.7]], st: Object.assign({}, BF, { crackAt: [3.75, 0] }),
       A: { ren: REN({ a: 'block' }), gron: GRON({ p: G1, a: 'slash2' }) }, cam: orb(3.75, 0, 4.6, 2.2, 3.5, 1.0, 1.5, 1.35, 44),
       fx: (F, lt) => { RF(F, lt, 1.2); HIT(F, lt, 0.3, 3.72, 1.6, 0.05, { col: 0xff5030, r: 9, g: 4, shake: 0.3 }); FX.arc(F, 'ar', V3(3.9, 1.7, -0.3), 1.5, lt, 0.2, { col: 0xff2030, tilt: [-0.4, 0.3, 0.9], life: 0.3 }); FX.cracks(F, 'ck', V3(3.75, 0, 0), clamp((lt - 0.3) / 0.25), 12, 4.5); F.rays = lt > 0.3 && lt < 0.55 ? 0.35 : 0; F.raysAt = [W / 2, H * 0.45]; } }),

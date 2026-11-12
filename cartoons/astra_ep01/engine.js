@@ -244,7 +244,7 @@ const PROP_SLOT = { R: 'handR', L: 'handL', back: 'torso' };
 
 // ---------- wolf / beasts ----------
 function buildWolf() {
-  const g = new THREE.Group(); const J = {}; const m = toon(0x08060a, 0x1a0000); const rim = outlineMat(0.035, 0xff2418);
+  const g = new THREE.Group(); const J = {}; const m = toon(0x08060a, 0x0c0018); const rim = outlineMat(0.035, 0x9a40ff);
   const part = (geo, x, y, z, s, r) => { const o = new THREE.Group(); o.add(new THREE.Mesh(geo, m)); o.add(new THREE.Mesh(geo, rim)); at(o, x, y, z, s); if (r) rot(o, r[0], r[1], r[2]); return o; };
   const body = new THREE.Group(); g.add(body); J.body = body; body.position.y = 0.95;
   body.add(part(SPH(0.4, 14, 10), 0, 0, 0, [0.85, 0.8, 1.6]));
@@ -253,7 +253,7 @@ function buildWolf() {
   head.add(part(SPH(0.24, 12, 10), 0, 0, 0, [0.9, 0.85, 1.1]));
   head.add(part(CONE(0.13, 0.42, 8), 0, -0.05, 0.3, 1, [1.57, 0, 0]));
   const jaw = new THREE.Group(); jaw.position.set(0, -0.12, 0.12); head.add(jaw); J.jaw = jaw; jaw.add(part(CONE(0.09, 0.35, 6), 0, -0.02, 0.18, 1, [1.65, 0, 0]));
-  for (const s of [-1, 1]) { head.add(part(CONE(0.08, 0.26, 5), s * 0.13, 0.25, -0.04, 1, [-0.2, 0, -s * 0.25])); const e = new THREE.Mesh(SPH(0.035, 8, 6), basic(0xff3020)); at(e, s * 0.1, 0.06, 0.18, [1.6, 0.6, 0.6]); head.add(e); }
+  for (const s of [-1, 1]) { head.add(part(CONE(0.08, 0.26, 5), s * 0.13, 0.25, -0.04, 1, [-0.2, 0, -s * 0.25])); const e = new THREE.Mesh(SPH(0.035, 8, 6), basic(0xe0b0ff)); at(e, s * 0.1, 0.06, 0.18, [1.6, 0.6, 0.6]); head.add(e); }
   for (const [k, z] of [['F', 0.5], ['B', -0.45]]) for (const s of [-1, 1]) { const lg = new THREE.Group(); lg.position.set(s * 0.22, -0.1, z); body.add(lg); J['leg' + k + (s > 0 ? 'L' : 'R')] = lg; lg.add(part(CYL(0.09, 0.06, 0.8, 8), 0, -0.4, 0)); lg.add(part(SPH(0.08, 8, 6), 0, -0.82, 0.05, [1, 0.6, 1.5])); }
   const tail = new THREE.Group(); tail.position.set(0, 0.15, -0.6); body.add(tail); J.tail = tail; tail.add(part(CONE(0.14, 0.9, 8), 0, 0, -0.42, 1, [-1.9, 0, 0]));
   return { g, J };

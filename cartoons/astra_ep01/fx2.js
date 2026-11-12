@@ -98,17 +98,62 @@ const FX2 = { PUR: 0x5a14c8, PUR_HOT: 0xb060ff, FIGHT: new Set([4, 5, 6]) };
   const ob = BUILD.village; BUILD.village = function () { const S = ob(); const td = texOf(dirt, 22), tc = texOf(cobble, 5);
     S.scene.traverse(m => { if (!m.isMesh || !m.material || !m.material.isMeshLambertMaterial) return; if (m.material === S.groundMat) { m.material = m.material.clone(); m.material.map = td; S.groundMat = m.material; }
       else if (m.geometry.type === 'CylinderGeometry' && m.geometry.parameters.radiusTop === 7 && m.geometry.parameters.height < 0.1) { m.material = m.material.clone(); m.material.map = tc; } });
+    S._col = []; S.scene.traverse(m => { if (m.isMesh && m.material && !m.material.transparent && m.material.side !== THREE.BackSide) { m.geometry.computeBoundingSphere(); const r = m.geometry.boundingSphere.radius * Math.max(m.scale.x, m.scale.y, m.scale.z); if (r > 0.7 && r < 30 && m.geometry.type !== 'CircleGeometry') S._col.push(m); } });
     return S; };
-  // ---- hook every shot in the fight scenes: atmosphere + afterimage flags ----
+  // keep the lens out of walls: if set geometry sits between the camera and the action, pull the camera in front of it
+  const RC = new THREE.Raycaster();
+  function unblock(F) { const S = F.S, sh = F.sh; if (!S._col || !sh.A) return; const c = V3(0, 0, 0); let n = 0; for (const id in sh.A) if (sh.A[id]) { c.add(actor(id).g.position); n++; } if (!n) return; c.multiplyScalar(1 / n); c.y += 1.2;
+    const dir = V3(0, 0, -1).applyQuaternion(CAM.quaternion); const D = c.clone().sub(CAM.position).dot(dir); if (D < 2.2) return; const o = CAM.position.clone().add(dir.clone().multiplyScalar(D));
+    RC.set(o, dir.clone().negate()); RC.far = D; const hit = RC.intersectObjects(S._col, false)[0]; if (hit && hit.distance >= 1.5 && hit.distance < D - 0.05) CAM.position.copy(o).add(dir.clone().multiplyScalar(-(hit.distance - 0.4))); }
+  // ---- colour remap: Ren's flame hits/lights were crimson, now violet like the flame itself ----
+  const REMAP = { 0xff1a10: 0x8a40ff, 0xff2010: 0x8a40ff, 0xff3010: 0xa050ff, 0xff2a10: 0xa050ff, 0xff5030: 0xd0a0ff, 0xff6040: 0xd0a0ff };
+  const rm = c => (c != null && REMAP[c] != null ? REMAP[c] : c);
+  const imp1 = FX.impact; FX.impact = (F, c, lt, t0, o = {}) => imp1(F, c, lt, t0, Object.assign({}, o, { col: rm(o.col), gcol: rm(o.gcol) }));
+  const arc1 = FX.arc; FX.arc = (F, key, c, r, lt, t0, o = {}) => arc1(F, key, c, r, lt, t0, Object.assign({}, o, { col: rm(o.col) }));
+  const ring1 = FX.ring; FX.ring = (F, key, c, lt, t0, o = {}) => ring1(F, key, c, lt, t0, Object.assign({}, o, { col: rm(o.col) }));
+  // ---- flame talons: three tongues of black flame reaching past the fist ----
+  FX.talons = function (F, id, side, lt, k = 1) {
+    const h = F.joint(id, 'hand' + side), e = F.joint(id, 'el' + side); const d = h.clone().sub(e).normalize(); const sd = V3(-d.z, 0, d.x).normalize(); if (sd.lengthSq() < 0.01) sd.set(1, 0, 0); const up = d.clone().cross(sd);
+    FX.blackFlame(F, 'tal' + id + side, i => { const lane = (i % 3) - 1; const s = hash(i * 0.61) * 0.62 * k; return h.clone().add(d.clone().multiplyScalar(0.05 + s)).add(sd.clone().multiplyScalar(lane * 0.07 * (1 + s * 1.6))).add(up.clone().multiplyScalar(Math.sin(s * 5) * 0.03 - s * s * 0.25)); }, lt, { n: 210, h: 0.13, w: 0.028, k, size: 0.55, life: 0.32 });
+  };
+  // ---- per-shot fight polish: contact shadows, struggle motion, rim light, handheld camera ----
+  const LOCK = /^(block|cross|slash2|slash|guard|charge|thrust|cast2?)$/;
+  const SHM = { clone: () => new THREE.ShaderMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, uniforms: { op: { value: 0.5 } },
+    vertexShader: 'varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader: 'varying vec2 vU; uniform float op; void main(){ float d=length(vU-0.5)*2.0; float a=(1.0-smoothstep(0.25,1.0,d))*op; if(a<0.004) discard; gl_FragColor=vec4(0.02,0.0,0.04,a); }' }) };
+  const SHG = new THREE.PlaneGeometry(2.4, 2.4);
+  function polish(F, lt, t, hot) {
+    unblock(F);
+    const sh = F.sh, S = F.S, A = sh.A || {};
+    for (const id in A) { const sp = A[id]; if (!sp) continue; const a = actor(id); const gp = a.g.position; const gy = S.groundY(gp.x, gp.z); const hgt = Math.max(0, gp.y - gy);
+      const act = keyed(sp.a, lt, 'idle').cur; const lying = /^(lie|fall|dead)$/.test(act); const sc = (a.g.scale.x || 1);
+      const m = F.add('shd' + id, () => { const q = new THREE.Mesh(SHG, SHM.clone()); q.rotation.x = -Math.PI / 2; q.renderOrder = 2; return q; });
+      const r = (a.isWolf ? 0.9 : lying ? 0.75 : 0.46) * sc * (1 + hgt * 0.25); m.position.set(gp.x, gy + 0.075, gp.z); m.scale.set(r, r * (lying ? 0.6 : 1), 1); m.rotation.z = a.g.rotation.y; m.material.uniforms.op.value = 0.62 / (1 + hgt * 0.9);
+      if (a.isWolf || !hot || sh.still) continue; const J = a.J; const ph = id.charCodeAt(0) * 1.7 + id.length;
+      if (LOCK.test(act) && !sp.p2) { // two fighters straining against each other: push/pull sway + tremble
+        const ang = a.g.rotation.y, sw = Math.sin(t * 5.2 + ph) * 0.03 + Math.sin(t * 13.1 + ph * 2) * 0.008; gp.x += Math.sin(ang) * sw; gp.z += Math.cos(ang) * sw;
+        if (J.torso) { J.torso.rotation.x += Math.sin(t * 5.2 + ph) * 0.045 + noise1(t * 23 + ph) * 0.014; J.torso.rotation.z += noise1(t * 19 + ph * 3) * 0.02; }
+        if (J.head) J.head.rotation.x += Math.sin(t * 5.2 + ph + 0.8) * 0.03; for (const k of ['shL', 'shR']) if (J[k]) J[k].rotation.x += noise1(t * 27 + ph + k.length) * 0.03;
+      } else if (sp.p2 && sp.t && lt > sp.t[0] && lt < sp.t[1] && J.torso) { // travelling: lean into the move
+        J.torso.rotation.x += 0.16 * Math.sin(Math.PI * clamp((lt - sp.t[0]) / (sp.t[1] - sp.t[0])));
+      }
+    }
+    if (!hot) return;
+    RIMK.value = Math.max(RIMK.value, 1.05); RIM.value.lerp(C(A.ren && FX2.FIGHT.has(sh.sceneId) && sh.sceneId > 4 ? 0xc9a0ff : 0xffe0d0), 0.5);
+    if (!sh.still) { const s = 0.022; CAM.position.x += noise1(t * 1.9 + sh.idx) * s; CAM.position.y += noise1(t * 2.3 + sh.idx * 3) * s; CAM.rotation.z += (hash(sh.idx * 7.7) - 0.5) * 0.07 + noise1(t * 1.3 + sh.idx) * 0.008;
+      if (F.punch > 0) { CAM.fov *= 1 - 0.07 * F.punch; CAM.updateProjectionMatrix(); } }
+  }
   for (const sc of STORY) if (FX2.FIGHT.has(sc.id)) for (const sh of sc.shots) if (sh.set === 'village' || sh.set === 'forest') {
-    const f0 = sh.fx; const hot = !!(sh.imp || sh.name || sh.tw || (sh.m && /battle|wings|magic/.test(sh.m)));
-    sh.fx = function (F, lt, u, t) { if (f0) f0.call(this, F, lt, u, t); if (hot) FX.atmo(F, lt, t); F.trail = hot ? 0.3 : 0; };
+    const f0 = sh.fx; const hot = !!(sh.imp || sh.name || sh.tw || (sh.m && /battle|wings|magic|wolf/.test(sh.m)));
+    sh.fx = function (F, lt, u, t) { if (!F._lw) { F._lw = 1; const l0 = F.light; F.light = (i, col, ...r) => l0(i, rm(col), ...r); }
+      if (f0) f0.call(this, F, lt, u, t); if (hot) FX.atmo(F, lt, t); F.trail = hot ? 0.3 : 0; polish(F, lt, t, hot); };
   }
   // ---- 2D post: afterimage trail + zoom punch on impacts ----
   window.POSTFX = function (sh, lt, F, t) {
     const P = window.POSTFX; if (!P.prev) { P.prev = document.createElement('canvas'); P.prev.width = W / 2; P.prev.height = H / 2; P.px = P.prev.getContext('2d'); P.lastT = -1; }
     const cont = Math.abs(t - P.lastT - 1 / FPS) < 1e-3 && P.lastIdx === sh.idx; const moving = (F.lines || 0) > 0 || (F.shake || 0) > 0.05 || (sh.tw && sh.tw(lt) - lt !== 0);
     if (F.trail > 0 && cont) { OX.save(); OX.globalAlpha = F.trail * (moving ? 1.2 : 0.7); OX.globalCompositeOperation = 'lighten'; OX.drawImage(P.prev, 0, 0, W, H); OX.restore(); }
+    if (sh.imp) for (const it of sh.imp) if (lt >= it && lt < it + 0.085) { if (!P.ink) { P.ink = document.createElement('canvas'); P.ink.width = W / 2; P.ink.height = H / 2; P.ix = P.ink.getContext('2d'); } P.ix.filter = 'grayscale(1) contrast(6) brightness(1.25)'; P.ix.drawImage(OUT, 0, 0, W / 2, H / 2); OX.drawImage(P.ink, 0, 0, W, H); }
     if (F.punch > 0) { const s = 1 + 0.06 * F.punch; OX.save(); OX.globalAlpha = 0.4 * F.punch; OX.globalCompositeOperation = 'screen'; OX.drawImage(OUT, W * (1 - s) / 2, H * (1 - s) / 2, W * s, H * s); OX.globalAlpha = 0.25 * F.punch; const s2 = 1 + 0.12 * F.punch; OX.drawImage(OUT, W * (1 - s2) / 2, H * (1 - s2) / 2, W * s2, H * s2); OX.restore(); }
     P.px.drawImage(OUT, 0, 0, W / 2, H / 2); P.lastT = t; P.lastIdx = sh.idx; F.punch = 0;
   };
