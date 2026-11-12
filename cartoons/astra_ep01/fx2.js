@@ -50,12 +50,6 @@ const FX2 = { PUR: 0x5a14c8, PUR_HOT: 0xb060ff, FIGHT: new Set([4, 5, 6]) };
   // ---- blood power: glossy crimson crystal ----
   const BLOODM = () => FX2.bm || (FX2.bm = new THREE.MeshPhongMaterial({ color: 0xb0101c, emissive: 0x5a0008, specular: 0xffc0c0, shininess: 110, flatShading: true }));
   const HALO = (op) => new THREE.MeshBasicMaterial({ color: 0xff1530, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false });
-  FX.spear = function (F, key, a, b, lt, t0, dur, o = {}) {
-    const g = F.add(key, () => { const gg = new THREE.Group(); const core = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.9, 5), BLOODM()); core.rotation.x = Math.PI / 2; gg.add(core);
-      const hot = new THREE.Mesh(new THREE.ConeGeometry(0.035, 1.7, 5), basic(0xffd0d0)); hot.rotation.x = Math.PI / 2; gg.add(hot); const halo = new THREE.Mesh(new THREE.ConeGeometry(0.24, 2.4, 8), HALO(0.4)); halo.rotation.x = Math.PI / 2; gg.add(halo);
-      const tr = new THREE.Mesh(CYL(0.1, 0.0, 2.6, 8, true), HALO(0.35)); tr.rotation.x = -Math.PI / 2; tr.position.z = -2.1; gg.add(tr); return gg; });
-    const k = (lt - t0) / dur; if (k < 0 || (k > 1 && !o.stick)) { g.visible = false; return k; } const kk = clamp(k); const p = a.clone().lerp(b, o.ease ? easeIn(kk) : kk); g.position.copy(p); const dir = b.clone().sub(a).normalize(); g.lookAt(p.clone().add(dir)); g.scale.setScalar(o.s || 1); g.children[3].visible = k < 1; return k;
-  };
   FX.whip = function (F, key, a, b, u, o = {}) {
     const g = F.add(key, () => { const gg = new THREE.Group(); gg.add(new THREE.Mesh(new THREE.BufferGeometry(), BLOODM())); gg.add(new THREE.Mesh(new THREE.BufferGeometry(), HALO(0.35))); return gg; });
     const mid = a.clone().lerp(b, 0.5).add(V3(0, o.arc == null ? 1.2 : o.arc, 0)); const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
@@ -104,7 +98,43 @@ const FX2 = { PUR: 0x5a14c8, PUR_HOT: 0xb060ff, FIGHT: new Set([4, 5, 6]) };
   const RC = new THREE.Raycaster();
   function unblock(F) { const S = F.S, sh = F.sh; if (!S._col || !sh.A) return; const c = V3(0, 0, 0); let n = 0; for (const id in sh.A) if (sh.A[id]) { c.add(actor(id).g.position); n++; } if (!n) return; c.multiplyScalar(1 / n); c.y += 1.2;
     const dir = V3(0, 0, -1).applyQuaternion(CAM.quaternion); const D = c.clone().sub(CAM.position).dot(dir); if (D < 2.2) return; const o = CAM.position.clone().add(dir.clone().multiplyScalar(D));
-    RC.set(o, dir.clone().negate()); RC.far = D; const hit = RC.intersectObjects(S._col, false)[0]; if (hit && hit.distance >= 1.5 && hit.distance < D - 0.05) CAM.position.copy(o).add(dir.clone().multiplyScalar(-(hit.distance - 0.4))); }
+    const rt = V3(1, 0, 0).applyQuaternion(CAM.quaternion), up = V3(0, 1, 0).applyQuaternion(CAM.quaternion); const sp = Math.tan(CAM.fov * Math.PI / 360) * D; let mv = 0;
+    for (const [ax, ay] of [[0, 0], [0.55, 0], [-0.55, 0], [0, 0.45], [0.5, 0.4], [-0.5, 0.4]]) { const tg = o.clone().add(rt.clone().multiplyScalar(ax * sp * 16 / 9)).add(up.clone().multiplyScalar(ay * sp)); const dv = CAM.position.clone().sub(tg); const L = dv.length(); RC.set(tg, dv.normalize()); RC.far = L;
+      const hits = RC.intersectObjects(S._col, false); if (hits.length) { const h = hits[0]; const s2 = h.point.clone().sub(CAM.position).dot(dir); if (s2 > mv) mv = s2; } }
+    if (mv > 0 && D - mv - 0.4 >= 1.5) CAM.position.add(dir.clone().multiplyScalar(mv + 0.4)); }
+  // ---- wings of black flame: a fan of long flame feathers with a dark membrane between them ----
+  const WLEN = [2.3, 3.1, 3.5, 3.4, 3.0, 2.4, 1.8], WANG = [1.12, 0.86, 0.6, 0.34, 0.06, -0.24, -0.56];
+  FX.wings = function (F, key, id, u, lt) {
+    const c = F.joint(id, 'torso'); c.y += 0.42; const ang = actor(id).g.rotation.y; const back = V3(-Math.sin(ang), 0, -Math.cos(ang)), right = V3(Math.cos(ang), 0, -Math.sin(ang)), up = V3(0, 1, 0);
+    const uu = clamp(u), open = easeOut(uu), snap = uu < 1 ? Math.sin(uu * Math.PI) * 0.25 : 0; const flap = Math.sin(lt * 2.4) * 0.09 + Math.sin(lt * 5.1) * 0.02;
+    const pt = (side, j, f) => { const th = lerp(1.45, WANG[j], open) + flap * (1 - j / 9) + snap * (j / 6 - 0.3); const L = WLEN[j] * (0.12 + 0.88 * open); const sweep = 0.18 + f * 0.55 + Math.sin(f * 2.6) * 0.18;
+      return c.clone().add(back.clone().multiplyScalar(0.2 + sweep * L * 0.32)).add(right.clone().multiplyScalar(side * (0.16 + Math.cos(th) * L * f))).add(up.clone().multiplyScalar(Math.sin(th) * L * f - f * f * L * 0.2 + Math.sin(lt * 3 + j + f * 4) * 0.03 * f)); };
+    for (const side of [-1, 1]) { // membrane
+      const m = F.add(key + 'mb' + side, () => { const g = new THREE.BufferGeometry(); const R = 7, Cn = 6; g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(R * Cn * 3), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(R * Cn * 3), 3)); const idx = []; for (let j = 0; j < R - 1; j++) for (let k = 0; k < Cn - 1; k++) { const a0 = j * Cn + k, b0 = a0 + 1, c0 = a0 + Cn, d0 = c0 + 1; idx.push(a0, c0, b0, b0, c0, d0); } g.setIndex(idx);
+        const col = g.attributes.color; for (let j = 0; j < R; j++) for (let k = 0; k < Cn; k++) { const e = Math.pow(k / (Cn - 1), 2.2); col.setXYZ(j * Cn + k, 0.035 + e * 0.2, 0.0 + e * 0.04, 0.07 + e * 0.46); }
+        const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false })); mesh.frustumCulled = false; mesh.renderOrder = 6; return mesh; });
+      const pos = m.geometry.attributes.position; for (let j = 0; j < 7; j++) for (let k = 0; k < 6; k++) { const q = pt(side, j, k / 5 * (0.9 + 0.1 * Math.sin(j * 2.1))); pos.setXYZ(j * 6 + k, q.x, q.y, q.z); } pos.needsUpdate = true; m.material.opacity = 0.78 * clamp(uu * 2); }
+    FX.blackFlame(F, key, i => { const side = i % 2 ? 1 : -1; const j = Math.floor(hash(i * 0.37) * 7); const f = Math.pow(hash(i * 0.77), 0.8); const q = pt(side, j, f); q.y += (hash(i + 3) - 0.5) * 0.1 * (1 - f); return q; }, lt, { n: 2600, h: 0.34, w: 0.085, k: Math.max(0.05, uu), life: 0.5, size: 0.95 });
+    const em = F.ps(key + 'fall', 150, { soft: 0.1, order: 9 }); em.set((i, p) => { const side = i % 2 ? 1 : -1; const j = i % 7; const q = pt(side, j, 0.75 + hash(i) * 0.25); const ph = ((lt * 0.6) + hash(i + 1)) % 1; p.x = q.x + Math.sin(lt * 2 + i) * 0.2 * ph; p.y = q.y - ph * 1.8; p.z = q.z + Math.cos(lt * 1.7 + i) * 0.2 * ph; p.s = 0.04 + hash(i + 2) * 0.05; p.a = (1 - ph) * uu * 0.9; p.r = 0.75; p.g = 0.4; p.b = 1; });
+    FX.glow(F, key + 'core', c.clone().add(back.clone().multiplyScalar(0.3)), 2.6 * uu, 0x5a14c8, 0.5);
+  };
+  // ---- blood spear: jagged crystal that forms in the air, aims, then fires with a long streak ----
+  FX.spear = function (F, key, a, b, lt, t0, dur, o = {}) {
+    const g = F.add(key, () => { const gg = new THREE.Group(); const body = new THREE.Group(); gg.add(body);
+      const cg = new THREE.OctahedronGeometry(1, 0); cg.scale(0.13, 0.13, 1.25); const core = new THREE.Mesh(cg, BLOODM()); core.position.z = 0.1; body.add(core);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.7, 4), BLOODM()); tip.rotation.x = Math.PI / 2; tip.position.z = 1.3; body.add(tip);
+      for (let i = 0; i < 3; i++) { const bb = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 4), BLOODM()); const an = i / 3 * TAU; bb.position.set(Math.cos(an) * 0.13, Math.sin(an) * 0.13, 0.55); bb.rotation.set(-Math.PI / 2 + Math.sin(an) * 0.5, 0, 0); bb.rotation.z = an; bb.lookAt(Math.cos(an) * 0.6, Math.sin(an) * 0.6, -0.3); bb.rotateX(Math.PI / 2); body.add(bb); }
+      const hot = new THREE.Mesh(new THREE.ConeGeometry(0.03, 2.2, 5), basic(0xffe0e0)); hot.rotation.x = Math.PI / 2; hot.position.z = 0.35; body.add(hot);
+      const hg = new THREE.OctahedronGeometry(1, 1); hg.scale(0.3, 0.3, 1.7); const halo = new THREE.Mesh(hg, HALO(0.3)); halo.position.z = 0.2; gg.add(halo);
+      const tr = new THREE.Mesh(CYL(0.14, 0.0, 4.2, 8, true), HALO(0.4)); tr.rotation.x = -Math.PI / 2; tr.position.z = -2.9; gg.add(tr); const tr2 = new THREE.Mesh(CYL(0.05, 0.0, 5.0, 6, true), new THREE.MeshBasicMaterial({ color: 0xffc0c0, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })); tr2.rotation.x = -Math.PI / 2; tr2.position.z = -3.2; gg.add(tr2); return gg; });
+    const form = o.stick || o.form === 0 ? 0 : (o.form || 0.55); const k = (lt - t0) / dur; const sc = (o.s || 1);
+    FX.burst(F, key + 'x', b, lt, t0 + dur, { n: 34, col: 0xff3040, speed: 7, size: 0.15, life: 0.5, grav: 10 }); FX.glow(F, key + 'xg', b, lt >= t0 + dur && lt < t0 + dur + 0.1 ? 2.2 * sc : 0, 0xff6070, 0.8);
+    if (lt < t0 - form || (k > 1 && !o.stick)) { g.visible = false; FX.glow(F, key + 'fg', a, 0, 0xff2030, 0); return k; }
+    const kk = clamp(k); const p = a.clone().lerp(b, o.ease ? easeIn(kk) : kk); const dir = b.clone().sub(a).normalize(); const fk = form ? clamp((lt - (t0 - form)) / (form * 0.7)) : 1;
+    if (k < 0) { p.y += Math.sin(lt * 9 + t0 * 7) * 0.04; p.add(dir.clone().multiplyScalar(-0.25 * easeOut(fk) + 0.25 * clamp((lt - (t0 - 0.12)) / 0.12) * -1)); }
+    g.position.copy(p); g.lookAt(p.clone().add(dir)); g.scale.setScalar(sc * (k < 0 ? Math.max(0.01, easeOut(fk)) : 1)); g.children[0].rotation.z = lt * (k < 0 ? 5 : 22) + t0 * 3;
+    g.children[2].visible = g.children[3].visible = k >= 0 && k < 1; FX.glow(F, key + 'fg', p, k < 0 ? 1.3 * sc * (0.6 + 0.4 * Math.sin(lt * 20)) * fk : 0, 0xff2030, 0.7); return k;
+  };
   // ---- colour remap: Ren's flame hits/lights were crimson, now violet like the flame itself ----
   const REMAP = { 0xff1a10: 0x8a40ff, 0xff2010: 0x8a40ff, 0xff3010: 0xa050ff, 0xff2a10: 0xa050ff, 0xff5030: 0xd0a0ff, 0xff6040: 0xd0a0ff };
   const rm = c => (c != null && REMAP[c] != null ? REMAP[c] : c);
