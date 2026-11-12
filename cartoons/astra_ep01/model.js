@@ -51,13 +51,13 @@ function buildHuman(d) {
     const strand = (par, x, y, z, dir, len, w, bend, col, roll = 0) => { const m = P(strandGeo(len, w, bend), col == null ? hc : col, { ol: simple ? 0 : 0.009 }); m.position.set(x, y, z); m.quaternion.setFromUnitVectors(UPV, new THREE.Vector3(dir[0], dir[1], dir[2]).normalize()); m.rotateY(roll); par.add(m); return m; };
     const style = d.hs;
     if (style === 'spiky') {
-      for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + 0.2, up = 0.55 + hash(i) * 0.5; strand(head, Math.sin(a) * 0.09, 0.27, Math.cos(a) * 0.08 - 0.02, [Math.sin(a) * 0.9, up, Math.cos(a) * 0.9 - 0.25], 0.2 + hash(i + 3) * 0.08, 0.06, 0.25, i % 3 === 0 ? hl : hc, a); }
-      for (let i = 0; i < 8; i++) { const a = Math.PI + (i - 3.5) * 0.3; strand(head, Math.sin(a) * 0.14, 0.17 - Math.abs(i - 3.5) * 0.008, Math.cos(a) * 0.14 - 0.01, [Math.sin(a) * 1.0, -0.25 - hash(i) * 0.3, Math.cos(a) * 1.0], 0.2 + hash(i + 5) * 0.07, 0.062, 0.3, i % 2 ? sh2 : hc, a); }
-      for (const s of [-1, 1]) for (let i = 0; i < 2; i++) strand(head, s * 0.15, 0.2 - i * 0.04, 0.03 - i * 0.03, [s * 0.75, -0.75, 0.15], 0.16, 0.05, 0.35, hc, s * 1.2);
-      [[-0.11, -0.7, 0.1], [-0.065, -0.3, 0.085], [-0.02, 0.25, 0.1], [0.03, -0.2, 0.08], [0.075, 0.4, 0.085], [0.115, 0.8, 0.1]].forEach(([x, tx, len], i) => strand(head, x, 0.292, 0.118, [tx * 0.4, -1, 0.5], len, 0.042, -0.3, i === 2 ? hl : hc, 0));
-      strand(head, 0.01, 0.31, 0.02, [0.3, 1, 0.5], 0.13, 0.025, 0.9, hc);
+      [[-0.07, 0.3, -0.03, -0.45, 0.24], [0, 0.31, -0.05, 0, 0.27], [0.07, 0.3, -0.03, 0.45, 0.24], [-0.11, 0.26, -0.08, -0.8, 0.2], [0.11, 0.26, -0.08, 0.8, 0.2], [-0.04, 0.29, -0.1, -0.2, 0.25], [0.04, 0.29, -0.1, 0.2, 0.25]].forEach(([x, y, z, sx2, len], i) => strand(head, x, y, z, [sx2, 0.85, -0.75], len, 0.085, 0.35, i === 1 ? hl : i > 4 ? sh2 : hc, Math.PI));
+      for (let i = 0; i < 6; i++) { const u = (i - 2.5) / 2.5; strand(head, u * 0.12, 0.17, -0.13 + u * u * 0.03, [u * 0.5, -0.75, -0.8], 0.19 + hash(i) * 0.04, 0.075, 0.3, i % 2 ? sh2 : hc, Math.PI); }
+      for (const s of [-1, 1]) { strand(head, s * 0.15, 0.24, 0.02, [s * 0.5, -1, 0.1], 0.17, 0.06, 0.25, hc, s * 1.57); strand(head, s * 0.155, 0.22, -0.05, [s * 0.7, -0.8, -0.3], 0.17, 0.065, 0.3, sh2, s * 1.57); strand(head, s * 0.13, 0.275, 0.08, [s * 0.75, -0.9, 0.35], 0.12, 0.05, -0.2, hc, 0); }
+      [[-0.085, -0.45, 0.095, 0.055], [-0.04, -0.12, 0.11, 0.055], [0.005, 0.1, 0.135, 0.05], [0.05, 0.2, 0.105, 0.055], [0.09, 0.5, 0.095, 0.055]].forEach(([x, tx, len, w], i) => strand(head, x, 0.296, 0.112, [tx * 0.45, -1, 0.48], len, w, -0.32, i === 2 ? hl : hc, 0));
     } else if (style === 'long' || style === 'longdark') {
-      for (let i = 0; i < 9; i++) { const u = (i - 4) / 4; strand(hairBack, u * 0.13, 0, -0.02 - (1 - u * u) * 0.04, [u * 0.22, -1, -0.12], 0.7 - Math.abs(u) * 0.14 + hash(i) * 0.06, 0.07, 0.12, i % 3 === 1 ? sh2 : hc, 0); }
+      hairBack.add(at(P(capeGeo(0.158, 0.2, 0.66, Math.PI * 0.52, Math.PI * 0.96, 0.07, 16), hc, { ol: 0.011, side: THREE.DoubleSide }), 0, -0.3, 0.1));
+      for (let i = 0; i < 5; i++) { const u = (i - 2) / 2; strand(hairBack, u * 0.12, 0.02, -0.07 + u * u * 0.03, [u * 0.16, -1, -0.1], 0.66 - Math.abs(u) * 0.1, 0.06, 0.1, i % 2 ? sh2 : hl, Math.PI); }
       for (const s of [-1, 1]) { strand(head, s * 0.145, 0.2, 0.04, [s * 0.12, -1, 0.12], 0.44, 0.045, 0.1, hc, 0); strand(head, s * 0.155, 0.2, -0.02, [s * 0.18, -1, -0.05], 0.36, 0.05, 0.1, sh2, 0); }
       for (let i = 0; i < 8; i++) { const u = (i - 3.5) / 3.5; strand(head, u * 0.115, 0.292, 0.122 - u * u * 0.04, [u * 0.14, -1, 0.42], 0.07 + (i % 2) * 0.018 + Math.abs(u) * 0.045, 0.04, -0.25, hc, 0); }
       if (style === 'long') { const tie = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.012, 6, 14, Math.PI * 1.3), basic(0x8fe8ff)); at(tie, 0.13, 0.27, 0.03); tie.rotation.set(0.2, 0.9, 0.5); head.add(tie); }
