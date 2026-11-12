@@ -240,6 +240,7 @@ SFX = {
     'commcrackle': lambda: fade(bp(nz(int(1.2 * SR)), 1500, 6000) * (rng.random(int(1.2 * SR)) < 0.3) * 0.8 + np.sin(2 * np.pi * 1200 * tt(1.2)) * 0.08, 0.02, 0.2), 'portal': lambda: portal(4.5), 'portalclose': lambda: portal(2.5, False), 'cavedrone': lambda: fade(lp(nz(int(9 * SR)), 90) * 4 + np.sin(2 * np.pi * 55 * tt(9)) * 0.35 + np.sin(2 * np.pi * 82.2 * tt(9)) * 0.15, 2, 3),
     'eyeopen': lambda: boom(1.5, 60, 0.9) + np.pad(metal(3000, 1.0, 0.4), (0, int(1.5 * SR) - int(1.0 * SR))), 'choir': lambda: choir([hz(0), hz(3), hz(7), hz(12)], 4.0) * 0.6,
 }
+HEAVY = {'boom', 'explosion', 'impact', 'punch', 'clash', 'slash', 'wallcrash', 'woodcrash', 'shatter', 'crack', 'stonecrack', 'swordplant', 'giantsteps', 'whip', 'thunk', 'cageclose', 'eyeopen'}
 VOXISH = {'scream', 'shout', 'groan', 'cry', 'kidcry', 'laugh', 'laugh_low', 'crowd', 'creak', 'whisper', 'breath', 'gasp'}
 
 # ---------- assemble ----------
@@ -279,7 +280,9 @@ for s in shots:
         if not fn: print('missing sfx', name); continue
         try: x = np.asarray(fn(), np.float32)
         except Exception as e: print('sfx error', name, e); continue
-        add(mix, x, s['start'] + at, vol * (0.3 if name in VOXISH else 0.55), 0.3)
+        if name in HEAVY:  # weight: sub-bass drop + sharp transient under every hit
+            tsub = tt(0.7); sub = np.sin(2 * np.pi * np.cumsum(38 + 50 * np.exp(-tsub * 9)) / SR) * np.exp(-tsub * 5) * 1.3; x = mx(np.tanh(x * 1.6), sub, click(2600, 0.03, 0.9))
+        add(mix, x, s['start'] + at, vol * (0.3 if name in VOXISH else 0.85 if name in HEAVY else 0.6), 0.3)
 # reverb (overlap-add FFT convolution), slightly different tail left/right
 print('reverb...', flush=True)
 def reverb(x, seed):

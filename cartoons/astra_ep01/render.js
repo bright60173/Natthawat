@@ -2,7 +2,7 @@
 const { chromium } = require('playwright'); const path = require('path'); const { spawn } = require('child_process');
 (async () => { const [T0, T1, OUT] = process.argv.slice(2); const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage({ viewport: { width: 1920, height: 1080 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('file://' + path.resolve(__dirname, 'index.html') + '?auto=1'); await p.evaluate(() => window.ready); const FPS = +(process.env.AFPS || 12);
+  await p.goto('file://' + path.resolve(__dirname, 'index.html') + '?auto=1&gs=' + (process.env.GS || 1)); await p.evaluate(() => window.ready); const FPS = +(process.env.AFPS || 12);
   const f0 = Math.round(+T0 * FPS), f1 = Math.round(+T1 * FPS);
   const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-framerate', String(FPS), '-i', '-', '-r', '24', '-c:v', 'libx264', '-preset', 'fast', '-crf', '21', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', OUT], { stdio: ['pipe', 'inherit', 'inherit'] });
   const t = Date.now();

@@ -1,7 +1,7 @@
 // อาณาจักรอัสตรา ตอนที่ 1 — engine: every frame is built from code (three.js r128 + canvas 2D). No generative AI.
 'use strict';
 const W = 1920, H = 1080, FPS = 24;
-const QS = new URLSearchParams(location.search); const GS = +(QS.get('gs') || 0.6667), AA = QS.get('aa') !== '0'; const ANIME = QS.get('anime') === '1';
+const QS = new URLSearchParams(location.search); const GS = +(QS.get('gs') || 0.6667), AA = QS.get('aa') !== '0'; const ANIME = QS.get('anime') !== '0';
 const GLW = Math.round(W * GS), GLH = Math.round(H * GS);
 const TAU = Math.PI * 2;
 const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
@@ -117,7 +117,7 @@ function buildHuman(d) {
   } else {
     for (const s of [-1, 1]) {
       if (ANIME && !hood) { const tx = eyeTextures(d); const em = new THREE.MeshBasicMaterial({ map: tx.base, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }); em.userData.tx = tx; if (s > 0) J.eyeL = em; else J.eyeR = em;
-        const e = new THREE.Mesh(new THREE.PlaneGeometry(0.108, 0.13), em); at(e, s * 0.071, 0.13, 0.151); e.rotation.y = s * 0.42; e.scale.x = s; e.renderOrder = 3; head.add(e); J.animeEyes = 1;
+        const e = new THREE.Mesh(new THREE.PlaneGeometry(0.108, 0.13), em); at(e, s * 0.071, 0.13, 0.151); e.rotation.y = s * 0.42; e.scale.x = s; e.renderOrder = 3; head.add(e); J.animeEyes = 1; (J.eyeM = J.eyeM || []).push(e);
         head.add(rot(at(new THREE.Mesh(BOX(0.062, 0.011, 0.008), basic(d.hair === 0xd8e2f4 ? 0x8a94aa : 0x1a1014)), s * 0.07, 0.205, 0.15), 0, s * 0.42, s * (d.old ? -0.18 : 0.14))); continue; }
       const e = new THREE.Mesh(SPH(0.034, 10, 8), s > 0 ? eyeMat : eyeMatR); at(e, s * 0.064, 0.135, 0.138, [0.8, 1.35, 0.5]); head.add(e);
       if (!hood) { head.add(at(new THREE.Mesh(SPH(0.007, 6, 6), basic(0xffffff)), s * 0.056, 0.152, 0.158));
@@ -320,9 +320,15 @@ function house(scene, x, z, face, s = 1, o = {}) {
   const win = new THREE.MeshBasicMaterial({ color: 0x2a1a10 }); g.userData.win = win;
   g.add(at(new THREE.Mesh(BOX(0.6, 0.5, 0.05), win), -0.8, 1.4, 1.31));
   g.add(at(P(BOX(0.25, 0.9, 0.25), 0x3a2a24, { olS: 1.05 }), 0.9, 3.3, -0.4));
+  const bm = toon(0x3a2416); for (const bx of [-1.46, 0, 1.46]) g.add(at(new THREE.Mesh(BOX(0.14, 2.4, 0.06), bm), bx, 1.2, 1.32)); for (const by of [0.07, 2.33, 1.15]) g.add(at(new THREE.Mesh(BOX(3.0, 0.14, 0.06), bm), 0, by, 1.32));
+  g.add(at(new THREE.Mesh(BOX(0.74, 0.08, 0.07), bm), -0.8, 1.69, 1.33)); g.add(at(new THREE.Mesh(BOX(0.74, 0.08, 0.07), bm), -0.8, 1.11, 1.33)); g.add(at(new THREE.Mesh(BOX(0.06, 0.5, 0.07), bm), -0.8, 1.4, 1.33)); g.add(at(P(BOX(3.5, 0.12, 0.3), 0x2e1a14, { olS: 1.0 }), 0, 3.88, 0));
   scene.add(g); return g;
 }
 
+function grass(scene, n, R, gy, col, seed = 0, avoid) { const g = new THREE.ConeGeometry(0.06, 0.34, 4); const im = new THREE.InstancedMesh(g, flat(col), n); const d = new THREE.Object3D(); let k = 0;
+  for (let i = 0; i < n * 3 && k < n; i++) { const x = (hash(i + seed) - 0.5) * 2 * R, z = (hash(i * 1.7 + seed + 3) - 0.5) * 2 * R; if (avoid && avoid(x, z)) continue; d.position.set(x, (gy ? gy(x, z) : 0) + 0.15, z); d.rotation.set((hash(i + 5) - 0.5) * 0.5, hash(i + 6) * 3, (hash(i + 7) - 0.5) * 0.5); const sc = 0.7 + hash(i + 8) * 1.3; d.scale.set(sc, sc * (0.8 + hash(i + 9)), sc); d.updateMatrix(); im.setMatrixAt(k++, d.matrix); } im.count = k; scene.add(im); return im; }
+function fence(scene, x0, z0, x1, z1, col = 0x5a4030) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(2, Math.round(L / 1.2)); const ang = Math.atan2(x1 - x0, z1 - z0); for (let i = 0; i <= n; i++) { const u = i / n; scene.add(at(P(BOX(0.12, 0.9, 0.12), col, { olS: 1.12 }), lerp(x0, x1, u), 0.45, lerp(z0, z1, u))); }
+  for (const y of [0.35, 0.7]) { const r = P(BOX(0.07, 0.07, L), col, { olS: 1.0 }); at(r, (x0 + x1) / 2, y, (z0 + z1) / 2); r.rotation.y = ang; scene.add(r); } }
 function addLights(scene) {
   const hemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.8); const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(5, 10, 6);
   const pts = [0, 1].map(() => { const p = new THREE.PointLight(0xff3300, 0, 14, 2); scene.add(p); return p; });
@@ -441,6 +447,10 @@ const BUILD = {
     for (let i = 0; i < 160; i++) { const a = hash(i + 500) * TAU, r = 70 + hash(i + 501) * 150; trees.push([Math.cos(a) * r, Math.sin(a) * r, 2 + hash(i + 502) * 1.5, -40]); }
     forest(sc, trees);
     mountains(sc, 260, 40, 0x2a2e3e, 60, 140, -40, 1); mountains(sc, 330, 30, 0x1e2230, 90, 200, -40, 2);
+    grass(sc, 1400, 30, null, 0x6f8a52, 3, (x, z) => Math.hypot(x, z) < 7.4 || (Math.abs(z) < 1.9 && x > 4));
+    fence(sc, -12, 6.5, -9.5, 11.5); fence(sc, 8, 13, 13, 9.5); fence(sc, 12.5, -6, 9, -11.5); fence(sc, -7.5, -12, -12.5, -8);
+    for (const [bx, bz] of [[-3.2, 6.6], [-2.6, 7.2], [6.6, 4.4], [7.6, -4.6], [-6.8, -3.2]]) { sc.add(at(P(CYL(0.32, 0.28, 0.7, 10), 0x6a4a2c, { ol: 0.02 }), bx, 0.35, bz)); sc.add(at(new THREE.Mesh(CYL(0.335, 0.335, 0.06, 10, true), toon(0x2a2420)), bx, 0.5, bz)); }
+    S.lamps = []; for (const [lx, lz] of [[7.2, 7.0], [-9.6, 1.6], [7.4, -7.0], [-6.6, -7.2], [9, 2.2], [16, -2.2]]) { sc.add(at(P(CYL(0.05, 0.07, 2.4, 6), 0x2a2420, { ol: 0.012 }), lx, 1.2, lz)); const lm = new THREE.MeshBasicMaterial({ color: 0x3a2a18 }); sc.add(at(new THREE.Mesh(BOX(0.24, 0.3, 0.24), lm), lx, 2.5, lz)); S.lamps.push(lm); }
     fireField(S, spots, 36);
     ambient(S, 'ember', 500, { r: 18, h: 12, sp: 0.6, col: 0xff5a20 }); ambient(S, 'ash', 400, { r: 18, h: 12, sp: 0.35 }); ambient(S, 'leaf', 220, { r: 16, h: 9, sp: 0.4 }); ambient(S, 'smoke', 60, { r: 20, h: 14, sp: 0.2, y0: 2 });
     // debris & cracks (aftermath)
@@ -452,7 +462,7 @@ const BUILD = {
       updAmbient(S, 'ember', t, c.x, c.z, fire > 0 || st.embers); updAmbient(S, 'ash', t, c.x, c.z, fire > 0 || st.ash); updAmbient(S, 'leaf', t, c.x, c.z, st.leaves); updAmbient(S, 'smoke', t, c.x, c.z, fire > 0.3 || st.smoke);
       S.debris.visible = !!(st.debris); S.cracks.visible = !!st.cracks; if (st.crackAt) S.cracks.position.set(st.crackAt[0], 0, st.crackAt[1]);
       S.bell.rotation.z = st.bell ? Math.sin(t * 5) * 0.4 : 0;
-      for (const h of S.houses) h.userData.win.color.set(st.night ? 0xffb050 : 0x2a1a10);
+      for (const h of S.houses) h.userData.win.color.set(st.night || fire > 0 ? 0xffb050 : 0x2a1a10); for (const lm of S.lamps) lm.color.set(st.night || fire > 0 ? 0xffc060 : 0x3a2a18);
       S.wall.children.forEach((b, i) => { if (st.wallBroken && i > 1 && i < 4) b.visible = false; else b.visible = true; });
       if (S.wheel) S.wheel.rotation.z = st.fixed ? 0 : 0.6; S.wheel.position.y = st.fixed ? 0.34 : 0.24;
     };
@@ -468,6 +478,7 @@ const BUILD = {
     forest(sc, trees, 0xd4d8e4, 0xa8b6d0);
     for (let i = 0; i < 40; i++) sc.add(at(P(new THREE.DodecahedronGeometry(0.4 + hash(i) * 0.6, 0), 0x5a5e66, { ol: 0.02 }), (hash(i + 3) - 0.5) * 30, 0.2, (hash(i + 4) - 0.5) * 80));
     mountains(sc, 200, 30, 0x2a3040, 50, 100, -5, 3);
+    grass(sc, 1600, 45, null, 0x5d7a78, 9, (x, z) => Math.abs(x) < 1.6);
     ambient(S, 'leaf', 700, { r: 14, h: 10, sp: 0.9, wind: 0.8 }); ambient(S, 'dust', 200, { r: 12, h: 6, sp: 0.1, col: 0xbfd8ff });
     S.update = (sh, t) => { S.sky.userData.u.t.value = t; const c = sh.camPos || { x: 0, z: 0 }; updAmbient(S, 'leaf', t, c.x, c.z, true); updAmbient(S, 'dust', t, c.x, c.z, true); };
     return S;
@@ -481,6 +492,7 @@ const BUILD = {
     sc.add(new THREE.Mesh(pg, flat(0x4a4038))); S.pathX = z => Math.sin(z * 0.08) * 2;
     for (let i = 0; i < 60; i++) { const x = (hash(i) - 0.5) * 40, z = (hash(i + 1) - 0.5) * 120; if (Math.abs(x - Math.sin(z * 0.08) * 2) < 2) continue; sc.add(at(P(new THREE.DodecahedronGeometry(0.3 + hash(i + 2) * 0.9, 0), 0x3e4048, { ol: 0.02 }), x, gy(x, z) + 0.2, z)); }
     const trees = []; for (let i = 0; i < 120; i++) { const x = (hash(i + 7) - 0.5) * 120, z = (hash(i + 8) - 0.5) * 160; if (Math.abs(x) < 8) continue; trees.push([x, z, 0.8 + hash(i + 9), gy(x, z)]); } forest(sc, trees, 0x9aa0b0, 0x5a6478);
+    grass(sc, 1200, 30, gy, 0x35404a, 5, (x, z) => Math.abs(x - Math.sin(z * 0.08) * 2) < 1.3);
     // village lights far below (behind, -z)
     const vl = new PS(160, { soft: 0.0, order: 6 }); vl.set((i, o) => { o.x = (hash(i) - 0.5) * 26; o.z = -70 - hash(i + 1) * 20; o.y = -12 + hash(i + 2) * 3; o.s = 0.25 + hash(i + 3) * 0.3; o.a = 0.6; o.r = 1; o.g = 0.55; o.b = 0.2; }); sc.add(vl.pts);
     const far = mountains(sc, 160, 26, 0x14161f, 40, 80, 0, 5); S.far = far;
@@ -611,6 +623,18 @@ function pose(a, act, k, st) {
     case 'wave': idleArms(); r(J.shR, -2.6 + Math.sin(k * 6) * 0.15, null, -0.5 + Math.sin(k * 6) * 0.25); r(J.elR, -0.3); break;
     case 'throne': J.hip.position.y = 0.45; r(J.legL, -1.5, null, 0.12); r(J.legR, -1.5, null, -0.12); r(J.kneeL, 1.45); r(J.kneeR, 1.45); r(J.torso, -0.08 + br * 0.3); r(J.shL, -0.7, null, 0.25); r(J.shR, -0.7, null, -0.25); r(J.elL, -0.6); r(J.elR, -0.6); break;
     case 'throneraise': J.hip.position.y = 0.45; r(J.legL, -1.5, null, 0.12); r(J.legR, -1.5, null, -0.12); r(J.kneeL, 1.45); r(J.kneeR, 1.45); r(J.torso, -0.05); r(J.shL, -0.7, null, 0.25); r(J.elL, -0.6); r(J.shR, -1.3 - 0.4 * ease(k / 1.2), null, -0.5); r(J.elR, -0.2); break;
+    case 'kick': { const w = clamp(k / 0.14), s2 = clamp((k - 0.14) / 0.1); r(J.torso, -0.25 * s2, -0.5 * s2); r(J.legR, -0.5 * w - 1.25 * s2); r(J.kneeR, 1.6 * w - 1.5 * s2); r(J.legL, 0.15); r(J.kneeL, 0.25); r(J.shL, -0.8, null, 0.6); r(J.shR, 0.5, null, -0.5); r(J.elL, -1.2); r(J.elR, -0.8); break; }
+    case 'dodge': { const u = clamp(k / 0.12); r(J.torso, -0.55 * u, 0.3 * u); r(J.head, 0.3 * u); r(J.shL, 0.4 * u, null, 0.9 * u); r(J.shR, 0.4 * u, null, -0.9 * u); r(J.legL, -0.5 * u); r(J.kneeL, 0.7 * u); r(J.legR, 0.4 * u); r(J.kneeR, 0.4 * u); J.hip.position.y = a.hipY - 0.14 * u; break; }
+    case 'duck': { const u = clamp(k / 0.1); crouchLegs(); J.hip.position.y = lerp(a.hipY, 0.52, u); r(J.torso, 0.6 * u); r(J.shL, -0.6, null, 0.5); r(J.shR, -0.6, null, -0.5); r(J.elL, -1.3); r(J.elR, -1.3); r(J.head, -0.3); break; }
+    case 'dash': { const ph = st.phase; walkLegs(ph, 1.05, 1.6); r(J.torso, 0.75); r(J.head, -0.55); r(J.shL, 1.0, null, 0.35); r(J.shR, 1.0, null, -0.35); r(J.elL, -0.2); r(J.elR, -0.2); break; }
+    case 'uppercut': { const w = clamp(k / 0.18), s2 = clamp((k - 0.18) / 0.12); J.hip.position.y = a.hipY - 0.22 * w + 0.3 * s2; r(J.torso, 0.45 * w - 0.6 * s2, -0.4 * w + 0.7 * s2); r(J.shR, 0.4 * w - 3.0 * s2, null, -0.2); r(J.elR, -1.7 * w + 1.2 * s2); r(J.shL, -0.6, null, 0.4); r(J.elL, -1.4); r(J.legL, -0.6 * w + 0.4 * s2); r(J.kneeL, 0.9 * w - 0.7 * s2); r(J.legR, 0.3 * w); r(J.kneeR, 0.6 * w - 0.4 * s2); r(J.head, -0.3 * s2); break; }
+    case 'jumpatk': { const s2 = clamp((k - 0.35) / 0.12); r(J.torso, -0.35 + 0.9 * s2); r(J.shL, -2.9 + 2.0 * s2, null, 0.2); r(J.shR, -2.9 + 2.0 * s2, null, -0.2); r(J.elL, -0.5 + 0.4 * s2); r(J.elR, -0.5 + 0.4 * s2); r(J.legL, -0.9 + 0.5 * s2); r(J.kneeL, 1.6 - 0.8 * s2); r(J.legR, 0.2); r(J.kneeR, 1.3 - 0.6 * s2); r(J.head, 0.1 + 0.2 * s2); break; }
+    case 'stagger': { const u = clamp(k / 0.15); r(J.torso, -0.4 * u + Math.sin(k * 9) * 0.04, 0.2 * u); r(J.head, -0.35 * u); r(J.shL, 0.3, null, 0.7 * u); r(J.shR, 0.5, null, -0.6 * u); r(J.elL, -0.6); r(J.elR, -0.4); r(J.legL, 0.35 * u); r(J.kneeL, 0.3); r(J.legR, -0.3 * u); r(J.kneeR, 0.5 * u); J.hip.position.y = a.hipY - 0.06 * u; break; }
+    case 'pant': kneelLegs(); r(J.torso, 0.38 + Math.sin(k * 5) * 0.05); r(J.head, 0.3 - Math.sin(k * 5) * 0.04); r(J.shL, -0.5, null, 0.15); r(J.elL, -0.4); r(J.shR, -0.3, null, -0.2); r(J.elR, -0.5); break;
+    case 'charge': { const tr = Math.sin(k * 34) * 0.015; r(J.torso, 0.22 - clamp(k / 1.5) * 0.3 + tr); r(J.head, 0.35 - clamp(k / 1.5) * 0.55); r(J.shL, 0.1, null, 0.45 + tr); r(J.shR, 0.1, null, -0.45 - tr); r(J.elL, -0.9); r(J.elR, -0.9); r(J.legL, -0.3, null, 0.12); r(J.legR, 0.3, null, -0.12); r(J.kneeL, 0.4); r(J.kneeR, 0.2); J.hip.position.y = a.hipY - 0.07; break; }
+    case 'thrust': { const w = clamp(k / 0.16), s2 = clamp((k - 0.16) / 0.1); r(J.torso, 0.15 + 0.2 * s2, -0.6 * w + 1.0 * s2); r(J.shR, -0.5 * w - 1.05 * s2, null, -0.1); r(J.elR, -1.9 * w + 1.85 * s2); r(J.shL, 0.5 * s2, null, 0.4); r(J.elL, -1.0); r(J.legL, -0.6); r(J.kneeL, 0.7); r(J.legR, 0.55); r(J.kneeR, 0.3); J.hip.position.y = a.hipY - 0.1; break; }
+    case 'slash2': { const w = clamp(k / 0.2), s2 = clamp((k - 0.2) / 0.1); r(J.torso, -0.2 * w + 0.55 * s2, 0.5 * w - 0.9 * s2); r(J.shR, -2.9 * w + 2.5 * s2, null, -0.3 + 0.5 * s2); r(J.elR, -0.5 * w + 0.4 * s2); r(J.shL, -0.6, null, 0.5); r(J.elL, -1.0); r(J.legL, -0.5); r(J.kneeL, 0.6); r(J.legR, 0.45); r(J.kneeR, 0.3); J.hip.position.y = a.hipY - 0.08 - 0.08 * s2; break; }
+    case 'cross': r(J.torso, 0.2); r(J.shL, -1.35, null, -0.55); r(J.shR, -1.35, null, 0.55); r(J.elL, -0.9); r(J.elR, -0.9); r(J.legL, -0.5); r(J.kneeL, 0.65); r(J.legR, 0.5); r(J.kneeR, 0.35); J.hip.position.y = a.hipY - 0.12; r(J.head, 0.15); break;
     case 'portal': idleArms(); r(J.shR, -1.0, null, -0.1); r(J.elR, -0.2); r(J.torso, 0.25); r(J.head, 0.2); break;
   }
 }
