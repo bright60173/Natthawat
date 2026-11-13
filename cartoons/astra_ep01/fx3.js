@@ -5,31 +5,31 @@
   const FIGHT = sh => FX2.FIGHT.has(sh.sceneId) && (sh.set === 'village' || sh.set === 'forest');
   const back = u => { u = clamp(u); const c = 1.9; return 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); };
   // ================= toon flame tongues (point sprites with a drawn flame silhouette) =================
-  const TG_VS = `attribute float size; attribute float alpha; attribute float seed; attribute vec3 pcol; varying float vA; varying float vS; varying vec3 vC; uniform float scale;
-void main(){ vA=alpha; vS=seed; vC=pcol; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=min(700.0,size*scale/max(0.05,-mv.z)); gl_Position=projectionMatrix*mv; }`;
-  const TG_FS = `varying float vA; varying float vS; varying vec3 vC; uniform float t; uniform vec3 core; uniform vec3 hot;
-void main(){ vec2 p=gl_PointCoord; float y=1.0-p.y; float x=(p.x-0.5)*2.0; float ph=vS*37.0;
- float sd=fract(vS*7.0)>0.5?1.0:-1.0; x+=sd*y*y*0.55*(0.6+0.4*sin(t*5.0+ph))+sin(y*6.0+ph+t*10.0)*0.13*y+sin(y*13.0-t*15.0+ph*2.0)*0.05*y;
- float w=pow(y,0.5)*pow(1.0-y,1.15)*1.45+0.012; float d=abs(x)/w; if(d>1.0||vA<0.01) discard;
- float e=d*0.8+y*0.75+0.08*sin(y*18.0+ph); vec3 c=e<0.5?core:(e<0.82?vC:hot); gl_FragColor=vec4(c,vA); }`;
-  class Tongues { constructor(n) { this.n = n; const g = new THREE.BufferGeometry(); this.pos = new Float32Array(n * 3); this.size = new Float32Array(n); this.alpha = new Float32Array(n); this.seed = new Float32Array(n); this.col = new Float32Array(n * 3);
+  const TG_VS = `attribute float size; attribute float seed; varying float vS; uniform float scale;
+void main(){ vS=seed; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=min(700.0,size*scale/max(0.05,-mv.z)); gl_Position=projectionMatrix*mv; }`;
+  // one flame lick; the same sprites are drawn three times (edge, body, core) so overlapping licks fuse into one sheet of fire
+  const TG_FS = `varying float vS; uniform float t; uniform vec3 col; uniform float shrink;
+void main(){ vec2 p=gl_PointCoord; float y=(1.0-p.y)/shrink; float x=(p.x-0.5)*2.0/shrink; if(y>1.0) discard; float ph=vS*37.0;
+ float sd=fract(vS*7.0)>0.5?1.0:-1.0; x+=sd*y*y*0.5*(0.6+0.4*sin(t*5.0+ph))+sin(y*6.0+ph+t*10.0)*0.14*y+sin(y*13.0-t*15.0+ph*2.0)*0.06*y;
+ float w=pow(y,0.3)*pow(1.0-y,0.8)*1.2+0.01; if(abs(x)>w) discard; gl_FragColor=vec4(col,1.0); }`;
+  class Tongues { constructor(n) { this.n = n; const g = new THREE.BufferGeometry(); this.pos = new Float32Array(n * 3); this.size = new Float32Array(n); this.seed = new Float32Array(n);
       for (let i = 0; i < n; i++) this.seed[i] = hash(i * 3.71 + 0.2);
-      g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setAttribute('size', new THREE.BufferAttribute(this.size, 1)); g.setAttribute('alpha', new THREE.BufferAttribute(this.alpha, 1)); g.setAttribute('seed', new THREE.BufferAttribute(this.seed, 1)); g.setAttribute('pcol', new THREE.BufferAttribute(this.col, 3));
-      this.mat = new THREE.ShaderMaterial({ vertexShader: TG_VS, fragmentShader: TG_FS, transparent: true, depthWrite: false, uniforms: { scale: { value: GLH * 0.5 * 2.75 }, t: { value: 0 }, core: { value: C(0x06000c) }, hot: { value: C(0xd8a8ff) } } });
-      this.pts = new THREE.Points(g, this.mat); this.pts.frustumCulled = false; this.pts.renderOrder = 8; this.g = g; }
-    set(fn) { const o = { x: 0, y: 0, z: 0, s: 0, a: 0, r: 1, g: 1, b: 1 }; for (let i = 0; i < this.n; i++) { o.s = 0; o.a = 0; fn(i, o); const j = i * 3; this.pos[j] = o.x; this.pos[j + 1] = o.y; this.pos[j + 2] = o.z; this.size[i] = o.s; this.alpha[i] = o.a; this.col[j] = o.r; this.col[j + 1] = o.g; this.col[j + 2] = o.b; }
-      for (const k of ['position', 'size', 'alpha', 'pcol']) this.g.attributes[k].needsUpdate = true; } }
+      g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setAttribute('size', new THREE.BufferAttribute(this.size, 1)); g.setAttribute('seed', new THREE.BufferAttribute(this.seed, 1));
+      this.pts = new THREE.Group(); this.mats = [1, 0.86, 0.66, 0.42].map((sh, i) => { const m = new THREE.ShaderMaterial({ vertexShader: TG_VS, fragmentShader: TG_FS, transparent: true, depthWrite: false, uniforms: { scale: { value: GLH * 0.5 * 2.75 }, t: { value: 0 }, col: { value: C(0xffffff) }, shrink: { value: sh } } }); const p = new THREE.Points(g, m); p.frustumCulled = false; p.renderOrder = 8 + i * 0.1; this.pts.add(p); return m; }); this.g = g; }
+    colors(t, edge, body, core) { const mid = C(body).lerp(C(core), 0.4).getHex(); [edge, body, mid, core].forEach((c, i) => { this.mats[i].uniforms.col.value.set(c); this.mats[i].uniforms.t.value = t; }); }
+    set(fn) { const o = { x: 0, y: 0, z: 0, s: 0 }; for (let i = 0; i < this.n; i++) { o.s = 0; fn(i, o); const j = i * 3; this.pos[j] = o.x; this.pos[j + 1] = o.y; this.pos[j + 2] = o.z; this.size[i] = o.s; }
+      this.g.attributes.position.needsUpdate = true; this.g.attributes.size.needsUpdate = true; } }
   FX.tongues = (F, key, n) => F.add(key, () => new Tongues(n));
-  const PAL = { pur: [0x05000a, 0x6420d8, 0xb880ff, 0x4a10b0], blood: [0x2a0006, 0xe01428, 0xffb0a0, 0xa00818], fire: [0xff7a10, 0xffb020, 0xfff0a0, 0xff5010], water: [0x1a6ad0, 0x58c4ff, 0xf0fbff, 0x2a8cff] };
+  const PAL = { pur: [0x05000a, 0x6420d8, 0xb880ff, 0x4a10b0], blood: [0x2a0006, 0xe01428, 0xffb0a0, 0xa00818], fire: [0xffe070, 0xff9a18, 0xff4a10, 0xff5010], water: [0x1a6ad0, 0x58c4ff, 0xf0fbff, 0x2a8cff] };
   // generic toon flame: bases(i)->Vector3; o: n,h,w,k,life,size,pal,drift(Vector3)
   FX.toonFlame = function (F, key, bases, lt, o = {}) {
     const n = o.n || 260, h = o.h || 0.7, w = o.w || 0.12, k = o.k == null ? 1 : o.k, life = o.life || 0.7, sz = o.size || 1; const keys = ['T', 'G', 'E'];
     if (k <= 0) { for (const s of keys) F.hide(key + s); return; }
-    const pal = PAL[o.pal || 'pur']; const nt = Math.max(10, Math.floor(n * 0.42)); const T = FX.tongues(F, key + 'T', nt), G = F.ps(key + 'G', Math.max(6, Math.floor(n * 0.1)), { soft: 0.0, order: 7 }), E = F.ps(key + 'E', Math.max(8, Math.floor(n * 0.16)), { soft: 0.2, order: 9 });
-    T.mat.uniforms.t.value = lt; T.mat.uniforms.core.value.set(pal[0]); T.mat.uniforms.hot.value.set(pal[2]); const B = typeof bases === 'function' ? bases : i => bases[i % bases.length]; const tm = lt + (o.seed || 0); const dr = o.drift;
+    const pal = PAL[o.pal || 'pur']; const nt = Math.max(14, Math.floor(n * 0.5)); const T = FX.tongues(F, key + 'T', nt), G = F.ps(key + 'G', Math.max(6, Math.floor(n * 0.1)), { soft: 0.0, order: 7 }), E = F.ps(key + 'E', Math.max(8, Math.floor(n * 0.16)), { soft: 0.2, order: 9 });
+    T.colors(lt, pal[2], pal[1], pal[0]); const B = typeof bases === 'function' ? bases : i => bases[i % bases.length]; const tm = lt + (o.seed || 0); const dr = o.drift;
     const rc = rgb(pal[1]), gc = rgb(pal[3]), hc = rgb(pal[2]); const dn = Math.min(1, Math.sqrt(200 / n));
     T.set((i, p) => { const b = B(i); const ph = flameP(i, tm, p, b.x, b.y, b.z, h * k * 0.75, w, life, 1); if (dr) { p.x += dr.x * ph; p.y += dr.y * ph; p.z += dr.z * ph; }
-      const g = Math.sin(Math.PI * Math.pow(ph, 0.55)); p.s = (0.3 + hash(i + 2) * hash(i + 9) * 0.75) * (0.35 + 0.65 * g) * Math.min(2.2, sz * k * (0.1 + h * 0.34)); p.y += p.s * 0.3; p.a = ph > 0.86 ? (1 - ph) / 0.14 : Math.min(1, ph / 0.06); [p.r, p.g, p.b] = rc; });
+      const g = Math.sin(Math.PI * Math.pow(ph, 0.5)); p.s = (0.55 + hash(i + 2) * 0.6) * g * Math.min(2.4, sz * k * (0.16 + h * 0.36)); if (p.s < 0.02) p.s = 0; p.y += p.s * 0.22; });
     G.set((i, p) => { const b = B(i * 5 + 3); p.x = b.x; p.y = b.y + h * k * 0.3; p.z = b.z; p.s = (1.1 + hash(i) * 0.8) * sz * k * (0.35 + h * 0.5); p.a = (0.09 + 0.03 * Math.sin(tm * 11 + i)) * dn; [p.r, p.g, p.b] = gc; });
     E.set((i, p) => { const b = B(i * 3 + 11); const ph = flameP(i + 555, tm * 0.8, p, b.x, b.y, b.z, h * k * 2.2, w * 2.2, life * 1.8, 3); if (dr) { p.x += dr.x * ph * 1.6; p.z += dr.z * ph * 1.6; } p.x += Math.sin(tm * 4 + i) * 0.1 * ph; p.s = (0.035 + hash(i + 5) * 0.05) * sz * (1 - ph * 0.6); p.a = Math.sin(Math.PI * ph) * 0.9; [p.r, p.g, p.b] = hc; });
   };
@@ -105,10 +105,10 @@ void main(){ vec2 p=gl_PointCoord; float y=1.0-p.y; float x=(p.x-0.5)*2.0; float
   FX.wolfFlame = function (F, key, lt, k = 1, n = 900) { const w = actor('wolf'); if (!w.v3) return; const s = w.g.scale.x; if (s < 0.05) { FX.toonFlame(F, key, [V3(0, 0, 0)], lt, { k: 0 }); return; }
     const P = j => { const v = new THREE.Vector3(); j.getWorldPosition(v); return v; }; const J = w.J; const hd = P(J.head), nk = P(J.neck), ch = P(J.chest), lo = P(J.loin), tl = J.tails.map(P), paws = ['FL', 'FR', 'BL', 'BR'].map(q => [P(J['leg' + q]), P(J['paw' + q])]);
     const up = V3(0, 0.3 * s, 0); const spine = [hd.clone().add(up.clone().multiplyScalar(0.7)), nk.clone().add(up), ch.clone().add(up.clone().multiplyScalar(1.3)), lo.clone().add(up), tl[0].clone().add(up.clone().multiplyScalar(0.5))];
-    const ang = w.g.rotation.y; const sp = F.sh.A && F.sh.A.wolf && F.sh.A.wolf.p2 ? 1 : 0; const drift = V3(-Math.sin(ang), 0.1, -Math.cos(ang)).multiplyScalar(sp * 1.5 * s);
+    const ang = w.g.rotation.y; const sp = F.sh.A && F.sh.A.wolf && F.sh.A.wolf.p2 ? 1 : 0; const drift = V3(-Math.sin(ang), 0.1, -Math.cos(ang)).multiplyScalar(sp * 0.5 * s);
     const bases = i => { const u = hash(i * 1.37), r = hash(i * 2.11 + 1); let p; if (u < 0.5) { const q = r * (spine.length - 1), a = Math.floor(q); p = spine[a].clone().lerp(spine[Math.min(spine.length - 1, a + 1)], q - a); } else if (u < 0.72) { const q = r * (tl.length - 1), a = Math.floor(q); p = tl[a].clone().lerp(tl[Math.min(tl.length - 1, a + 1)], q - a); } else if (u < 0.9) { const L = paws[i % 4]; p = L[0].clone().lerp(L[1], r); } else p = hd.clone().lerp(ch, r);
-      p.x += (hash(i + 5) - 0.5) * 0.22 * s; p.z += (hash(i + 6) - 0.5) * 0.22 * s; return p; };
-    FX.toonFlame(F, key, bases, lt, { n: Math.min(n, 520), h: 0.32 * s, w: 0.05 * s, k, size: 0.44 * s, life: 0.5, drift });
+      p.x += (hash(i + 5) - 0.5) * 0.1 * s; p.z += (hash(i + 6) - 0.5) * 0.1 * s; return p; };
+    FX.toonFlame(F, key, bases, lt, { n: 900, h: 0.16 * s, w: 0.03 * s, k, size: 0.62 * s, life: 0.45, drift });
     if (F.S.L.pts[2]) F.light(2, 0x8a40ff, 2.2 * k, ch.x, ch.y + 0.5, ch.z, 9); };
 })();
 // ================= fight poses: keyframes with anticipation -> snap -> overshoot -> settle =================
@@ -165,7 +165,7 @@ void main(){ vec2 p=gl_PointCoord; float y=1.0-p.y; float x=(p.x-0.5)*2.0; float
     '5.1': { t: 'cu', a: 'gron', d: 2.0, h: -0.35, yaw: 0.5 }, '5.2': { t: 'med', a: 'ren', d: 3.6, h: 1.3, ly: 1.35, yaw: 0.4, push: 0.2 }, '5.7': { t: 'two', a: 'gron', b: 'ren', d: 2.2, h: 1.6, side: -1, push: 0.1 }, '5.10': { t: 'cu', a: 'ren', d: 2.5, fov: 26, side: -1, yaw: 0.3 },
     '5.12': { t: 'low', a: 'gron', d: 2.6, side: -1 }, '5.14': { t: 'med', a: 'ren', d: 4.2, h: 0.7, ly: 1.4, yaw: -0.5, push: 0.3 }, '5.17': { t: 'low', a: 'ren', d: 3.0, yaw: 0.3, push: 0.15 }, '5.20': { t: 'cu', a: 'ren', d: 2.1, yaw: 0.75, fov: 34 },
     '6.1': { t: 'low', a: 'gron', d: 3.0, yaw: -0.5, h: 0.9, push: 0.2 }, '6.3': { t: 'cu', a: 'ren', d: 0.8, yaw: 0.25, h: 0.02, dy: -0.04, fov: 26, push: 0.12 }, '6.4': { t: 'orb', a: 'ren', b: 'gron', d: 3.3, a0: -1.1, a1: -2.1, h: 0.7, h2: 1.4 }, '6.7': { t: 'orb', a: 'ren', b: 'gron', fix: 1, d: 3.2, a0: 1.95, a1: 1.2, h: 0.55, h2: 0.9, fov: 46 }, '6.2': { t: 'two', a: 'gron', b: 'ren', fix: 1, d: 2.6, h: 0.6, fov: 48 }, '6.5': { t: 'two', a: 'ren', b: 'gron', fix: 1, d: 2.4, side: -1, h: 1.0 }, '6.6': { t: 'lowtwo', a: 'ren', b: 'gron', d: 2.2, so: 1.5 },
-    '6.8': { t: 'ots', a: 'ren', b: 'gron', d: 2.6, so: 1.4, h: 2.3, fix: 1 }, '6.9': { t: 'ots', a: 'ren', b: 'gron', d: 1.5, so: 1.15, h: 1.75, head: 1, fov: 32, push: 0.1 }, '6.10': { t: 'cu', a: 'ren', d: 1.7, yaw: 1.05, side: -1, fov: 32, push: 0.1 },
+    '6.8': { t: 'ots', a: 'ren', b: 'gron', d: 2.6, so: 1.4, h: 2.3, fix: 1 }, '6.9': { t: 'ots', a: 'ren', b: 'gron', d: 1.5, so: 1.15, h: 1.75, head: 1, fov: 32, push: 0.1 }, '6.10': { t: 'cu', a: 'ren', d: 1.5, yaw: 1.15, side: 1, h: 0.1, fov: 32, push: 0.1 },
     '6.11': { t: 'two', a: 'ren', b: 'gron', fix: 1, d: 2.6, h: 0.8, fov: 46, zoom: [0.28, 0.4] }, '6.12': { t: 'two', a: 'ren', b: 'gron', d: 2.4, h: 0.45, ly: 1.5, fov: 50 }, '6.13': { t: 'top', a: 'ren', b: 'gron', fix: 1, h: 7 }, '6.14': { t: 'two', a: 'gron', b: 'ren', fix: 1, d: 3.2, h: 0.9, side: -1, fov: 46 },
     '6.15': { t: 'med', a: 'ren', d: 2.8, h: 0.5, ly: 0.7, yaw: 0.9, push: 0.15 }, '6.16': { t: 'two', a: 'mira', b: 'gron', d: 2.2, h: 1.3, side: -1 }, '6.18': { t: 'cu', a: 'ren', d: 1.8, h: -0.1, yaw: -0.5 }, '6.21': { t: 'cu', a: 'ren', d: 1.9, yaw: 0.85, h: 0.1, dy: 0.25, fov: 36, push: 0.15 },
     '6.24': { t: 'two', a: 'ren', b: 'gron', fix: 1, d: 2.6, h: 0.6, fov: 48, side: -1 }, '6.25': { t: 'two', a: 'ren', b: 'gron', d: 2.8, h: 1.0, side: -1, fov: 42, zoom: [0.3, 0.42] }, '6.28': { t: 'med', a: 'gron', d: 3.0, h: 1.3, ly: 0.9, yaw: 0.95 },
