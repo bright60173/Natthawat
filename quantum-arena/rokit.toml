@@ -1,0 +1,4 @@
+# ติดตั้งเครื่องมือด้วย `rokit install` (https://github.com/rojo-rbx/rokit)
+[tools]
+rojo = "rojo-rbx/rojo@7.6.1"
+selene = "Kampfkarren/selene@0.29.0"
