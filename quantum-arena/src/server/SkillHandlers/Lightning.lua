@@ -41,7 +41,7 @@ H.ThunderStrike = function(player, _character, p)
 	U.VFX("Telegraph", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = skill.Delay })
 	task.wait(skill.Delay)
 	U.VFX("Lightning", { From = point + Vector3.new(0, 90, 0), To = point, Color = p.Color, Width = 2.5 })
-	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.4 })
+	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.4, Ground = true })
 	for _, model in ipairs(U.EnemiesInRadius(player, point + Vector3.new(0, 2, 0), skill.Radius)) do
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 then
 			StatusService.Stun(model, skill.Stun)

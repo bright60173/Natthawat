@@ -1,6 +1,7 @@
 -- ฟังก์ชันเอฟเฟกต์ที่ใช้ร่วมกัน (รันฝั่ง client เท่านั้น)
 -- ทุกอย่างสร้างจาก Part / Neon / ParticleEmitter / Beam / Trail / Highlight ไม่ใช้ asset ภายนอก
 local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -129,6 +130,367 @@ stepped:Connect(function(dt)
 end)
 
 ---------------------------------------------------------------------------
+-- ความรู้สึกตอนกระแทก: กล้องสั่น / ซูมกระตุก / จอวาบ / หยุดภาพ
+---------------------------------------------------------------------------
+local BASE_FOV = 70
+local trauma = 0
+local fovPunch = 0
+local fovDirty = false
+local shakeSeed = math.random() * 100
+
+-- เพิ่มแรงสั่นกล้อง (0–1)
+function VFX.Shake(amount)
+	trauma = math.clamp(trauma + amount, 0, 1)
+end
+
+-- สั่นกล้องตามระยะห่างจากจุดเกิดเหตุ
+function VFX.ShakeAt(position, amount, range)
+	local camera = Workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local distance = (camera.Focus.Position - position).Magnitude
+	local falloff = math.clamp(1 - distance / range, 0, 1)
+	if falloff > 0 then
+		VFX.Shake(amount * falloff)
+	end
+end
+
+function VFX.FovPunch(degrees)
+	fovPunch = math.max(fovPunch, degrees)
+	fovDirty = true
+end
+
+if RunService:IsClient() then
+	RunService:BindToRenderStep("QA_CameraFeel", Enum.RenderPriority.Camera.Value + 1, function(dt)
+		local camera = Workspace.CurrentCamera
+		if not camera then
+			return
+		end
+		if trauma > 0 then
+			trauma = math.max(0, trauma - dt * 1.9)
+			local strength = trauma * trauma
+			shakeSeed += dt * 36
+			local x = math.noise(shakeSeed, 1.3) * 2
+			local y = math.noise(4.7, shakeSeed) * 2
+			local roll = math.noise(shakeSeed, shakeSeed * 0.5) * 2
+			camera.CFrame *= CFrame.new(x * strength * 1.5, y * strength * 1.5, 0)
+				* CFrame.Angles(y * strength * 0.03, x * strength * 0.03, roll * strength * 0.06)
+		end
+		if fovDirty then
+			fovPunch = math.max(0, fovPunch - dt * 45)
+			camera.FieldOfView = BASE_FOV + fovPunch
+			if fovPunch <= 0 then
+				fovDirty = false
+			end
+		end
+	end)
+end
+
+-- จอวาบขาวดำเสี้ยววินาที (impact frame) จำกัดความถี่ไม่ให้กะพริบรัว
+local impactEffect
+local impactToken = 0
+local lastImpact = 0
+function VFX.ImpactFrame(duration)
+	local now = os.clock()
+	if now - lastImpact < 0.45 then
+		return
+	end
+	lastImpact = now
+	if not impactEffect or not impactEffect.Parent then
+		impactEffect = Instance.new("ColorCorrectionEffect")
+		impactEffect.Name = "QA_Impact"
+		impactEffect.Enabled = false
+		impactEffect.Parent = Lighting
+	end
+	impactEffect.Saturation = -1
+	impactEffect.Contrast = 0.85
+	impactEffect.Brightness = 0.12
+	impactEffect.Enabled = true
+	impactToken += 1
+	local token = impactToken
+	task.delay(duration or 0.07, function()
+		if token == impactToken then
+			impactEffect.Enabled = false
+		end
+	end)
+end
+
+-- หยุดท่าทางของตัวละครเสี้ยววินาที ให้รู้สึกว่าตีโดนหนัก
+function VFX.HitStop(character, duration)
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		return
+	end
+	local tracks = animator:GetPlayingAnimationTracks()
+	for _, track in ipairs(tracks) do
+		track:AdjustSpeed(0)
+	end
+	task.delay(duration or 0.07, function()
+		for _, track in ipairs(tracks) do
+			if track.IsPlaying then
+				track:AdjustSpeed(1)
+			end
+		end
+	end)
+end
+
+-- ตัวเป้าวาบขาวตอนโดนตี
+local function flashCharacter(character, duration)
+	if not rootOf(character) or character:FindFirstChild("QA_HitFlash") then
+		return
+	end
+	local h = Instance.new("Highlight")
+	h.Name = "QA_HitFlash"
+	h.FillColor = WHITE
+	h.OutlineColor = WHITE
+	h.FillTransparency = 0.25
+	h.OutlineTransparency = 0.2
+	h.DepthMode = Enum.HighlightDepthMode.Occluded
+	h.Parent = character
+	tween(h, duration, { FillTransparency = 1, OutlineTransparency = 1 })
+	Debris:AddItem(h, duration + 0.02)
+end
+
+---------------------------------------------------------------------------
+-- ชิ้นส่วนเอฟเฟกต์แรงกระแทก: ประกายไฟ / วงคลื่น / ฝุ่น / พื้นแตก / ภาพค้าง
+---------------------------------------------------------------------------
+local function randomUnit()
+	local v = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5)
+	if v.Magnitude < 0.01 then
+		return Vector3.new(0, 1, 0)
+	end
+	return v.Unit
+end
+
+-- ประกายไฟเป็นเส้นพุ่งออกจากจุดกระแทก
+local function sparks(position, color, count, length)
+	for _ = 1, count do
+		local direction = randomUnit()
+		local size = length * (0.5 + math.random() * 0.8)
+		local start = position + direction * (size * 0.5)
+		local part = newPart({
+			Size = Vector3.new(0.2, 0.2, size),
+			CFrame = CFrame.lookAt(start, start + direction),
+			Color = math.random() < 0.35 and WHITE or color,
+		})
+		local finish = position + direction * (size * 2.2)
+		fadeOut(part, 0.16 + math.random() * 0.12, {
+			CFrame = CFrame.lookAt(finish, finish + direction),
+			Size = Vector3.new(0.03, 0.03, size * 0.35),
+		})
+	end
+end
+
+-- วงแหวนคลื่นกระแทกที่ขยายออก (base = ระนาบของวง)
+local function shockRing(base, fromRadius, toRadius, duration, color, height, thickness)
+	local count = 18
+	local parts = {}
+	for i = 1, count do
+		parts[i] = newPart({ Size = Vector3.new(0.1, 0.1, 0.1), CFrame = base, Color = color, Transparency = 0.15 })
+	end
+	local elapsed = 0
+	addUpdater(function(dt)
+		elapsed += dt
+		local x = math.min(elapsed / duration, 1)
+		local t = 1 - (1 - x) ^ 3
+		local radius = fromRadius + (toRadius - fromRadius) * t
+		local segment = 2 * math.pi * radius / count + 0.3
+		local size = Vector3.new(segment, math.max(0.05, height * (1 - t)), math.max(0.05, thickness * (1 - t * 0.7)))
+		for i, part in ipairs(parts) do
+			part.CFrame = base * CFrame.Angles(0, i * 2 * math.pi / count, 0) * CFrame.new(0, 0, -radius)
+			part.Size = size
+			part.Transparency = 0.15 + 0.85 * x
+		end
+		if x >= 1 then
+			for _, part in ipairs(parts) do
+				part:Destroy()
+			end
+			return false
+		end
+		return true
+	end)
+end
+
+-- ระนาบที่ตั้งฉากกับทิศทาง (ใช้กับวงคลื่นของการพุ่ง/ลำแสง)
+local function facing(position, direction)
+	return CFrame.lookAt(position, position + direction) * CFrame.Angles(math.rad(90), 0, 0)
+end
+
+local function dust(position, radius)
+	local holder = newPart({ Size = Vector3.new(0.2, 0.2, 0.2), Position = position, Transparency = 1 })
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Enabled = false
+	emitter.Color = ColorSequence.new(Color3.fromRGB(150, 150, 165))
+	emitter.LightEmission = 0
+	emitter.Lifetime = NumberRange.new(0.5, 1)
+	emitter.Speed = NumberRange.new(radius * 0.8, radius * 1.8)
+	emitter.SpreadAngle = Vector2.new(85, 85)
+	emitter.Drag = 4
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, radius * 0.15),
+		NumberSequenceKeypoint.new(1, radius * 0.45),
+	})
+	emitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.45),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	emitter.Parent = holder
+	emitter:Emit(math.clamp(math.floor(radius * 2), 8, 30))
+	Debris:AddItem(holder, 1.2)
+end
+
+local function groundAt(position, maxDrop)
+	local map = Workspace:FindFirstChild("Map")
+	if not map then
+		return nil
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { map }
+	params.RespectCanCollide = true
+	local result = Workspace:Raycast(position + Vector3.new(0, 3, 0), Vector3.new(0, -(maxDrop or 14), 0), params)
+	if result then
+		return result.Position, result.Instance
+	end
+	return nil
+end
+
+-- พื้นแตก: ก้อนหินดันขึ้นเป็นวง + รอยร้าว + เศษกระเด็น
+function VFX.Crater(data)
+	local ground, floor = groundAt(data.Position, data.MaxDrop)
+	if not ground then
+		return
+	end
+	local radius = data.Radius or 10
+	local color = data.Color or WHITE
+	local rockColor = floor.Color:Lerp(Color3.new(0, 0, 0), 0.15)
+
+	local count = math.clamp(math.floor(radius * 1.5), 8, 22)
+	for i = 1, count do
+		local angle = (i + math.random() * 0.6) / count * 2 * math.pi
+		local outward = Vector3.new(math.cos(angle), 0, math.sin(angle))
+		local distance = radius * (0.7 + math.random() * 0.3)
+		local size = Vector3.new(1.4 + math.random() * 2, 1.2 + math.random() * 1.8, 1.4 + math.random() * 2)
+		local position = ground + outward * distance
+		local target = CFrame.lookAt(position + Vector3.new(0, size.Y * 0.2, 0), position + Vector3.new(0, size.Y * 0.2, 0) + outward)
+			* CFrame.Angles(math.rad(25 + math.random() * 30), math.rad(math.random(-25, 25)), math.rad(math.random(-20, 20)))
+		local hiddenCF = target - Vector3.new(0, size.Y + 1.5, 0)
+		local rock = newPart({ Size = size, CFrame = hiddenCF, Color = rockColor, Material = Enum.Material.Slate })
+		tween(rock, 0.14, { CFrame = target }, Enum.EasingStyle.Back)
+		task.delay(1.5 + math.random() * 0.6, function()
+			tween(rock, 0.6, { CFrame = hiddenCF }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			Debris:AddItem(rock, 0.65)
+		end)
+	end
+
+	-- รอยร้าวเรืองแสง
+	for i = 1, 7 do
+		local angle = (i + math.random() * 0.5) / 7 * 2 * math.pi
+		local outward = Vector3.new(math.cos(angle), 0, math.sin(angle))
+		local length = radius * (0.6 + math.random() * 0.4)
+		local mid = ground + outward * (length / 2) + Vector3.new(0, 0.07, 0)
+		local crack = newPart({
+			Size = Vector3.new(0.5, 0.08, length),
+			CFrame = CFrame.lookAt(mid, mid + outward),
+			Color = Color3.new(0, 0, 0),
+			Material = Enum.Material.SmoothPlastic,
+		})
+		local glow = newPart({
+			Size = Vector3.new(0.18, 0.1, length * 0.9),
+			CFrame = crack.CFrame,
+			Color = color,
+		})
+		task.delay(1.2, function()
+			fadeOut(crack, 0.8)
+		end)
+		fadeOut(glow, 0.9)
+	end
+
+	-- เศษหินกระเด็น
+	for _ = 1, math.clamp(math.floor(radius * 0.8), 5, 12) do
+		local angle = math.random() * 2 * math.pi
+		local velocity = Vector3.new(math.cos(angle), 0, math.sin(angle)) * (10 + math.random() * radius * 1.6)
+			+ Vector3.new(0, 28 + math.random() * 24, 0)
+		local s = 0.5 + math.random() * 0.9
+		local chunk = newPart({
+			Size = Vector3.new(s, s, s),
+			Position = ground + Vector3.new(0, 0.5, 0),
+			Color = rockColor,
+			Material = Enum.Material.Slate,
+		})
+		local spin = CFrame.Angles(math.random() * 0.4, math.random() * 0.4, math.random() * 0.4)
+		local position = chunk.Position
+		local rotation = CFrame.new()
+		local life = 0
+		addUpdater(function(dt)
+			life += dt
+			velocity += Vector3.new(0, -130 * dt, 0)
+			position += velocity * dt
+			rotation *= spin
+			chunk.CFrame = CFrame.new(position) * rotation
+			if life > 1 or position.Y < ground.Y - 1 then
+				chunk:Destroy()
+				return false
+			end
+			return true
+		end)
+	end
+
+	dust(ground + Vector3.new(0, 0.5, 0), radius)
+end
+
+-- ภาพค้างรูปร่างจริงของตัวละคร (รวมเครื่องแต่งกาย) ที่ตำแหน่งที่กำหนด
+local function afterimage(character, cframe, color, duration, transparency)
+	local root = rootOf(character)
+	if not root then
+		return false
+	end
+	local made = 0
+	for _, item in ipairs(character:GetDescendants()) do
+		if made >= 40 then
+			break
+		end
+		if item:IsA("BasePart") and item ~= root and item.Transparency < 0.95 and not item:FindFirstAncestor("QA_Weapon") then
+			local ok, copy = pcall(function()
+				local wasArchivable = item.Archivable
+				item.Archivable = true
+				local cloned = item:Clone()
+				item.Archivable = wasArchivable
+				return cloned
+			end)
+			if ok and copy then
+				for _, child in ipairs(copy:GetChildren()) do
+					if child:IsA("SpecialMesh") then
+						child.TextureId = ""
+					else
+						child:Destroy()
+					end
+				end
+				if copy:IsA("MeshPart") then
+					copy.TextureID = ""
+				end
+				copy.Anchored = true
+				copy.CanCollide = false
+				copy.CanQuery = false
+				copy.CanTouch = false
+				copy.CastShadow = false
+				copy.Material = Enum.Material.Neon
+				copy.Color = color
+				copy.Transparency = transparency or 0.45
+				copy.CFrame = cframe * root.CFrame:ToObjectSpace(item.CFrame)
+				copy.Parent = getFolder()
+				fadeOut(copy, duration)
+				made += 1
+			end
+		end
+	end
+	return made > 0
+end
+
+---------------------------------------------------------------------------
 -- เอฟเฟกต์พื้นฐาน
 ---------------------------------------------------------------------------
 
@@ -142,6 +504,11 @@ function VFX.Hit(data)
 		Transparency = 0.3,
 	})
 	fadeOut(ball, 0.18, { Size = Vector3.new(4, 4, 4) })
+	sparks(data.Position, data.Color, 7, 2.6)
+	shockRing(CFrame.new(data.Position) * CFrame.Angles(math.random() * 3, 0, math.random() * 3), 0.5, 3.5, 0.2, WHITE, 0.25, 0.5)
+	if data.Target then
+		flashCharacter(data.Target, 0.14)
+	end
 end
 
 function VFX.Explosion(data)
@@ -159,6 +526,27 @@ function VFX.Explosion(data)
 	fadeOut(ring, duration * 1.2, { Size = Vector3.new(0.3, radius * 2.4, radius * 2.4) })
 	burst(data.Position, data.Color, math.clamp(math.floor(radius * 3), 10, 60), radius * 3, duration + 0.2, 0.8)
 	flash(data.Position, data.Color, radius * 2.5, duration)
+
+	-- คลื่นกระแทก 2 ชั้น + ประกายไฟ + กล้องสั่นตามขนาดและระยะ
+	local flat = CFrame.new(data.Position)
+	shockRing(flat, radius * 0.2, radius * 1.25, duration * 1.1, WHITE, 1.2, 1.6)
+	task.delay(0.07, function()
+		shockRing(flat, radius * 0.1, radius * 1.05, duration * 1.3, data.Color, 0.6, 1.1)
+	end)
+	sparks(data.Position, data.Color, math.clamp(math.floor(radius), 5, 14), radius * 0.45)
+	VFX.ShakeAt(data.Position, math.clamp(radius / 13, 0.2, 0.95), radius * 6)
+
+	if data.Ground then
+		VFX.Crater({ Position = data.Position, Radius = radius * 0.75, Color = data.Color })
+		local core = newPart({
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1, radius * 0.5, radius * 0.5),
+			CFrame = CFrame.new(data.Position + Vector3.new(0, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = WHITE,
+			Transparency = 0.2,
+		})
+		fadeOut(core, duration, { Size = Vector3.new(radius * 2.6, 0.4, 0.4) })
+	end
 end
 
 -- วงเตือนบนพื้น ค่อย ๆ เต็มจนถึงเวลาที่สกิลลง
@@ -207,6 +595,11 @@ function VFX.Beam(data)
 	if width >= 1.5 then
 		flash(to, data.Color, 20, duration)
 		burst(to, data.Color, 14, 20, 0.4, 0.7)
+		local direction = (to - from).Unit
+		shockRing(facing(from + direction * 2, direction), 0.5, width * 3.5, 0.3, WHITE, 0.4, 1)
+		shockRing(facing(from + direction * 6, direction), 0.5, width * 2.5, 0.35, data.Color, 0.3, 0.8)
+		sparks(to, data.Color, 8, 3)
+		VFX.ShakeAt(from, 0.5, 90)
 	end
 end
 
@@ -248,6 +641,10 @@ function VFX.Lightning(data)
 	end
 	flash(to, data.Color, 18, 0.25)
 	burst(to, data.Color, 10, 18, 0.3, 0.5)
+	sparks(to, data.Color, width >= 2 and 12 or 5, width >= 2 and 5 or 2.2)
+	if width >= 2 then
+		VFX.ShakeAt(to, 0.7, 120)
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -380,6 +777,8 @@ function VFX.Projectile(data)
 		end
 		if hitPosition then
 			burst(hitPosition, data.Color, 10, 16, 0.3, 0.6)
+			sparks(hitPosition, data.Color, 6, 2.4)
+			shockRing(facing(hitPosition, -direction), 0.4, math.max(3, (data.Size or 1) * 1.6), 0.22, data.Color, 0.3, 0.6)
 		end
 	end
 
@@ -463,7 +862,11 @@ function VFX.Slash(data)
 	arc(data.Position, forward, range * 0.75, span, segments, data.Color, thickness, data.Flip, 0.012)
 	if data.Final then
 		arc(data.Position, forward, range * 0.5, span, segments, WHITE, 0.6, data.Flip, 0.012)
-		burst(data.Position + forward * range * 0.7, data.Color, 10, 16, 0.3, 0.6)
+		local front = data.Position + forward * range * 0.7
+		burst(front, data.Color, 10, 16, 0.3, 0.6)
+		sparks(front, data.Color, 8, 3)
+		shockRing(facing(front, forward), 0.5, range * 0.7, 0.28, WHITE, 0.3, 0.9)
+		VFX.ShakeAt(data.Position, 0.3, 45)
 	end
 end
 
@@ -476,17 +879,65 @@ function VFX.Spin(data)
 	arc(position, Vector3.new(0, 0, -1), data.Radius * 0.85, 360, 20, data.Color, 2, false, 0.012)
 	arc(position, Vector3.new(0, 0, -1), data.Radius * 0.5, 360, 14, WHITE, 0.6, true, 0.012)
 	burst(position, data.Color, 16, data.Radius * 2, 0.35, 0.7)
+	shockRing(CFrame.new(position - Vector3.new(0, 2, 0)), 1, data.Radius * 1.1, 0.35, data.Color, 0.8, 1.4)
+	dust(position - Vector3.new(0, 2.5, 0), data.Radius * 0.6)
+	VFX.ShakeAt(position, 0.4, 60)
 end
 
 function VFX.Dash(data)
 	VFX.Beam({ From = data.From, To = data.To, Color = data.Color, Width = 1.2, Duration = 0.3 })
 	burst(data.From, data.Color, 8, 10, 0.3, 0.6)
 	burst(data.To, data.Color, 8, 10, 0.3, 0.6)
+
+	local delta = data.To - data.From
+	local length = delta.Magnitude
+	if length < 1 then
+		return
+	end
+	local direction = delta.Unit
+	shockRing(facing(data.From + direction, direction), 0.5, 5, 0.25, WHITE, 0.3, 0.8)
+	dust(data.From - Vector3.new(0, 2.5, 0), 4)
+
+	-- เส้นความเร็วรอบแนวพุ่ง
+	local side = direction:Cross(Vector3.new(0, 1, 0))
+	if side.Magnitude < 0.05 then
+		side = Vector3.new(1, 0, 0)
+	end
+	side = side.Unit
+	for _ = 1, 9 do
+		local offset = side * ((math.random() - 0.5) * 6) + Vector3.new(0, (math.random() - 0.5) * 5, 0)
+		local lineLength = length * (0.25 + math.random() * 0.35)
+		local start = data.From + direction * (math.random() * (length - lineLength)) + offset
+		local line = newPart({
+			Size = Vector3.new(0.12, 0.12, lineLength),
+			CFrame = CFrame.lookAt(start + direction * lineLength / 2, start + direction * lineLength),
+			Color = math.random() < 0.5 and WHITE or data.Color,
+			Transparency = 0.3,
+		})
+		fadeOut(line, 0.22 + math.random() * 0.1, { Size = Vector3.new(0.02, 0.02, lineLength * 1.4) })
+	end
+
+	-- ภาพค้างของตัวละครตามแนวพุ่ง
+	local root = rootOf(data.Target)
+	if root then
+		local look = Vector3.new(direction.X, 0, direction.Z)
+		look = look.Magnitude > 0.05 and look.Unit or root.CFrame.LookVector
+		for i = 0, 2 do
+			task.delay(i * 0.035, function()
+				local position = data.From:Lerp(data.To, i / 3)
+				afterimage(data.Target, CFrame.lookAt(position, position + look), data.Color, 0.35 + i * 0.05, 0.5)
+			end)
+		end
+	end
 end
 
 -- ร่างเงา/ร่างควอนตัม (ภาพค้าง)
 function VFX.Ghost(data)
 	local duration = data.Duration or 0.5
+	-- ถ้ารู้ว่าเป็นร่างของใคร ให้ใช้รูปร่างจริงของตัวละครนั้น
+	if data.Target and afterimage(data.Target, data.CFrame, data.Color, duration, 0.3) then
+		return
+	end
 	local shapes = {
 		{ Vector3.new(2, 2, 1), CFrame.new(0, 0, 0) },
 		{ Vector3.new(1.2, 1.2, 1.2), CFrame.new(0, 1.6, 0) },

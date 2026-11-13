@@ -95,7 +95,7 @@ H.GroundSlam = function(player, character, p)
 	end
 	local position = U.Position(character)
 	local ground = U.GroundBelow(position, 40) or position
-	U.VFX("Explosion", { Position = ground, Radius = skill.Radius, Color = p.Color, Duration = 0.45 })
+	U.VFX("Explosion", { Position = ground, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
 	U.VFX("Telegraph", { Position = ground, Radius = skill.Radius, Color = p.Color, Duration = 0.3 })
 	for _, model in ipairs(U.EnemiesInRadius(player, ground + Vector3.new(0, 2, 0), skill.Radius)) do
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 then

@@ -77,7 +77,7 @@ H.Rewind = function(_player, character, p)
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local from = p.Origin
-	U.VFX("Ghost", { CFrame = character:GetPivot(), Color = p.Color, Duration = 0.6 })
+	U.VFX("Ghost", { CFrame = character:GetPivot(), Color = p.Color, Duration = 0.6, Target = character })
 	StatusService.StopPush(character)
 	character:PivotTo(entry.CFrame)
 	humanoid.Health = math.clamp(entry.Health, 1, humanoid.MaxHealth)
@@ -119,7 +119,7 @@ H.TimeBomb = function(player, _character, p)
 				if not position then
 					return
 				end
-				U.VFX("Explosion", { Position = position, Radius = skill.Radius, Color = p.Color, Duration = 0.45 })
+				U.VFX("Explosion", { Position = position, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
 				for _, enemy in ipairs(U.EnemiesInRadius(player, position, skill.Radius)) do
 					CombatService.Damage(player, enemy, skill.Damage, p.Name)
 				end

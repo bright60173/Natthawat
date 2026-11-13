@@ -19,6 +19,7 @@ H.Blink = function(_player, character, p)
 	local distance = U.ClampMove(p.Origin, direction, wanted)
 	local destination = p.Origin + direction * distance
 	U.VFX("Explosion", { Position = p.Origin, Radius = 4, Color = p.Color, Duration = 0.3 })
+	U.VFX("Ghost", { CFrame = character:GetPivot(), Color = p.Color, Duration = 0.5, Target = character })
 	U.Teleport(character, destination, direction)
 	U.VFX("Beam", { From = p.Origin, To = destination, Color = p.Color, Width = 0.6, Duration = 0.25 })
 	U.VFX("Explosion", { Position = destination, Radius = 5, Color = p.Color, Duration = 0.35 })

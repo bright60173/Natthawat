@@ -13,7 +13,7 @@ H.SuperpositionSlash = function(player, character, p)
 	local center = p.Origin + forward * 5
 	for _, angle in ipairs({ 120, 240 }) do
 		local offset = U.Rotate(-forward, angle) * 7
-		U.VFX("Ghost", { CFrame = CFrame.lookAt(center + offset, center), Color = p.Color, Duration = 0.6 })
+		U.VFX("Ghost", { CFrame = CFrame.lookAt(center + offset, center), Color = p.Color, Duration = 0.6, Target = character })
 	end
 	for i = 1, skill.Hits do
 		if not CombatService.IsAlive(character) then

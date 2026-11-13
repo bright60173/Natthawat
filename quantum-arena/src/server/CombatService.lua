@@ -134,7 +134,7 @@ function CombatService.Damage(attacker, target, amount, skillName, opts)
 			Shielded = remaining < amount,
 		})
 	end
-	Remotes.PlayVFX:FireAllClients("Hit", { Position = root.Position, Color = subclassColor(attacker) })
+	Remotes.PlayVFX:FireAllClients("Hit", { Position = root.Position, Color = subclassColor(attacker), Target = target })
 
 	if remaining <= 0 then
 		return 0

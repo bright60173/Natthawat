@@ -45,7 +45,7 @@ H.PlasmaGrenade = function(player, _character, p)
 	U.VFX("Arc", { From = p.Origin, To = point, Duration = skill.FlightTime, Color = p.Color, Size = 1.6 })
 	U.VFX("Telegraph", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = skill.FlightTime })
 	task.wait(skill.FlightTime)
-	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.45 })
+	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
 	for _, model in ipairs(U.EnemiesInRadius(player, point + Vector3.new(0, 2, 0), skill.Radius)) do
 		local position = U.Position(model)
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 and position then

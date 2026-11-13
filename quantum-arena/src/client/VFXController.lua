@@ -134,6 +134,55 @@ local function updateOverheads()
 	end
 end
 
+---------------------------------------------------------------------------
+-- ตอนเราโดนตี: ขอบจอวาบแดง + กล้องสั่นตามดาเมจ
+---------------------------------------------------------------------------
+local function watchOwnDamage()
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "QA_DamageFlash"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.DisplayOrder = 3
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundColor3 = Color3.fromRGB(255, 30, 40)
+	frame.BackgroundTransparency = 1
+	frame.BorderSizePixel = 0
+	frame.Active = false
+	frame.Parent = gui
+	local gradient = Instance.new("UIGradient")
+	-- โปร่งตรงกลาง เข้มที่ขอบซ้ายขวา
+	gradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.3, 1),
+		NumberSequenceKeypoint.new(0.7, 1),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	gradient.Parent = frame
+	gui.Parent = player:WaitForChild("PlayerGui")
+
+	local function bind(character)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if not humanoid then
+			return
+		end
+		local last = humanoid.Health
+		humanoid.HealthChanged:Connect(function(health)
+			local lost = last - health
+			last = health
+			if lost >= 1 and player:GetAttribute("InArena") then
+				VFX.Shake(math.clamp(lost / 55, 0.12, 0.7))
+				frame.BackgroundTransparency = math.clamp(0.75 - lost / 80, 0.3, 0.75)
+				TweenService:Create(frame, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
+			end
+		end)
+	end
+	player.CharacterAdded:Connect(bind)
+	if player.Character then
+		task.spawn(bind, player.Character)
+	end
+end
+
 function VFXController.Init()
 	Remotes.PlayVFX.OnClientEvent:Connect(function(effectId, data)
 		local ok, err = pcall(VFX.Play, effectId, data)
@@ -145,8 +194,20 @@ function VFXController.Init()
 	Remotes.SkillFeedback.OnClientEvent:Connect(function(message)
 		if type(message) == "table" and message.Type == "Damage" then
 			damageNumber(message.Position, message.Amount, message.Shielded)
+			-- ความรู้สึกตอนตีโดน: ยิ่งแรงยิ่งสั่น ตีหนักมีจอวาบ + ซูมกระตุก + หยุดภาพ
+			local amount = tonumber(message.Amount) or 0
+			VFX.Shake(math.clamp(amount / 75, 0.08, 0.5))
+			if amount >= 30 then
+				VFX.ImpactFrame(0.07)
+				VFX.FovPunch(6)
+				VFX.HitStop(player.Character, 0.08)
+			elseif amount >= 14 then
+				VFX.FovPunch(2.5)
+			end
 		end
 	end)
+
+	watchOwnDamage()
 
 	Players.PlayerAdded:Connect(watchPlayer)
 	for _, other in ipairs(Players:GetPlayers()) do
