@@ -1,0 +1,4 @@
+# ทางเลือก: ติดตั้งเครื่องมือด้วย `aftman install`
+[tools]
+rojo = "rojo-rbx/rojo@7.6.1"
+selene = "Kampfkarren/selene@0.29.0"
