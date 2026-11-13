@@ -15,6 +15,7 @@ H.SuperpositionSlash = function(player, character, p)
 		local offset = U.Rotate(-forward, angle) * 7
 		U.VFX("Ghost", { CFrame = CFrame.lookAt(center + offset, center), Color = p.Color, Duration = 0.6, Target = character })
 	end
+	U.VFX("SlashSphere", { Position = center, Radius = skill.Range * 0.8, Color = p.Color, Duration = 0.45, Count = 14 })
 	for i = 1, skill.Hits do
 		if not CombatService.IsAlive(character) then
 			return
@@ -42,6 +43,7 @@ H.PhaseCut = function(player, _character, p)
 	local to = p.Origin + direction * skill.Range
 	U.VFX("Slash", { Position = p.Origin, Direction = direction, Range = 10, Width = 10, Color = p.Color, Final = true })
 	U.VFX("Beam", { From = p.Origin, To = to, Color = p.Color, Width = skill.Width * 0.6, Duration = 0.3 })
+	U.VFX("SlashSphere", { Position = to, Radius = 5, Color = p.Color, Duration = 0.4, Count = 8 })
 	for _, model in ipairs(U.EnemiesInLine(player, p.Origin, direction, skill.Range, skill.Width, 9)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end
@@ -81,6 +83,7 @@ end
 H.BladeStorm = function(player, character, p)
 	local skill = p.Skill
 	U.VFX("Aura", { Target = character, Color = p.Color, Duration = skill.Duration, Kind = "BladeStorm", Radius = skill.Radius })
+	U.VFX("Vortex", { Target = character, Position = p.Origin, Radius = skill.Radius * 0.8, Height = 6, Duration = skill.Duration, Color = p.Color, Spin = 14, Arms = 3 })
 	for _ = 1, math.floor(skill.Duration / skill.Tick) do
 		if not CombatService.IsAlive(character) then
 			return

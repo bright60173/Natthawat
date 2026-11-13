@@ -55,6 +55,7 @@ end)
 H.TimeStop = function(player, _character, p)
 	local skill = p.Skill
 	U.VFX("Explosion", { Position = p.Origin, Radius = skill.Radius, Color = p.Color, Duration = 0.5 })
+	U.VFX("SlashSphere", { Position = p.Origin, Radius = skill.Radius * 0.5, Color = p.Color, Duration = 0.7, Count = 14 })
 	for _, model in ipairs(U.EnemiesInRadius(player, p.Origin, skill.Radius)) do
 		StatusService.Freeze(model, skill.Duration)
 	end
@@ -94,6 +95,7 @@ H.SlowField = function(player, _character, p)
 	local skill = p.Skill
 	local center = p.Point + Vector3.new(0, 2, 0)
 	U.VFX("Zone", { Position = center, Radius = skill.Radius, Color = p.Color, Duration = skill.Duration, Kind = "SlowField" })
+	U.VFX("Vortex", { Position = p.Point, Radius = skill.Radius * 0.7, Height = 6, Duration = skill.Duration, Color = p.Color, Spin = 2, Arms = 5, Thickness = 0.6 })
 	local step = 0.25
 	for _ = 1, math.floor(skill.Duration / step + 0.5) do
 		for _, model in ipairs(U.EnemiesInRadius(player, center, skill.Radius)) do
@@ -120,6 +122,7 @@ H.TimeBomb = function(player, _character, p)
 					return
 				end
 				U.VFX("Explosion", { Position = position, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
+				U.VFX("SpikeBurst", { Position = position, Radius = skill.Radius, Color = p.Color })
 				for _, enemy in ipairs(U.EnemiesInRadius(player, position, skill.Radius)) do
 					CombatService.Damage(player, enemy, skill.Damage, p.Name)
 				end

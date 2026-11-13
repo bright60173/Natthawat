@@ -85,6 +85,9 @@ function CombatService.Damage(attacker, target, amount, skillName, opts)
 		Remotes.PlayVFX:FireAllClients("Explosion", {
 			Position = root.Position, Radius = 6, Color = Color3.fromHex("#FF8C00"), Duration = 0.3,
 		})
+		Remotes.PlayVFX:FireAllClients("SlashSphere", {
+			Position = root.Position, Radius = 5, Color = Color3.fromHex("#FF8C00"), Duration = 0.4, Count = 10,
+		})
 		if attackerChar and CombatService.IsAlive(attackerChar) then
 			CombatService.Damage(targetPlayer, attackerChar, amount * (parry.Multiplier or 2), "ปัดป้อง", { NoReflect = true })
 			StatusService.Stun(attackerChar, parry.Stun or 1)

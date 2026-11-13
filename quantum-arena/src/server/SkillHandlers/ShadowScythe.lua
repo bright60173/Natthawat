@@ -40,6 +40,7 @@ end
 H.DeathSpin = function(player, character, p)
 	local skill = p.Skill
 	U.VFX("Spin", { Target = character, Radius = skill.Radius, Color = GLOW, Duration = 0.35 })
+	U.VFX("Vortex", { Target = character, Position = p.Origin, Radius = skill.Radius * 0.8, Height = 5, Duration = 0.5, Color = GLOW, Dark = true, Spin = 16 })
 	for _, model in ipairs(U.EnemiesInRadius(player, p.Origin, skill.Radius)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end
@@ -50,6 +51,7 @@ H.SoulDrain = function(player, character, p)
 	local skill = p.Skill
 	local direction = p.Direction
 	U.VFX("Slash", { Position = p.Origin, Direction = direction, Range = skill.Range, Width = skill.Width, Color = GLOW, Final = true })
+	U.VFX("SlashSphere", { Position = p.Origin + direction * skill.Range * 0.6, Radius = 5, Color = GLOW, Duration = 0.45, Count = 8 })
 	local total = 0
 	for _, model in ipairs(U.EnemiesInLine(player, p.Origin - direction, direction, skill.Range + 1, skill.Width, 9)) do
 		local position = U.Position(model)
@@ -88,6 +90,7 @@ end
 H.ShadowVeil = function(_player, character, p)
 	local skill = p.Skill
 	U.VFX("Explosion", { Position = p.Origin, Radius = 5, Color = GLOW, Duration = 0.35 })
+	U.VFX("Vortex", { Position = p.Origin - Vector3.new(0, 3, 0), Radius = 4, Height = 7, Duration = 0.6, Color = GLOW, Dark = true })
 	StatusService.SetInvisible(character, skill.Duration)
 	StatusService.Apply(character, "Empower", skill.BonusWindow, { Bonus = skill.Bonus })
 end

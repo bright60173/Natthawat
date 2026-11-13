@@ -12,6 +12,7 @@ H.ShockwavePunch = function(player, _character, p)
 	local push = U.Flat(p.Direction)
 	push = push.Magnitude > 0.05 and push.Unit or Vector3.new(0, 0, -1)
 	U.VFX("Slash", { Position = p.Origin, Direction = p.Direction, Range = 6, Width = 6, Color = p.Color, Final = true })
+	U.VFX("Vortex", { Position = p.Origin, Horizontal = true, Direction = push, Radius = 4, Height = skill.Range, Duration = 0.4, Color = p.Color, Spin = 18, Arms = 3 })
 	U.Projectile(player, {
 		Origin = p.Origin + p.Direction * 2,
 		Direction = p.Direction,
@@ -96,6 +97,7 @@ H.GroundSlam = function(player, character, p)
 	local position = U.Position(character)
 	local ground = U.GroundBelow(position, 40) or position
 	U.VFX("Explosion", { Position = ground, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
+	U.VFX("SpikeBurst", { Position = ground, Radius = skill.Radius, Color = p.Color })
 	U.VFX("Telegraph", { Position = ground, Radius = skill.Radius, Color = p.Color, Duration = 0.3 })
 	for _, model in ipairs(U.EnemiesInRadius(player, ground + Vector3.new(0, 2, 0), skill.Radius)) do
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 then

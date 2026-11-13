@@ -23,6 +23,7 @@ H.Blink = function(_player, character, p)
 	U.Teleport(character, destination, direction)
 	U.VFX("Beam", { From = p.Origin, To = destination, Color = p.Color, Width = 0.6, Duration = 0.25 })
 	U.VFX("Explosion", { Position = destination, Radius = 5, Color = p.Color, Duration = 0.35 })
+	U.VFX("SlashSphere", { Position = destination, Radius = 4, Color = p.Color, Duration = 0.4, Count = 7 })
 end
 
 local function makePortal(position, color)
@@ -97,6 +98,7 @@ H.BlackHole = function(player, _character, p)
 	local skill = p.Skill
 	local center = p.Point + Vector3.new(0, 4, 0)
 	U.VFX("Zone", { Position = center, Radius = skill.Radius, Color = p.Color, Duration = skill.Duration, Kind = "BlackHole" })
+	U.VFX("Vortex", { Position = p.Point, Radius = skill.Radius * 0.8, Height = 14, Duration = skill.Duration, Color = p.Color, Dark = true, Spin = 7 })
 	local step = 0.1
 	local ticks = math.floor(skill.Duration / step + 0.5)
 	local perDamage = math.floor(skill.Tick / step + 0.5)
@@ -123,6 +125,9 @@ H.SpaceRift = function(player, _character, p)
 	U.VFX("LineTelegraph", { From = from, To = to, Width = skill.Width, Color = p.Color, Duration = skill.Delay })
 	task.wait(skill.Delay)
 	U.VFX("Beam", { From = from, To = to, Color = p.Color, Width = skill.Width * 0.8, Duration = 0.35 })
+	for k = 1, 3 do
+		U.VFX("SpikeBurst", { Position = from:Lerp(to, k / 4), Radius = 6, Color = p.Color, Duration = 0.5 })
+	end
 	for _, model in ipairs(U.EnemiesInLine(player, from, direction, skill.Range, skill.Width, 12)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end

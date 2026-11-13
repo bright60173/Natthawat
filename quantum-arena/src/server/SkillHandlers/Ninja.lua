@@ -144,6 +144,7 @@ H.Backstab = function(player, character, p)
 	local direction = U.Flat(targetPos - destination)
 	direction = direction.Magnitude > 0.05 and direction.Unit or targetLook
 	U.VFX("Slash", { Position = destination, Direction = direction, Range = 6, Width = 5, Color = p.Color, Final = not facingUs })
+	U.VFX("SlashSphere", { Position = targetPos, Radius = 4.5, Color = p.Color, Duration = 0.45, Count = facingUs and 6 or 12 })
 	CombatService.Damage(player, target, damage, p.Name)
 end
 
@@ -152,6 +153,7 @@ H.SmokeBomb = function(_player, character, p)
 	local skill = p.Skill
 	local center = p.Origin
 	U.VFX("Zone", { Position = center, Radius = skill.Radius, Color = Color3.fromRGB(150, 160, 150), Duration = skill.Duration, Kind = "Smoke" })
+	U.VFX("Vortex", { Position = center - Vector3.new(0, 3, 0), Radius = skill.Radius * 0.8, Height = 8, Duration = 1.2, Color = Color3.fromRGB(150, 160, 150), Spin = 5, Arms = 5 })
 	local step = 0.25
 	for _ = 1, math.floor(skill.Duration / step + 0.5) do
 		if not CombatService.IsAlive(character) then

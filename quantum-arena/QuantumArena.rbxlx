@@ -657,6 +657,8 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local VFXAssets = require(script.Parent:WaitForChild("VFXAssets"))
+
 local VFX = {}
 
 VFX.SmokeZones = {} -- { Position, Radius, Expires } ให้ VFXController ใช้ซ่อนชื่อ/แถบเลือด
@@ -1813,6 +1815,360 @@ function VFX.Status(data)
 	end
 end
 
+---------------------------------------------------------------------------
+-- เอฟเฟกต์ใหญ่แบบเกม battleground: พายุหมุน / หนามระเบิดจากพื้น / ลูกบอลฟัน
+-- (ใช้โค้ดเป็นโครง แล้วทับด้วย texture จาก VFXAssets ถ้าใส่ ID ไว้)
+---------------------------------------------------------------------------
+local function asset(key)
+	local id = VFXAssets[key]
+	if type(id) == "string" and id ~= "" then
+		return id
+	end
+	return nil
+end
+
+-- ตัวปล่อยอนุภาคที่ใช้ texture (คืนค่า nil ถ้ายังไม่ได้ใส่ ID)
+local function texturedEmitter(parent, key, props)
+	local texture = asset(key)
+	if not texture then
+		return nil
+	end
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture = texture
+	emitter.LightEmission = 1
+	emitter.Enabled = false
+	for name, value in pairs(props) do
+		emitter[name] = value
+	end
+	emitter.Parent = parent
+	return emitter
+end
+
+local function holderAt(position)
+	return newPart({ Size = Vector3.new(0.2, 0.2, 0.2), Position = position, Transparency = 1 })
+end
+
+-- เปลือกทรงกลมลาย ForceField (ลายเคลื่อนไหวที่มากับ Roblox ดูเหมือนพลังงานไหล)
+local function energyShell(position, color, fromSize, toSize, duration, transparency)
+	local shell = newPart({
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(fromSize, fromSize, fromSize),
+		Position = position,
+		Color = color,
+		Material = Enum.Material.ForceField,
+		Transparency = transparency or 0,
+	})
+	tween(shell, duration * 0.35, { Size = Vector3.new(toSize, toSize, toSize) }, Enum.EasingStyle.Back)
+	task.delay(duration * 0.7, function()
+		fadeOut(shell, duration * 0.3, { Size = Vector3.new(toSize * 1.15, toSize * 1.15, toSize * 1.15) })
+	end)
+	return shell
+end
+
+-- เส้นโค้งในทิศใดก็ได้ (base = CFrame ของศูนย์กลางวง)
+local function arc3d(base, radius, spanDegrees, segments, color, thickness, stagger, life, material)
+	for i = 1, segments do
+		local t = (i - 0.5) / segments
+		local angle = math.rad(-spanDegrees / 2 + spanDegrees * t)
+		local cf = base * CFrame.Angles(0, -angle, 0) * CFrame.new(0, 0, -radius)
+		local segmentLength = 2 * math.pi * radius * (spanDegrees / 360) / segments + 0.35
+		task.delay((i - 1) * stagger, function()
+			-- ปลายทั้งสองข้างเรียวลง ตรงกลางหนาสุด
+			local taper = math.sin(t * math.pi) * 0.8 + 0.2
+			local part = newPart({
+				Size = Vector3.new(segmentLength, 0.2, thickness * taper),
+				CFrame = cf,
+				Color = color,
+				Material = material or Enum.Material.Neon,
+				Transparency = 0.05,
+			})
+			fadeOut(part, life, { Size = Vector3.new(segmentLength, 0.05, thickness * taper * 0.2) })
+		end)
+	end
+end
+
+--[[ พายุหมุน: เกลียวนีออนหลายแขนหมุนขึ้นเป็นทรงกรวย
+	data = { Position, Radius, Height, Duration, Color, Arms, Spin, Dark, Horizontal, Direction }
+	Horizontal = true จะวางพายุนอนไปตาม Direction (ใช้กับลำแสง/หมัดลม)
+]]
+function VFX.Vortex(data)
+	local radius = data.Radius or 10
+	local height = data.Height or radius * 1.4
+	local duration = data.Duration or 1.5
+	local arms = data.Arms or 4
+	local perArm = 9
+	local spin = data.Spin or 9
+	local color = data.Color or WHITE
+	local dark = data.Dark and Color3.fromRGB(20, 8, 40) or WHITE
+
+	local base
+	if data.Horizontal and data.Direction then
+		base = CFrame.lookAt(data.Position, data.Position + data.Direction) * CFrame.Angles(-math.pi / 2, 0, 0)
+	else
+		base = CFrame.new(data.Position)
+	end
+
+	local parts = {}
+	for arm = 1, arms do
+		for s = 1, perArm do
+			parts[#parts + 1] = {
+				Part = newPart({
+					Size = Vector3.new(0.1, 0.1, 0.1),
+					Color = (s + arm) % 3 == 0 and dark or color,
+					Transparency = 1,
+				}),
+				Arm = arm,
+				T = (s - 1) / (perArm - 1),
+			}
+		end
+	end
+
+	energyShell(base.Position + base.UpVector * height * 0.4, color, radius * 0.4, radius * 1.7, duration, 0.1)
+	local core = newPart({
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, radius * 0.25, radius * 0.25),
+		CFrame = base * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = WHITE,
+		Transparency = 0.4,
+	})
+	fadeOut(core, duration)
+
+	-- texture ลายหมุน (ถ้ามี)
+	local holder = holderAt(base.Position + base.UpVector * height * 0.35)
+	holder.CFrame = base * CFrame.new(0, height * 0.35, 0)
+	local swirl = texturedEmitter(holder, "Swirl", {
+		Color = ColorSequence.new(color, WHITE),
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, radius * 0.6), NumberSequenceKeypoint.new(1, radius * 2.2) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.35, 0.5),
+		Speed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-720, -540),
+		Rate = 30,
+		LockedToPart = true,
+	})
+	if swirl then
+		swirl.Enabled = true
+	end
+	local wind = texturedEmitter(holder, "Wind", {
+		Color = ColorSequence.new(color),
+		Size = NumberSequence.new(radius * 0.9),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.3),
+		Speed = NumberRange.new(height),
+		SpreadAngle = Vector2.new(25, 25),
+		Rotation = NumberRange.new(0, 360),
+		Rate = 25,
+	})
+	if wind then
+		wind.Enabled = true
+	end
+
+	local elapsed = 0
+	addUpdater(function(dt)
+		elapsed += dt
+		if data.Target then
+			local root = rootOf(data.Target)
+			if root then
+				base = CFrame.new(root.Position - Vector3.new(0, 3, 0))
+			end
+		end
+		local grow = math.clamp(elapsed / 0.2, 0, 1)
+		local fade = math.clamp((duration - elapsed) / 0.35, 0, 1)
+		for _, item in ipairs(parts) do
+			local t = item.T
+			local angle = (item.Arm / arms) * 2 * math.pi + t * 2.4 * math.pi + elapsed * spin
+			local r = radius * (0.2 + 0.8 * t) * (0.5 + 0.5 * grow)
+			local y = height * t * grow
+			local nextAngle = angle + 0.35
+			local p0 = base * CFrame.new(math.cos(angle) * r, y, math.sin(angle) * r)
+			local p1 = base * CFrame.new(math.cos(nextAngle) * r, y + height * 0.03, math.sin(nextAngle) * r)
+			local length = (p1.Position - p0.Position).Magnitude + 0.6
+			local thick = (1.4 - t * 0.6) * (data.Thickness or 1)
+			item.Part.CFrame = CFrame.lookAt(p0.Position, p1.Position)
+			item.Part.Size = Vector3.new(thick, 0.25, length)
+			item.Part.Transparency = 1 - (0.95 * fade * grow)
+		end
+		if elapsed >= duration then
+			for _, item in ipairs(parts) do
+				item.Part:Destroy()
+			end
+			holder:Destroy()
+			return false
+		end
+		if elapsed > duration - 0.35 then
+			if swirl then
+				swirl.Enabled = false
+			end
+			if wind then
+				wind.Enabled = false
+			end
+		end
+		return true
+	end)
+	burst(base.Position, color, 20, radius * 2, 0.6, 0.7)
+end
+
+--[[ หนามระเบิดจากพื้น: แผ่นหนามสามเหลี่ยมพุ่งขึ้นเป็นวง แล้วจมกลับ
+	data = { Position, Radius, Count, Height, Color, Duration }
+]]
+function VFX.SpikeBurst(data)
+	local ground = groundAt(data.Position, 20) or data.Position
+	local radius = data.Radius or 10
+	local count = data.Count or math.clamp(math.floor(radius * 1.6), 10, 26)
+	local height = data.Height or radius * 1.3
+	local color = data.Color or WHITE
+	local hold = data.Duration or 0.7
+
+	for ring = 1, 2 do
+		local ringRadius = ring == 1 and radius * 0.35 or radius * 0.75
+		local ringCount = ring == 1 and math.max(6, math.floor(count * 0.45)) or count
+		for i = 1, ringCount do
+			local angle = (i + math.random() * 0.5) / ringCount * 2 * math.pi
+			local outward = Vector3.new(math.cos(angle), 0, math.sin(angle))
+			local h = height * (ring == 1 and 1 or 0.7) * (0.6 + math.random() * 0.5)
+			local w = 0.8 + math.random() * 1.4
+			local tilt = math.rad(12 + math.random() * 28) * (ring == 1 and 0.6 or 1)
+			local position = ground + outward * ringRadius * (0.8 + math.random() * 0.4)
+			-- WedgePart: ด้านลาดหันออก ปลายแหลมชี้ขึ้น
+			local look = CFrame.lookAt(position, position + outward)
+			local up = look * CFrame.Angles(-tilt, 0, 0) * CFrame.new(0, h / 2, 0)
+			local down = up - Vector3.new(0, h + 1, 0)
+			local tone = (i % 3 == 0) and WHITE or ((i % 3 == 1) and color or Color3.fromRGB(15, 10, 35))
+			local spike = Instance.new("WedgePart")
+			spike.Anchored = true
+			spike.CanCollide = false
+			spike.CanQuery = false
+			spike.CanTouch = false
+			spike.CastShadow = false
+			spike.Material = tone.R + tone.G + tone.B < 0.3 and Enum.Material.Glass or Enum.Material.Neon
+			spike.Color = tone
+			spike.Size = Vector3.new(w * 0.3, h, w)
+			spike.CFrame = down
+			spike.Parent = getFolder()
+			local delay = (ring - 1) * 0.05 + math.random() * 0.04
+			task.delay(delay, function()
+				tween(spike, 0.11, { CFrame = up }, Enum.EasingStyle.Back)
+				task.delay(hold + math.random() * 0.25, function()
+					tween(spike, 0.35, { CFrame = down, Transparency = 0.6 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+					Debris:AddItem(spike, 0.4)
+				end)
+			end)
+		end
+	end
+
+	-- แสงพุ่งขึ้นตรงกลาง + วงคลื่นบนพื้น
+	local pillar = newPart({
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height * 2, radius * 0.5, radius * 0.5),
+		CFrame = CFrame.new(ground + Vector3.new(0, height, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = WHITE,
+		Transparency = 0.2,
+	})
+	fadeOut(pillar, 0.35, { Size = Vector3.new(height * 2.6, 0.2, 0.2) })
+	shockRing(CFrame.new(ground + Vector3.new(0, 0.3, 0)), radius * 0.2, radius * 1.4, 0.4, color, 1, 2)
+
+	local holder = holderAt(ground + Vector3.new(0, 0.3, 0))
+	local wave = texturedEmitter(holder, "Shockwave", {
+		Color = ColorSequence.new(color, WHITE),
+		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+		Speed = NumberRange.new(0.01),
+		EmissionDirection = Enum.NormalId.Top,
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, radius * 0.3), NumberSequenceKeypoint.new(1, radius * 3) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.45),
+	})
+	if wave then
+		wave:Emit(2)
+	end
+	local crack = texturedEmitter(holder, "Crack", {
+		Color = ColorSequence.new(color),
+		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+		Speed = NumberRange.new(0.01),
+		EmissionDirection = Enum.NormalId.Top,
+		Size = NumberSequence.new(radius * 2.2),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.7, 0.2), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(hold + 0.8),
+		LightEmission = 0.4,
+	})
+	if crack then
+		crack:Emit(1)
+	end
+	Debris:AddItem(holder, hold + 1.2)
+
+	burst(ground + Vector3.new(0, 2, 0), color, 30, radius * 3, 0.6, 0.9)
+	sparks(ground + Vector3.new(0, 2, 0), color, 12, radius * 0.5)
+	dust(ground + Vector3.new(0, 0.5, 0), radius)
+	VFX.ShakeAt(ground, math.clamp(radius / 11, 0.3, 1), radius * 7)
+end
+
+--[[ ลูกบอลฟัน: เส้นฟันโค้งหลายทิศซ้อนกันเป็นทรงกลม มีแกนมืดตรงกลาง
+	data = { Position, Radius, Color, Duration, Count }
+]]
+function VFX.SlashSphere(data)
+	local radius = data.Radius or 8
+	local duration = data.Duration or 0.6
+	local count = data.Count or 12
+	local color = data.Color or WHITE
+	local center = data.Position
+
+	local core = newPart({
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(1, 1, 1),
+		Position = center,
+		Color = Color3.fromRGB(10, 5, 25),
+		Material = Enum.Material.SmoothPlastic,
+		Transparency = 0.15,
+	})
+	tween(core, duration * 0.3, { Size = Vector3.new(radius * 1.1, radius * 1.1, radius * 1.1) }, Enum.EasingStyle.Back)
+	task.delay(duration * 0.75, function()
+		fadeOut(core, duration * 0.35, { Size = Vector3.new(0.5, 0.5, 0.5) })
+	end)
+	energyShell(center, color, radius * 0.6, radius * 2.1, duration + 0.2, 0)
+
+	for i = 1, count do
+		task.delay((i - 1) / count * duration * 0.6, function()
+			local rotation = CFrame.Angles(math.random() * math.pi * 2, math.random() * math.pi * 2, math.random() * math.pi * 2)
+			local tone = (i % 4 == 0) and Color3.fromRGB(15, 10, 35) or ((i % 2 == 0) and WHITE or color)
+			local material = (i % 4 == 0) and Enum.Material.SmoothPlastic or Enum.Material.Neon
+			arc3d(CFrame.new(center) * rotation, radius * (0.75 + math.random() * 0.35), 150 + math.random() * 120, 10, tone, 1.4, 0.008, 0.22, material)
+		end)
+	end
+
+	local holder = holderAt(center)
+	local slashes = texturedEmitter(holder, "Slash", {
+		Color = ColorSequence.new(color, WHITE),
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, radius * 1.4), NumberSequenceKeypoint.new(1, radius * 2.4) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.18, 0.28),
+		Speed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 360),
+		Rate = count / (duration * 0.6),
+	})
+	if slashes then
+		slashes.Enabled = true
+		task.delay(duration * 0.6, function()
+			slashes.Enabled = false
+		end)
+	end
+	local glitter = texturedEmitter(holder, "Spark", {
+		Color = ColorSequence.new(WHITE, color),
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.2), NumberSequenceKeypoint.new(1, 0) }),
+		Lifetime = NumberRange.new(0.3, 0.6),
+		Speed = NumberRange.new(radius * 2, radius * 4),
+		SpreadAngle = Vector2.new(180, 180),
+		Drag = 4,
+	})
+	if glitter then
+		glitter:Emit(30)
+	end
+	Debris:AddItem(holder, duration + 1)
+
+	sparks(center, color, 10, radius * 0.5)
+	shockRing(CFrame.new(center) * CFrame.Angles(math.random(), 0, math.random()), radius * 0.5, radius * 1.8, 0.3, WHITE, 0.4, 1)
+	VFX.ShakeAt(center, 0.45, radius * 8)
+end
+
 -- เรียกเอฟเฟกต์ตามชื่อ (ใช้โดย VFXController)
 function VFX.Play(effectId, data)
 	local handler = VFX[effectId]
@@ -1825,17 +2181,43 @@ return VFX
 ]]></string>
         </Properties>
       </Item>
+      <Item class="ModuleScript" referent="17">
+        <Properties>
+          <string name="Name">VFXAssets</string>
+          <string name="Source"><![CDATA[-- ภาพลายเอฟเฟกต์ (texture) ที่เอฟเฟกต์ใหญ่ใช้ทับบนเอฟเฟกต์โค้ด
+-- เจ้าของเกมอนุญาตให้ใช้ texture ได้ (13 พ.ย. 2026) แม้ GAME_SPEC เดิมจะห้ามใช้ asset
+--
+-- วิธีใส่: ใน Roblox Studio เปิด Toolbox → Creator Store → หมวด Images (หรือ Decals)
+-- ค้นคำตามที่เขียนไว้ในแต่ละช่อง เลือกภาพพื้นหลังโปร่งใส คลิกขวา "Copy Asset ID"
+-- แล้ววางเป็น "rbxassetid://ตัวเลข" (ถ้าได้ ID ของ Decal ให้ลองใส่ในช่อง Texture ของ
+-- ParticleEmitter ใน Studio ก่อน Studio จะแปลงเป็น ID ของภาพให้เอง)
+--
+-- ช่องที่ว่างไว้ ("") เกมจะใช้เอฟเฟกต์โค้ดล้วนแทน จึงเล่นได้ตามปกติ
+-- ช่องที่ขึ้นต้นด้วย rbxasset:// เป็นภาพที่มากับ Roblox อยู่แล้ว ไม่ต้องหาเพิ่ม
+return {
+	Swirl = "", -- ค้น: "swirl vfx", "vortex texture" (ลายหมุนวน ใช้กับพายุหมุน/หลุมดำ)
+	Slash = "", -- ค้น: "slash vfx", "anime slash texture" (เส้นฟันโค้ง)
+	Shockwave = "", -- ค้น: "shockwave ring texture" (วงคลื่นกระแทกบนพื้น)
+	Crack = "", -- ค้น: "ground crack decal" (รอยแตกบนพื้น)
+	Lightning = "", -- ค้น: "lightning vfx texture" (ประกายสายฟ้า)
+	Wind = "", -- ค้น: "wind vfx texture" (ลมพัดวน)
+	Spark = "rbxasset://textures/particles/sparkles_main.dds", -- มากับ Roblox
+	Smoke = "rbxasset://textures/particles/smoke_main.dds", -- มากับ Roblox
+}
+]]></string>
+        </Properties>
+      </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="17">
+  <Item class="ServerScriptService" referent="18">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="18">
+    <Item class="Folder" referent="19">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="ModuleScript" referent="19">
+      <Item class="ModuleScript" referent="20">
         <Properties>
           <string name="Name">CombatService</string>
           <string name="Source"><![CDATA[-- ดาเมจ, ใครฆ่าใคร, assist, ฟื้นเลือด — server เป็นคนตัดสินทั้งหมด
@@ -1924,6 +2306,9 @@ function CombatService.Damage(attacker, target, amount, skillName, opts)
 		StatusService.Remove(target, "Parry")
 		Remotes.PlayVFX:FireAllClients("Explosion", {
 			Position = root.Position, Radius = 6, Color = Color3.fromHex("#FF8C00"), Duration = 0.3,
+		})
+		Remotes.PlayVFX:FireAllClients("SlashSphere", {
+			Position = root.Position, Radius = 5, Color = Color3.fromHex("#FF8C00"), Duration = 0.4, Count = 10,
 		})
 		if attackerChar and CombatService.IsAlive(attackerChar) then
 			CombatService.Damage(targetPlayer, attackerChar, amount * (parry.Multiplier or 2), "ปัดป้อง", { NoReflect = true })
@@ -2083,7 +2468,7 @@ return CombatService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="20">
+      <Item class="ModuleScript" referent="21">
         <Properties>
           <string name="Name">LoadoutService</string>
           <string name="Source"><![CDATA[-- รับ / ตรวจสอบ / บันทึกการเลือกสายของผู้เล่น
@@ -2219,7 +2604,7 @@ return LoadoutService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Script" referent="21">
+      <Item class="Script" referent="22">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -2250,7 +2635,7 @@ print("[QuantumArena] เซิร์ฟเวอร์พร้อมแล้�
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="22">
+      <Item class="ModuleScript" referent="23">
         <Properties>
           <string name="Name">MapBuilder</string>
           <string name="Source"><![CDATA[-- สร้างแผนที่ทั้งหมดด้วยโค้ดตอนเริ่มเซิร์ฟเวอร์ (ไม่ใช้ asset จาก Toolbox)
@@ -2726,11 +3111,11 @@ return MapBuilder
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="23">
+      <Item class="Folder" referent="24">
         <Properties>
           <string name="Name">SkillHandlers</string>
         </Properties>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">Basic</string>
             <string name="Source"><![CDATA[-- โจมตีปกติของทุกสายย่อย (เลือกวิธีตาม Basic.Type ใน SkillData)
@@ -2900,7 +3285,7 @@ return Basic
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">Dimension</string>
             <string name="Source"><![CDATA[-- สกิลสายมิติ (Dimension)
@@ -2928,6 +3313,7 @@ H.Blink = function(_player, character, p)
 	U.Teleport(character, destination, direction)
 	U.VFX("Beam", { From = p.Origin, To = destination, Color = p.Color, Width = 0.6, Duration = 0.25 })
 	U.VFX("Explosion", { Position = destination, Radius = 5, Color = p.Color, Duration = 0.35 })
+	U.VFX("SlashSphere", { Position = destination, Radius = 4, Color = p.Color, Duration = 0.4, Count = 7 })
 end
 
 local function makePortal(position, color)
@@ -3002,6 +3388,7 @@ H.BlackHole = function(player, _character, p)
 	local skill = p.Skill
 	local center = p.Point + Vector3.new(0, 4, 0)
 	U.VFX("Zone", { Position = center, Radius = skill.Radius, Color = p.Color, Duration = skill.Duration, Kind = "BlackHole" })
+	U.VFX("Vortex", { Position = p.Point, Radius = skill.Radius * 0.8, Height = 14, Duration = skill.Duration, Color = p.Color, Dark = true, Spin = 7 })
 	local step = 0.1
 	local ticks = math.floor(skill.Duration / step + 0.5)
 	local perDamage = math.floor(skill.Tick / step + 0.5)
@@ -3028,6 +3415,9 @@ H.SpaceRift = function(player, _character, p)
 	U.VFX("LineTelegraph", { From = from, To = to, Width = skill.Width, Color = p.Color, Duration = skill.Delay })
 	task.wait(skill.Delay)
 	U.VFX("Beam", { From = from, To = to, Color = p.Color, Width = skill.Width * 0.8, Duration = 0.35 })
+	for k = 1, 3 do
+		U.VFX("SpikeBurst", { Position = from:Lerp(to, k / 4), Radius = 6, Color = p.Color, Duration = 0.5 })
+	end
 	for _, model in ipairs(U.EnemiesInLine(player, from, direction, skill.Range, skill.Width, 12)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end
@@ -3043,7 +3433,7 @@ return H
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">DivineFist</string>
             <string name="Source"><![CDATA[-- สกิลสายหมัดเทพ (Divine Fist)
@@ -3060,6 +3450,7 @@ H.ShockwavePunch = function(player, _character, p)
 	local push = U.Flat(p.Direction)
 	push = push.Magnitude > 0.05 and push.Unit or Vector3.new(0, 0, -1)
 	U.VFX("Slash", { Position = p.Origin, Direction = p.Direction, Range = 6, Width = 6, Color = p.Color, Final = true })
+	U.VFX("Vortex", { Position = p.Origin, Horizontal = true, Direction = push, Radius = 4, Height = skill.Range, Duration = 0.4, Color = p.Color, Spin = 18, Arms = 3 })
 	U.Projectile(player, {
 		Origin = p.Origin + p.Direction * 2,
 		Direction = p.Direction,
@@ -3144,6 +3535,7 @@ H.GroundSlam = function(player, character, p)
 	local position = U.Position(character)
 	local ground = U.GroundBelow(position, 40) or position
 	U.VFX("Explosion", { Position = ground, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
+	U.VFX("SpikeBurst", { Position = ground, Radius = skill.Radius, Color = p.Color })
 	U.VFX("Telegraph", { Position = ground, Radius = skill.Radius, Color = p.Color, Duration = 0.3 })
 	for _, model in ipairs(U.EnemiesInRadius(player, ground + Vector3.new(0, 2, 0), skill.Radius)) do
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 then
@@ -3163,7 +3555,7 @@ return H
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">EnergyGun</string>
             <string name="Source"><![CDATA[-- สกิลสายปืนพลังงาน (Energy Gun)
@@ -3201,6 +3593,7 @@ H.Railgun = function(player, character, p)
 	end
 	local origin = U.Position(character)
 	U.VFX("Beam", { From = origin, To = origin + direction * skill.Range, Color = p.Color, Width = 2.5, Duration = 0.4 })
+	U.VFX("Vortex", { Position = origin, Horizontal = true, Direction = direction, Radius = 3, Height = 40, Duration = 0.5, Color = p.Color, Spin = 20, Arms = 3 })
 	for _, model in ipairs(U.EnemiesInLine(player, origin, direction, skill.Range, skill.Width, 8)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end
@@ -3214,6 +3607,7 @@ H.PlasmaGrenade = function(player, _character, p)
 	U.VFX("Telegraph", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = skill.FlightTime })
 	task.wait(skill.FlightTime)
 	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
+	U.VFX("SpikeBurst", { Position = point, Radius = skill.Radius * 0.8, Color = p.Color })
 	for _, model in ipairs(U.EnemiesInRadius(player, point + Vector3.new(0, 2, 0), skill.Radius)) do
 		local position = U.Position(model)
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 and position then
@@ -3323,7 +3717,7 @@ return H
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">Lightning</string>
             <string name="Source"><![CDATA[-- สกิลสายสายฟ้า (Lightning)
@@ -3370,6 +3764,7 @@ H.ThunderStrike = function(player, _character, p)
 	task.wait(skill.Delay)
 	U.VFX("Lightning", { From = point + Vector3.new(0, 90, 0), To = point, Color = p.Color, Width = 2.5 })
 	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.4, Ground = true })
+	U.VFX("SpikeBurst", { Position = point, Radius = skill.Radius, Color = p.Color })
 	for _, model in ipairs(U.EnemiesInRadius(player, point + Vector3.new(0, 2, 0), skill.Radius)) do
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 then
 			StatusService.Stun(model, skill.Stun)
@@ -3379,6 +3774,7 @@ end
 
 H.StaticShield = function(_player, character, p)
 	StatusService.Shield(character, p.Skill.Shield, p.Skill.Duration, p.Skill.Damage)
+	U.VFX("SlashSphere", { Position = p.Origin, Radius = 4.5, Color = p.Color, Duration = 0.45, Count = 8 })
 end
 
 H.ChainLightning = function(player, _character, p)
@@ -3417,7 +3813,7 @@ return H
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">Ninja</string>
             <string name="Source"><![CDATA[-- สกิลสายนินจา (Ninja)
@@ -3566,6 +3962,7 @@ H.Backstab = function(player, character, p)
 	local direction = U.Flat(targetPos - destination)
 	direction = direction.Magnitude > 0.05 and direction.Unit or targetLook
 	U.VFX("Slash", { Position = destination, Direction = direction, Range = 6, Width = 5, Color = p.Color, Final = not facingUs })
+	U.VFX("SlashSphere", { Position = targetPos, Radius = 4.5, Color = p.Color, Duration = 0.45, Count = facingUs and 6 or 12 })
 	CombatService.Damage(player, target, damage, p.Name)
 end
 
@@ -3574,6 +3971,7 @@ H.SmokeBomb = function(_player, character, p)
 	local skill = p.Skill
 	local center = p.Origin
 	U.VFX("Zone", { Position = center, Radius = skill.Radius, Color = Color3.fromRGB(150, 160, 150), Duration = skill.Duration, Kind = "Smoke" })
+	U.VFX("Vortex", { Position = center - Vector3.new(0, 3, 0), Radius = skill.Radius * 0.8, Height = 8, Duration = 1.2, Color = Color3.fromRGB(150, 160, 150), Spin = 5, Arms = 5 })
 	local step = 0.25
 	for _ = 1, math.floor(skill.Duration / step + 0.5) do
 		if not CombatService.IsAlive(character) then
@@ -3591,7 +3989,7 @@ return H
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
           <Properties>
             <string name="Name">QuantumSword</string>
             <string name="Source"><![CDATA[-- สกิลสายดาบควอนตัม (Quantum Sword)
@@ -3611,6 +4009,7 @@ H.SuperpositionSlash = function(player, character, p)
 		local offset = U.Rotate(-forward, angle) * 7
 		U.VFX("Ghost", { CFrame = CFrame.lookAt(center + offset, center), Color = p.Color, Duration = 0.6, Target = character })
 	end
+	U.VFX("SlashSphere", { Position = center, Radius = skill.Range * 0.8, Color = p.Color, Duration = 0.45, Count = 14 })
 	for i = 1, skill.Hits do
 		if not CombatService.IsAlive(character) then
 			return
@@ -3638,6 +4037,7 @@ H.PhaseCut = function(player, _character, p)
 	local to = p.Origin + direction * skill.Range
 	U.VFX("Slash", { Position = p.Origin, Direction = direction, Range = 10, Width = 10, Color = p.Color, Final = true })
 	U.VFX("Beam", { From = p.Origin, To = to, Color = p.Color, Width = skill.Width * 0.6, Duration = 0.3 })
+	U.VFX("SlashSphere", { Position = to, Radius = 5, Color = p.Color, Duration = 0.4, Count = 8 })
 	for _, model in ipairs(U.EnemiesInLine(player, p.Origin, direction, skill.Range, skill.Width, 9)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end
@@ -3677,6 +4077,7 @@ end
 H.BladeStorm = function(player, character, p)
 	local skill = p.Skill
 	U.VFX("Aura", { Target = character, Color = p.Color, Duration = skill.Duration, Kind = "BladeStorm", Radius = skill.Radius })
+	U.VFX("Vortex", { Target = character, Position = p.Origin, Radius = skill.Radius * 0.8, Height = 6, Duration = skill.Duration, Color = p.Color, Spin = 14, Arms = 3 })
 	for _ = 1, math.floor(skill.Duration / skill.Tick) do
 		if not CombatService.IsAlive(character) then
 			return
@@ -3711,7 +4112,7 @@ return H
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">ShadowScythe</string>
             <string name="Source"><![CDATA[-- สกิลสายเคียวเงา (Shadow Scythe)
@@ -3756,6 +4157,7 @@ end
 H.DeathSpin = function(player, character, p)
 	local skill = p.Skill
 	U.VFX("Spin", { Target = character, Radius = skill.Radius, Color = GLOW, Duration = 0.35 })
+	U.VFX("Vortex", { Target = character, Position = p.Origin, Radius = skill.Radius * 0.8, Height = 5, Duration = 0.5, Color = GLOW, Dark = true, Spin = 16 })
 	for _, model in ipairs(U.EnemiesInRadius(player, p.Origin, skill.Radius)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end
@@ -3766,6 +4168,7 @@ H.SoulDrain = function(player, character, p)
 	local skill = p.Skill
 	local direction = p.Direction
 	U.VFX("Slash", { Position = p.Origin, Direction = direction, Range = skill.Range, Width = skill.Width, Color = GLOW, Final = true })
+	U.VFX("SlashSphere", { Position = p.Origin + direction * skill.Range * 0.6, Radius = 5, Color = GLOW, Duration = 0.45, Count = 8 })
 	local total = 0
 	for _, model in ipairs(U.EnemiesInLine(player, p.Origin - direction, direction, skill.Range + 1, skill.Width, 9)) do
 		local position = U.Position(model)
@@ -3804,6 +4207,7 @@ end
 H.ShadowVeil = function(_player, character, p)
 	local skill = p.Skill
 	U.VFX("Explosion", { Position = p.Origin, Radius = 5, Color = GLOW, Duration = 0.35 })
+	U.VFX("Vortex", { Position = p.Origin - Vector3.new(0, 3, 0), Radius = 4, Height = 7, Duration = 0.6, Color = GLOW, Dark = true })
 	StatusService.SetInvisible(character, skill.Duration)
 	StatusService.Apply(character, "Empower", skill.BonusWindow, { Bonus = skill.Bonus })
 end
@@ -3812,7 +4216,7 @@ return H
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="33">
           <Properties>
             <string name="Name">Time</string>
             <string name="Source"><![CDATA[-- สกิลสายเวลา (Time)
@@ -3872,6 +4276,7 @@ end)
 H.TimeStop = function(player, _character, p)
 	local skill = p.Skill
 	U.VFX("Explosion", { Position = p.Origin, Radius = skill.Radius, Color = p.Color, Duration = 0.5 })
+	U.VFX("SlashSphere", { Position = p.Origin, Radius = skill.Radius * 0.5, Color = p.Color, Duration = 0.7, Count = 14 })
 	for _, model in ipairs(U.EnemiesInRadius(player, p.Origin, skill.Radius)) do
 		StatusService.Freeze(model, skill.Duration)
 	end
@@ -3911,6 +4316,7 @@ H.SlowField = function(player, _character, p)
 	local skill = p.Skill
 	local center = p.Point + Vector3.new(0, 2, 0)
 	U.VFX("Zone", { Position = center, Radius = skill.Radius, Color = p.Color, Duration = skill.Duration, Kind = "SlowField" })
+	U.VFX("Vortex", { Position = p.Point, Radius = skill.Radius * 0.7, Height = 6, Duration = skill.Duration, Color = p.Color, Spin = 2, Arms = 5, Thickness = 0.6 })
 	local step = 0.25
 	for _ = 1, math.floor(skill.Duration / step + 0.5) do
 		for _, model in ipairs(U.EnemiesInRadius(player, center, skill.Radius)) do
@@ -3937,6 +4343,7 @@ H.TimeBomb = function(player, _character, p)
 					return
 				end
 				U.VFX("Explosion", { Position = position, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
+				U.VFX("SpikeBurst", { Position = position, Radius = skill.Radius, Color = p.Color })
 				for _, enemy in ipairs(U.EnemiesInRadius(player, position, skill.Radius)) do
 					CombatService.Damage(player, enemy, skill.Damage, p.Name)
 				end
@@ -3951,7 +4358,7 @@ return H
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="33">
+      <Item class="ModuleScript" referent="34">
         <Properties>
           <string name="Name">SkillService</string>
           <string name="Source"><![CDATA[-- รับคำสั่งใช้สกิลจาก client → ตรวจสอบทุกอย่าง → คิดคูลดาวน์ → เรียก handler
@@ -4220,7 +4627,7 @@ return SkillService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="34">
+      <Item class="ModuleScript" referent="35">
         <Properties>
           <string name="Name">SkillUtil</string>
           <string name="Source"><![CDATA[-- ตัวช่วยที่ SkillHandlers ใช้ร่วมกัน: หาเป้า, hitbox, กระสุน, การเคลื่อนที่, สั่งเอฟเฟกต์
@@ -4605,7 +5012,7 @@ return U
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="35">
+      <Item class="ModuleScript" referent="36">
         <Properties>
           <string name="Name">SpawnService</string>
           <string name="Source"><![CDATA[-- เกิดใหม่, ป้องกันตอนเกิด, วาร์ป Lobby ↔ Arena, แถบเลือดเหนือหัว, อาวุธในมือ
@@ -4981,7 +5388,7 @@ return SpawnService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="36">
+      <Item class="ModuleScript" referent="37">
         <Properties>
           <string name="Name">StatsService</string>
           <string name="Source"><![CDATA[-- leaderstats: Kills / Deaths / Streak
@@ -5042,7 +5449,7 @@ return StatsService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="37">
+      <Item class="ModuleScript" referent="38">
         <Properties>
           <string name="Name">StatusService</string>
           <string name="Source"><![CDATA[-- สถานะผิดปกติทั้งหมด: Stun / Slow / Knockback / Airborne / Frozen / Invisible / Shield ฯลฯ
@@ -5459,27 +5866,27 @@ return StatusService
       </Item>
     </Item>
   </Item>
-  <Item class="SoundService" referent="38">
+  <Item class="SoundService" referent="39">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>
     </Properties>
   </Item>
-  <Item class="StarterPlayer" referent="39">
+  <Item class="StarterPlayer" referent="40">
     <Properties>
       <string name="Name">StarterPlayer</string>
       <float name="CameraMaxZoomDistance">40</float>
       <bool name="EnableMouseLockOption">false</bool>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="40">
+    <Item class="StarterPlayerScripts" referent="41">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="41">
+      <Item class="Folder" referent="42">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">InputController</string>
             <string name="Source"><![CDATA[-- รับปุ่มจากคีย์บอร์ด / เมาส์ / จอย / ปุ่มมือถือ แล้วส่ง "ขอใช้สกิล + จุดที่เล็ง" ให้ server
@@ -5749,7 +6156,7 @@ return InputController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="43">
+        <Item class="LocalScript" referent="44">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[-- จุดเริ่มต้นฝั่ง client
@@ -5774,11 +6181,11 @@ MobileButtons.Init(InputController)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="44">
+        <Item class="Folder" referent="45">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="45">
+          <Item class="ModuleScript" referent="46">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[-- HUD: แถบเลือด, ช่องสกิล + คูลดาวน์, ไอคอนพุ่งหลบ, ชื่อสายย่อย, ข้อความแจ้งเตือน
@@ -6179,7 +6586,7 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="46">
+          <Item class="ModuleScript" referent="47">
             <Properties>
               <string name="Name">KillFeed</string>
               <string name="Source"><![CDATA[-- Kill feed มุมขวาบน: "[ผู้ฆ่า] ⚡ [ชื่อสกิล] → [ผู้ตาย]" แสดง 5 บรรทัดล่าสุด หายไปใน 6 วิ
@@ -6299,7 +6706,7 @@ return KillFeed
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="47">
+          <Item class="ModuleScript" referent="48">
             <Properties>
               <string name="Name">LoadoutUI</string>
               <string name="Source"><![CDATA[-- หน้าเลือกสาย 3 ขั้น: สายใหญ่ → สายย่อย → สกิล 3 จาก 5
@@ -6809,7 +7216,7 @@ return LoadoutUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="48">
+          <Item class="ModuleScript" referent="49">
             <Properties>
               <string name="Name">MobileButtons</string>
               <string name="Source"><![CDATA[-- ปุ่มบนจอสำหรับมือถือ/แท็บเล็ต (แสดงเฉพาะเครื่องที่มีจอสัมผัส)
@@ -6993,7 +7400,7 @@ return MobileButtons
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="49">
+          <Item class="ModuleScript" referent="50">
             <Properties>
               <string name="Name">Theme</string>
               <string name="Source"><![CDATA[-- ตัวช่วยสร้าง UI และสีที่ใช้ร่วมกัน
@@ -7113,7 +7520,7 @@ return Theme
             </Properties>
           </Item>
         </Item>
-        <Item class="ModuleScript" referent="50">
+        <Item class="ModuleScript" referent="51">
           <Properties>
             <string name="Name">VFXController</string>
             <string name="Source"><![CDATA[-- เล่นเอฟเฟกต์ตามที่ server สั่ง + ตัวเลขดาเมจลอย + การล่องหน + ควันบังชื่อ
@@ -7347,7 +7754,7 @@ return VFXController
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="51">
+  <Item class="Workspace" referent="52">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

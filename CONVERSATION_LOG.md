@@ -273,3 +273,6 @@ tools: film.js (แถบภาพหลายเวลาในช็อตเ�
 - งานอยู่ที่ quantum-arena/ (ดู README ในนั้น): โปรเจกต์ Rojo, 8 สายย่อย 40 สกิล, ไฟล์ที่ build แล้วคือ quantum-arena/QuantumArena.rbxlx
 - ตรวจแล้ว: rojo build ผ่าน, สกิล 40 อัน data/handler ตรงกัน, selene 0 error **ยังไม่ได้เปิดเล่นจริงใน Studio** (เซิร์ฟเวอร์ไม่มี Studio) ถ้าเจ้าของส่ง error จาก Output มาให้แก้ต่อ
 - เครื่องมือ: ติดตั้ง rojo/selene ด้วย `cargo install` (รันไบนารีที่โหลดจาก GitHub ตรง ๆ ไม่ได้) selene ต้องป้อน API dump เองเพราะโหลดผ่านพร็อกซีไม่ได้
+- 13 พ.ย. (ต่อ): เจ้าของส่งคลิป TikTok (kyr.odev ใช้ Claude + ForgeGUI MCP ทำสกิลใน Roblox) เป็นตัวอย่างเอฟเฟกต์ที่อยากได้
+  → เจ้าของเลือก **ยอมใช้ texture ได้** (ยกเลิกกฎห้าม asset เฉพาะเอฟเฟกต์) และให้ทำ **ทุกสาย**
+  → เพิ่มพายุหมุน / หนามระเบิดจากพื้น / ลูกบอลฟัน ใน VFX.lua และช่องใส่ texture ID ที่ src/shared/VFXAssets.lua (ว่างไว้ให้เจ้าของหาใน Toolbox)

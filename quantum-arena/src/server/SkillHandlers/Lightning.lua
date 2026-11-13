@@ -42,6 +42,7 @@ H.ThunderStrike = function(player, _character, p)
 	task.wait(skill.Delay)
 	U.VFX("Lightning", { From = point + Vector3.new(0, 90, 0), To = point, Color = p.Color, Width = 2.5 })
 	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.4, Ground = true })
+	U.VFX("SpikeBurst", { Position = point, Radius = skill.Radius, Color = p.Color })
 	for _, model in ipairs(U.EnemiesInRadius(player, point + Vector3.new(0, 2, 0), skill.Radius)) do
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 then
 			StatusService.Stun(model, skill.Stun)
@@ -51,6 +52,7 @@ end
 
 H.StaticShield = function(_player, character, p)
 	StatusService.Shield(character, p.Skill.Shield, p.Skill.Duration, p.Skill.Damage)
+	U.VFX("SlashSphere", { Position = p.Origin, Radius = 4.5, Color = p.Color, Duration = 0.45, Count = 8 })
 end
 
 H.ChainLightning = function(player, _character, p)

@@ -33,6 +33,7 @@ H.Railgun = function(player, character, p)
 	end
 	local origin = U.Position(character)
 	U.VFX("Beam", { From = origin, To = origin + direction * skill.Range, Color = p.Color, Width = 2.5, Duration = 0.4 })
+	U.VFX("Vortex", { Position = origin, Horizontal = true, Direction = direction, Radius = 3, Height = 40, Duration = 0.5, Color = p.Color, Spin = 20, Arms = 3 })
 	for _, model in ipairs(U.EnemiesInLine(player, origin, direction, skill.Range, skill.Width, 8)) do
 		CombatService.Damage(player, model, skill.Damage, p.Name)
 	end
@@ -46,6 +47,7 @@ H.PlasmaGrenade = function(player, _character, p)
 	U.VFX("Telegraph", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = skill.FlightTime })
 	task.wait(skill.FlightTime)
 	U.VFX("Explosion", { Position = point, Radius = skill.Radius, Color = p.Color, Duration = 0.45, Ground = true })
+	U.VFX("SpikeBurst", { Position = point, Radius = skill.Radius * 0.8, Color = p.Color })
 	for _, model in ipairs(U.EnemiesInRadius(player, point + Vector3.new(0, 2, 0), skill.Radius)) do
 		local position = U.Position(model)
 		if CombatService.Damage(player, model, skill.Damage, p.Name) > 0 and position then

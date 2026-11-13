@@ -6,6 +6,8 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local VFXAssets = require(script.Parent:WaitForChild("VFXAssets"))
+
 local VFX = {}
 
 VFX.SmokeZones = {} -- { Position, Radius, Expires } ให้ VFXController ใช้ซ่อนชื่อ/แถบเลือด
@@ -1160,6 +1162,360 @@ function VFX.Status(data)
 			return true
 		end)
 	end
+end
+
+---------------------------------------------------------------------------
+-- เอฟเฟกต์ใหญ่แบบเกม battleground: พายุหมุน / หนามระเบิดจากพื้น / ลูกบอลฟัน
+-- (ใช้โค้ดเป็นโครง แล้วทับด้วย texture จาก VFXAssets ถ้าใส่ ID ไว้)
+---------------------------------------------------------------------------
+local function asset(key)
+	local id = VFXAssets[key]
+	if type(id) == "string" and id ~= "" then
+		return id
+	end
+	return nil
+end
+
+-- ตัวปล่อยอนุภาคที่ใช้ texture (คืนค่า nil ถ้ายังไม่ได้ใส่ ID)
+local function texturedEmitter(parent, key, props)
+	local texture = asset(key)
+	if not texture then
+		return nil
+	end
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture = texture
+	emitter.LightEmission = 1
+	emitter.Enabled = false
+	for name, value in pairs(props) do
+		emitter[name] = value
+	end
+	emitter.Parent = parent
+	return emitter
+end
+
+local function holderAt(position)
+	return newPart({ Size = Vector3.new(0.2, 0.2, 0.2), Position = position, Transparency = 1 })
+end
+
+-- เปลือกทรงกลมลาย ForceField (ลายเคลื่อนไหวที่มากับ Roblox ดูเหมือนพลังงานไหล)
+local function energyShell(position, color, fromSize, toSize, duration, transparency)
+	local shell = newPart({
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(fromSize, fromSize, fromSize),
+		Position = position,
+		Color = color,
+		Material = Enum.Material.ForceField,
+		Transparency = transparency or 0,
+	})
+	tween(shell, duration * 0.35, { Size = Vector3.new(toSize, toSize, toSize) }, Enum.EasingStyle.Back)
+	task.delay(duration * 0.7, function()
+		fadeOut(shell, duration * 0.3, { Size = Vector3.new(toSize * 1.15, toSize * 1.15, toSize * 1.15) })
+	end)
+	return shell
+end
+
+-- เส้นโค้งในทิศใดก็ได้ (base = CFrame ของศูนย์กลางวง)
+local function arc3d(base, radius, spanDegrees, segments, color, thickness, stagger, life, material)
+	for i = 1, segments do
+		local t = (i - 0.5) / segments
+		local angle = math.rad(-spanDegrees / 2 + spanDegrees * t)
+		local cf = base * CFrame.Angles(0, -angle, 0) * CFrame.new(0, 0, -radius)
+		local segmentLength = 2 * math.pi * radius * (spanDegrees / 360) / segments + 0.35
+		task.delay((i - 1) * stagger, function()
+			-- ปลายทั้งสองข้างเรียวลง ตรงกลางหนาสุด
+			local taper = math.sin(t * math.pi) * 0.8 + 0.2
+			local part = newPart({
+				Size = Vector3.new(segmentLength, 0.2, thickness * taper),
+				CFrame = cf,
+				Color = color,
+				Material = material or Enum.Material.Neon,
+				Transparency = 0.05,
+			})
+			fadeOut(part, life, { Size = Vector3.new(segmentLength, 0.05, thickness * taper * 0.2) })
+		end)
+	end
+end
+
+--[[ พายุหมุน: เกลียวนีออนหลายแขนหมุนขึ้นเป็นทรงกรวย
+	data = { Position, Radius, Height, Duration, Color, Arms, Spin, Dark, Horizontal, Direction }
+	Horizontal = true จะวางพายุนอนไปตาม Direction (ใช้กับลำแสง/หมัดลม)
+]]
+function VFX.Vortex(data)
+	local radius = data.Radius or 10
+	local height = data.Height or radius * 1.4
+	local duration = data.Duration or 1.5
+	local arms = data.Arms or 4
+	local perArm = 9
+	local spin = data.Spin or 9
+	local color = data.Color or WHITE
+	local dark = data.Dark and Color3.fromRGB(20, 8, 40) or WHITE
+
+	local base
+	if data.Horizontal and data.Direction then
+		base = CFrame.lookAt(data.Position, data.Position + data.Direction) * CFrame.Angles(-math.pi / 2, 0, 0)
+	else
+		base = CFrame.new(data.Position)
+	end
+
+	local parts = {}
+	for arm = 1, arms do
+		for s = 1, perArm do
+			parts[#parts + 1] = {
+				Part = newPart({
+					Size = Vector3.new(0.1, 0.1, 0.1),
+					Color = (s + arm) % 3 == 0 and dark or color,
+					Transparency = 1,
+				}),
+				Arm = arm,
+				T = (s - 1) / (perArm - 1),
+			}
+		end
+	end
+
+	energyShell(base.Position + base.UpVector * height * 0.4, color, radius * 0.4, radius * 1.7, duration, 0.1)
+	local core = newPart({
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, radius * 0.25, radius * 0.25),
+		CFrame = base * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = WHITE,
+		Transparency = 0.4,
+	})
+	fadeOut(core, duration)
+
+	-- texture ลายหมุน (ถ้ามี)
+	local holder = holderAt(base.Position + base.UpVector * height * 0.35)
+	holder.CFrame = base * CFrame.new(0, height * 0.35, 0)
+	local swirl = texturedEmitter(holder, "Swirl", {
+		Color = ColorSequence.new(color, WHITE),
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, radius * 0.6), NumberSequenceKeypoint.new(1, radius * 2.2) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.35, 0.5),
+		Speed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-720, -540),
+		Rate = 30,
+		LockedToPart = true,
+	})
+	if swirl then
+		swirl.Enabled = true
+	end
+	local wind = texturedEmitter(holder, "Wind", {
+		Color = ColorSequence.new(color),
+		Size = NumberSequence.new(radius * 0.9),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.3),
+		Speed = NumberRange.new(height),
+		SpreadAngle = Vector2.new(25, 25),
+		Rotation = NumberRange.new(0, 360),
+		Rate = 25,
+	})
+	if wind then
+		wind.Enabled = true
+	end
+
+	local elapsed = 0
+	addUpdater(function(dt)
+		elapsed += dt
+		if data.Target then
+			local root = rootOf(data.Target)
+			if root then
+				base = CFrame.new(root.Position - Vector3.new(0, 3, 0))
+			end
+		end
+		local grow = math.clamp(elapsed / 0.2, 0, 1)
+		local fade = math.clamp((duration - elapsed) / 0.35, 0, 1)
+		for _, item in ipairs(parts) do
+			local t = item.T
+			local angle = (item.Arm / arms) * 2 * math.pi + t * 2.4 * math.pi + elapsed * spin
+			local r = radius * (0.2 + 0.8 * t) * (0.5 + 0.5 * grow)
+			local y = height * t * grow
+			local nextAngle = angle + 0.35
+			local p0 = base * CFrame.new(math.cos(angle) * r, y, math.sin(angle) * r)
+			local p1 = base * CFrame.new(math.cos(nextAngle) * r, y + height * 0.03, math.sin(nextAngle) * r)
+			local length = (p1.Position - p0.Position).Magnitude + 0.6
+			local thick = (1.4 - t * 0.6) * (data.Thickness or 1)
+			item.Part.CFrame = CFrame.lookAt(p0.Position, p1.Position)
+			item.Part.Size = Vector3.new(thick, 0.25, length)
+			item.Part.Transparency = 1 - (0.95 * fade * grow)
+		end
+		if elapsed >= duration then
+			for _, item in ipairs(parts) do
+				item.Part:Destroy()
+			end
+			holder:Destroy()
+			return false
+		end
+		if elapsed > duration - 0.35 then
+			if swirl then
+				swirl.Enabled = false
+			end
+			if wind then
+				wind.Enabled = false
+			end
+		end
+		return true
+	end)
+	burst(base.Position, color, 20, radius * 2, 0.6, 0.7)
+end
+
+--[[ หนามระเบิดจากพื้น: แผ่นหนามสามเหลี่ยมพุ่งขึ้นเป็นวง แล้วจมกลับ
+	data = { Position, Radius, Count, Height, Color, Duration }
+]]
+function VFX.SpikeBurst(data)
+	local ground = groundAt(data.Position, 20) or data.Position
+	local radius = data.Radius or 10
+	local count = data.Count or math.clamp(math.floor(radius * 1.6), 10, 26)
+	local height = data.Height or radius * 1.3
+	local color = data.Color or WHITE
+	local hold = data.Duration or 0.7
+
+	for ring = 1, 2 do
+		local ringRadius = ring == 1 and radius * 0.35 or radius * 0.75
+		local ringCount = ring == 1 and math.max(6, math.floor(count * 0.45)) or count
+		for i = 1, ringCount do
+			local angle = (i + math.random() * 0.5) / ringCount * 2 * math.pi
+			local outward = Vector3.new(math.cos(angle), 0, math.sin(angle))
+			local h = height * (ring == 1 and 1 or 0.7) * (0.6 + math.random() * 0.5)
+			local w = 0.8 + math.random() * 1.4
+			local tilt = math.rad(12 + math.random() * 28) * (ring == 1 and 0.6 or 1)
+			local position = ground + outward * ringRadius * (0.8 + math.random() * 0.4)
+			-- WedgePart: ด้านลาดหันออก ปลายแหลมชี้ขึ้น
+			local look = CFrame.lookAt(position, position + outward)
+			local up = look * CFrame.Angles(-tilt, 0, 0) * CFrame.new(0, h / 2, 0)
+			local down = up - Vector3.new(0, h + 1, 0)
+			local tone = (i % 3 == 0) and WHITE or ((i % 3 == 1) and color or Color3.fromRGB(15, 10, 35))
+			local spike = Instance.new("WedgePart")
+			spike.Anchored = true
+			spike.CanCollide = false
+			spike.CanQuery = false
+			spike.CanTouch = false
+			spike.CastShadow = false
+			spike.Material = tone.R + tone.G + tone.B < 0.3 and Enum.Material.Glass or Enum.Material.Neon
+			spike.Color = tone
+			spike.Size = Vector3.new(w * 0.3, h, w)
+			spike.CFrame = down
+			spike.Parent = getFolder()
+			local delay = (ring - 1) * 0.05 + math.random() * 0.04
+			task.delay(delay, function()
+				tween(spike, 0.11, { CFrame = up }, Enum.EasingStyle.Back)
+				task.delay(hold + math.random() * 0.25, function()
+					tween(spike, 0.35, { CFrame = down, Transparency = 0.6 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+					Debris:AddItem(spike, 0.4)
+				end)
+			end)
+		end
+	end
+
+	-- แสงพุ่งขึ้นตรงกลาง + วงคลื่นบนพื้น
+	local pillar = newPart({
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height * 2, radius * 0.5, radius * 0.5),
+		CFrame = CFrame.new(ground + Vector3.new(0, height, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = WHITE,
+		Transparency = 0.2,
+	})
+	fadeOut(pillar, 0.35, { Size = Vector3.new(height * 2.6, 0.2, 0.2) })
+	shockRing(CFrame.new(ground + Vector3.new(0, 0.3, 0)), radius * 0.2, radius * 1.4, 0.4, color, 1, 2)
+
+	local holder = holderAt(ground + Vector3.new(0, 0.3, 0))
+	local wave = texturedEmitter(holder, "Shockwave", {
+		Color = ColorSequence.new(color, WHITE),
+		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+		Speed = NumberRange.new(0.01),
+		EmissionDirection = Enum.NormalId.Top,
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, radius * 0.3), NumberSequenceKeypoint.new(1, radius * 3) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.45),
+	})
+	if wave then
+		wave:Emit(2)
+	end
+	local crack = texturedEmitter(holder, "Crack", {
+		Color = ColorSequence.new(color),
+		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+		Speed = NumberRange.new(0.01),
+		EmissionDirection = Enum.NormalId.Top,
+		Size = NumberSequence.new(radius * 2.2),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.7, 0.2), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(hold + 0.8),
+		LightEmission = 0.4,
+	})
+	if crack then
+		crack:Emit(1)
+	end
+	Debris:AddItem(holder, hold + 1.2)
+
+	burst(ground + Vector3.new(0, 2, 0), color, 30, radius * 3, 0.6, 0.9)
+	sparks(ground + Vector3.new(0, 2, 0), color, 12, radius * 0.5)
+	dust(ground + Vector3.new(0, 0.5, 0), radius)
+	VFX.ShakeAt(ground, math.clamp(radius / 11, 0.3, 1), radius * 7)
+end
+
+--[[ ลูกบอลฟัน: เส้นฟันโค้งหลายทิศซ้อนกันเป็นทรงกลม มีแกนมืดตรงกลาง
+	data = { Position, Radius, Color, Duration, Count }
+]]
+function VFX.SlashSphere(data)
+	local radius = data.Radius or 8
+	local duration = data.Duration or 0.6
+	local count = data.Count or 12
+	local color = data.Color or WHITE
+	local center = data.Position
+
+	local core = newPart({
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(1, 1, 1),
+		Position = center,
+		Color = Color3.fromRGB(10, 5, 25),
+		Material = Enum.Material.SmoothPlastic,
+		Transparency = 0.15,
+	})
+	tween(core, duration * 0.3, { Size = Vector3.new(radius * 1.1, radius * 1.1, radius * 1.1) }, Enum.EasingStyle.Back)
+	task.delay(duration * 0.75, function()
+		fadeOut(core, duration * 0.35, { Size = Vector3.new(0.5, 0.5, 0.5) })
+	end)
+	energyShell(center, color, radius * 0.6, radius * 2.1, duration + 0.2, 0)
+
+	for i = 1, count do
+		task.delay((i - 1) / count * duration * 0.6, function()
+			local rotation = CFrame.Angles(math.random() * math.pi * 2, math.random() * math.pi * 2, math.random() * math.pi * 2)
+			local tone = (i % 4 == 0) and Color3.fromRGB(15, 10, 35) or ((i % 2 == 0) and WHITE or color)
+			local material = (i % 4 == 0) and Enum.Material.SmoothPlastic or Enum.Material.Neon
+			arc3d(CFrame.new(center) * rotation, radius * (0.75 + math.random() * 0.35), 150 + math.random() * 120, 10, tone, 1.4, 0.008, 0.22, material)
+		end)
+	end
+
+	local holder = holderAt(center)
+	local slashes = texturedEmitter(holder, "Slash", {
+		Color = ColorSequence.new(color, WHITE),
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, radius * 1.4), NumberSequenceKeypoint.new(1, radius * 2.4) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1) }),
+		Lifetime = NumberRange.new(0.18, 0.28),
+		Speed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 360),
+		Rate = count / (duration * 0.6),
+	})
+	if slashes then
+		slashes.Enabled = true
+		task.delay(duration * 0.6, function()
+			slashes.Enabled = false
+		end)
+	end
+	local glitter = texturedEmitter(holder, "Spark", {
+		Color = ColorSequence.new(WHITE, color),
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.2), NumberSequenceKeypoint.new(1, 0) }),
+		Lifetime = NumberRange.new(0.3, 0.6),
+		Speed = NumberRange.new(radius * 2, radius * 4),
+		SpreadAngle = Vector2.new(180, 180),
+		Drag = 4,
+	})
+	if glitter then
+		glitter:Emit(30)
+	end
+	Debris:AddItem(holder, duration + 1)
+
+	sparks(center, color, 10, radius * 0.5)
+	shockRing(CFrame.new(center) * CFrame.Angles(math.random(), 0, math.random()), radius * 0.5, radius * 1.8, 0.3, WHITE, 0.4, 1)
+	VFX.ShakeAt(center, 0.45, radius * 8)
 end
 
 -- เรียกเอฟเฟกต์ตามชื่อ (ใช้โดย VFXController)
