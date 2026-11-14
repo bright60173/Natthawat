@@ -1,0 +1,57 @@
+{
+ "01": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.396
+ },
+ "02": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 5.878
+ },
+ "03": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 3.082
+ },
+ "04": {
+  "who": "มีรา",
+  "voice": "Jessica",
+  "sec": 6.687
+ },
+ "05": {
+  "who": "ทหาร",
+  "voice": "Callum",
+  "sec": 2.194
+ },
+ "06": {
+  "who": "ทหาร",
+  "voice": "Callum",
+  "sec": 2.194
+ },
+ "07": {
+  "who": "ทหาร",
+  "voice": "Callum",
+  "sec": 2.429
+ },
+ "08": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.071
+ },
+ "09": {
+  "who": "ทหาร",
+  "voice": "Callum",
+  "sec": 7.393
+ },
+ "10": {
+  "who": "ทหาร",
+  "voice": "Callum",
+  "sec": 4.049
+ },
+ "11": {
+  "who": "เรน",
+  "voice": "Liam",
+  "sec": 1.149
+ }
+}
