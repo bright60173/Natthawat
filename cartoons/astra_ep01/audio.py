@@ -219,6 +219,37 @@ def seq(fn, times):
     return out
 def portal(dur=4.0, up=True):
     t = tt(dur); u = t / dur; f = 60 + 90 * (u if up else 1 - u); s = np.sin(2 * np.pi * np.cumsum(f) / SR) * 0.8 + np.sin(2 * np.pi * np.cumsum(f * 1.498) / SR) * 0.5 + bp(nz(len(t)), 300, 1500) * 0.6 * (0.5 + 0.5 * np.sin(2 * np.pi * 7 * t)); return fade(s, 0.4, 0.8) * 0.7
+
+# ---------- heavier fight sounds (layered: sub drop + saturated body + sharp crack + tail) ----------
+def sweep(f0, f1, dur, k=6.0):
+    t = tt(dur); f = f1 + (f0 - f1) * np.exp(-t * k); return (np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * (3.0 / dur))).astype(np.float32)
+def sat(x, d=2.0): return np.tanh(x * d) / np.tanh(d)
+def layer(dur, *parts):
+    out = np.zeros(int(dur * SR), np.float32)
+    for x, at, g in parts:
+        i = int(at * SR); m = min(len(x), len(out) - i)
+        if m > 0: out[i:i + m] += x[:m] * g
+    return out
+def burstn(dur, lo, hi, dec): t = tt(dur); return bp(nz(len(t)), lo, hi) * np.exp(-t * dec)
+def h_punch():
+    return layer(0.75, (sweep(150, 38, 0.6, 14), 0, 1.0), (sat(sweep(340, 115, 0.3, 18) * 2, 2), 0, 1.3), (sat(burstn(0.16, 120, 900, 28) * 3, 2.5), 0, 0.9), (burstn(0.05, 1800, 9000, 90), 0, 1.1), (burstn(0.25, 300, 2500, 14), 0.01, 0.35))
+def h_impact():
+    return layer(1.4, (sweep(110, 30, 1.2, 8), 0, 1.1), (sat(sweep(280, 95, 0.5, 12) * 2, 2), 0, 1.3), (sat(burstn(0.3, 80, 700, 14) * 3, 2.5), 0, 1.0), (burstn(0.04, 2000, 10000, 100), 0, 1.0), (burstn(0.9, 200, 3000, 6), 0.03, 0.3))
+def h_explosion(dur=2.6):
+    n = int(dur * SR); t = tt(dur); body = sat(lp(nz(n), 900) * np.exp(-t * 2.2) * 4, 3); rum = lp(nz(n), 120) * np.exp(-t * 1.4) * 5
+    return fade(layer(dur, (sweep(95, 24, dur * 0.9, 3.5), 0, 1.1), (sat(sweep(240, 70, dur * 0.5, 6) * 2, 2), 0, 1.2), (body, 0, 1.2), (rum, 0, 0.8), (burstn(0.06, 1500, 10000, 60), 0, 1.3), (crackle(dur * 0.75) * np.exp(-tt(dur * 0.75) * 1.5), 0.15, 0.5)), 0.001, 0.4)
+def h_clash():
+    return layer(1.5, (metal(1250, 1.4, 1.0), 0, 1.0), (metal(1870, 1.0, 0.8), 0.012, 0.8), (metal(3300, 0.5, 0.6), 0, 0.6), (sat(sweep(300, 110, 0.3, 16) * 2, 2), 0, 1.0), (burstn(0.05, 3000, 12000, 80), 0, 1.2), (burstn(0.5, 5000, 12000, 9), 0.02, 0.25))
+def h_slash():
+    n = int(0.26 * SR); u = np.linspace(0, 1, n); x = nz(n); sw = (bp(x, 900, 3000) * (1 - u) + bp(x, 3000, 9000) * u) * np.sin(np.pi * u) ** 1.5 * 2.2
+    return layer(0.9, (sw, 0, 1.0), (metal(2600, 0.6, 0.7), 0.16, 0.8), (sweep(120, 50, 0.25, 16), 0.18, 0.8), (burstn(0.03, 4000, 12000, 120), 0.18, 0.9))
+def h_whoosh(dur=0.5, v=1.0):
+    n = int(dur * SR); u = np.linspace(0, 1, n); x = nz(n); e = np.sin(np.pi * u) ** 2
+    return ((lp(x, 500) * 1.6 * (1 - u * 0.5) + bp(x, 500, 2500) * 1.6 * np.sin(np.pi * u) + bp(x, 2500, 8000) * u) * e * 1.5 * v).astype(np.float32)
+def h_flame(dur=2.0, v=1.0):
+    n = int(dur * SR); t = tt(dur); u = np.linspace(0, 1, n); x = nz(n)
+    ro = lp(x, 700) * 3.0 * (0.55 + 0.45 * np.sin(2 * np.pi * 23 * t + 4 * np.sin(2 * np.pi * 2.3 * t))); air = bp(x, 1200, 6000) * 0.9 * (0.5 + 0.5 * np.sin(2 * np.pi * 31 * t + 1))
+    env = np.minimum(1, u / 0.06) * np.exp(-u * 2.6); return fade(mx((ro + air) * env, sweep(80, 32, min(dur, 1.4), 4) * 1.2), 0.01, 0.3) * v
 SFX = {
     'breath': lambda: breathy(2.2, 0.5), 'gasp': lambda: fade(whoosh(0.45, 800, 5000), 0.01, 0.1) * 0.6, 'whisper': lambda: breathy(3.5, 0.5) * (0.6 + 0.4 * np.sin(2 * np.pi * 3 * tt(3.5))),
     'chime': chime, 'magicreveal': lambda: np.concatenate((chime(1.2), chime(2.0))), 'ignite': lambda: flame(1.3, 0.8), 'flare': lambda: flame(1.0, 0.7), 'flamewhoosh': lambda: flame(2.2, 1.2), 'flameloop': lambda: flame(4.0, 0.5),
@@ -240,6 +271,10 @@ SFX = {
     'commcrackle': lambda: fade(bp(nz(int(1.2 * SR)), 1500, 6000) * (rng.random(int(1.2 * SR)) < 0.3) * 0.8 + np.sin(2 * np.pi * 1200 * tt(1.2)) * 0.08, 0.02, 0.2), 'portal': lambda: portal(4.5), 'portalclose': lambda: portal(2.5, False), 'cavedrone': lambda: fade(lp(nz(int(9 * SR)), 90) * 4 + np.sin(2 * np.pi * 55 * tt(9)) * 0.35 + np.sin(2 * np.pi * 82.2 * tt(9)) * 0.15, 2, 3),
     'eyeopen': lambda: boom(1.5, 60, 0.9) + np.pad(metal(3000, 1.0, 0.4), (0, int(1.5 * SR) - int(1.0 * SR))), 'choir': lambda: choir([hz(0), hz(3), hz(7), hz(12)], 4.0) * 0.6,
 }
+SFX.update({'punch': h_punch, 'impact': h_impact, 'explosion': h_explosion, 'boom': lambda: h_explosion(1.9), 'clash': h_clash, 'slash': h_slash, 'whoosh': lambda: h_whoosh(0.55), 'dash': lambda: h_whoosh(0.32, 1.25), 'jump': lambda: h_whoosh(0.5, 0.7),
+    'flamewhoosh': lambda: h_flame(2.2, 1.2), 'ignite': lambda: h_flame(1.3, 0.8), 'flare': lambda: h_flame(1.0, 0.7), 'whip': lambda: layer(0.9, (h_whoosh(0.3, 1.2), 0, 1), (h_punch(), 0.28, 0.8), (burstn(0.04, 3000, 12000, 90), 0.28, 1.5)),
+    'wallcrash': lambda: mx(h_explosion(2.2), np.pad(shatter(0.9) * 0.3, (int(0.05 * SR), 0))), 'woodcrash': lambda: mx(h_impact(), np.pad(shatter(0.7) * 0.3, (int(0.03 * SR), 0)))})
+LEVEL = {'explosion': 1.1, 'boom': 0.9, 'wallcrash': 1.1, 'punch': 1.0, 'impact': 1.0, 'clash': 0.95, 'slash': 0.8, 'whip': 0.9}
 HEAVY = {'boom', 'explosion', 'impact', 'punch', 'clash', 'slash', 'wallcrash', 'woodcrash', 'shatter', 'crack', 'stonecrack', 'swordplant', 'giantsteps', 'whip', 'thunk', 'cageclose', 'eyeopen'}
 VOXISH = {'scream', 'shout', 'groan', 'cry', 'kidcry', 'laugh', 'laugh_low', 'crowd', 'creak', 'whisper', 'breath', 'gasp'}
 
@@ -273,6 +308,7 @@ while i < len(shots):
     else: x = lp(nz(int((dur + 0.5) * SR)), 300) * 0.08
     add(mix, fade(x, 0.6, 0.6), t0, 1.0, 0.1); i = j + 1
 print('sfx...', flush=True)
+hit = np.zeros(N, np.float32)
 for s in shots:
     for c in s['sfx']:
         at, name = c[0], c[1]; vol = c[2] if len(c) > 2 else 1.0
@@ -280,9 +316,10 @@ for s in shots:
         if not fn: print('missing sfx', name); continue
         try: x = np.asarray(fn(), np.float32)
         except Exception as e: print('sfx error', name, e); continue
-        if name in HEAVY:  # weight: sub-bass drop + sharp transient under every hit
-            tsub = tt(0.7); sub = np.sin(2 * np.pi * np.cumsum(38 + 50 * np.exp(-tsub * 9)) / SR) * np.exp(-tsub * 5) * 1.3; x = mx(np.tanh(x * 1.6), sub, click(2600, 0.03, 0.9))
-        add(mix, x, s['start'] + at, vol * (0.3 if name in VOXISH else 0.85 if name in HEAVY else 0.6), 0.3)
+        if name in HEAVY:  # heavy hits go to their own bus: peak-levelled, not squashed by the bed's gain riding, and they duck the music
+            x = x / max(1e-4, np.abs(x).max()) * 0.9 * LEVEL.get(name, 0.85); i = int((s['start'] + at) * SR); n_ = min(len(x), N - i)
+            if i >= 0 and n_ > 0: hit[i:i + n_] += x[:n_] * min(1.0, vol); wet[i:i + n_] += x[:n_] * vol * 0.2
+        else: add(mix, x, s['start'] + at, vol * (0.3 if name in VOXISH else 0.6), 0.3)
 # reverb (overlap-add FFT convolution), slightly different tail left/right
 print('reverb...', flush=True)
 def reverb(x, seed):
@@ -294,6 +331,7 @@ Lc = mix + reverb(wet, 1) * 0.5; Rc = mix + reverb(wet, 2) * 0.5
 st = np.stack([Lc, Rc], 1)[:int(TOTAL * SR)]
 # master: gentle compression by slow gain riding + soft clip
 envp = box(np.abs(st).max(1), SR * 0.4) + 1e-4; gain = np.clip(0.16 / envp, 0.5, 2.2); gain = box(gain, SR * 0.5); st *= gain[:, None]
+hn = hit[:len(st)]; he = box(np.abs(hn), SR * 0.02); he = np.maximum(he, box(he, SR * 0.3) * 1.5); st *= (1 - 0.55 * np.clip(he / 0.25, 0, 1))[:, None]; st += (sat(hn * 1.3, 1.6))[:, None]
 st = np.tanh(st * 1.5) / np.tanh(1.5); st *= 0.92 / max(1e-6, np.abs(st).max())
 w = wave.open(sys.argv[2], 'wb'); w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((st * 32767).astype(np.int16).tobytes()); w.close()
 print('ok', TOTAL, 's')
