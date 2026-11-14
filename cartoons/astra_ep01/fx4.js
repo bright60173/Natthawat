@@ -15,8 +15,8 @@
       pos[o] = px + side.x * ww; pos[o + 1] = py + side.y * ww; pos[o + 2] = pz + side.z * ww; pos[o + 3] = px - side.x * ww; pos[o + 4] = py - side.y * ww; pos[o + 5] = pz - side.z * ww; } }
   // pairs(b, seed) -> [A, B] or null ; o: n, col, w, jit, rate, on (share of bolts alive at any moment)
   FX.lightning = function (F, key, pairs, t, o = {}) { const n = o.n || 4, seg = 9; const core = F.add(key + 'c', () => boltMesh(n, seg, 0xffffff, 0.95)), halo = F.add(key + 'h', () => boltMesh(n, seg, o.col || 0xa060ff, 0.5));
-    const fr = Math.floor(t * (o.rate || 14)); for (let b = 0; b < n; b++) { const seed = fr * 13.7 + b * 101.3; const alive = hash(seed + 3) < (o.on == null ? 0.6 : o.on); const pr = alive ? pairs(b, seed) : null;
-      setBolt(core, b, pr && pr[0], pr && pr[1], (o.w || 0.014), o.jit || 0.16, seed); setBolt(halo, b, pr && pr[0], pr && pr[1], (o.w || 0.014) * 3.6, o.jit || 0.16, seed); }
+    const fr = Math.floor(t * (o.rate || 14)); for (let b = 0; b < n; b++) { const seed = fr * 13.7 + b * 101.3; const alive = hash(seed + 3) < (o.on == null ? 0.6 : o.on); let pr = alive ? pairs(b, seed) : null; let ws = 1; if (pr) { const dc = CAM.position.distanceTo(pr[0]); if (dc < 2.0) pr = null; else ws = clamp(dc / 6, 0.45, 1); }
+      setBolt(core, b, pr && pr[0], pr && pr[1], (o.w || 0.014) * ws, o.jit || 0.16, seed); setBolt(halo, b, pr && pr[0], pr && pr[1], (o.w || 0.014) * 3.6 * ws, o.jit || 0.16, seed); }
     core.geometry.attributes.position.needsUpdate = true; halo.geometry.attributes.position.needsUpdate = true; };
   // ---------- glowing pool on the ground ----------
   const POOL_FS = 'varying vec2 vU; uniform vec3 col; uniform float op; uniform float t; void main(){ vec2 p=vU-0.5; float d=length(p)*2.0; if(d>1.0) discard; float an=atan(p.y,p.x); float a=pow(1.0-d,1.7)*0.9+smoothstep(0.06,0.0,abs(d-0.78-0.04*sin(t*6.0)))*0.7*(0.6+0.4*sin(an*9.0+t*4.0)); gl_FragColor=vec4(col*(1.0+a),a*op); }';
