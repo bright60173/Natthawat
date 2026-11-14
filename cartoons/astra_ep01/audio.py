@@ -293,7 +293,7 @@ while i < len(shots):
 print('ambience...', flush=True)
 def amb_key(s):
     if s['fire'] > 0: return 'fire'
-    return {'village': 'wind', 'forest': 'forest', 'hill': 'night', 'void': 'void', 'room': 'room', 'throne': 'cave'}[s['set']]
+    return {'village': 'wind', 'forest': 'forest', 'hill': 'night', 'void': 'void', 'room': 'room', 'throne': 'cave', 'valen': 'night', 'lamphouse': 'room'}.get(s['set'], 'night')
 i = 0
 while i < len(shots):
     j = i; k = amb_key(shots[i])
