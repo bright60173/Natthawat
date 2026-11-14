@@ -1,0 +1,174 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>แสงสุดท้ายในป่าแดง</title>
+<link rel="stylesheet" href="fonts.css">
+<style>html,body{margin:0;background:#000}canvas{display:block;height:100vh;margin:0 auto}</style>
+</head><body><canvas id="cv" width="720" height="1280"></canvas>
+<script>
+/* "แสงสุดท้ายในป่าแดง" (The Last Light in the Red Forest), episode 1.
+   A cartoon drawn entirely by code: every frame is draw(t) on a 2D canvas. No generated images, no AI voice.
+   Open this file to watch it (press space to play/pause), or render it with render.js. */
+const W=720,H=1280,FPS=24,DUR=39;
+const cv=document.getElementById("cv"),c=cv.getContext("2d");
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>{t=clamp(t);return t*t*(3-2*t);},easeOut=t=>1-Math.pow(1-clamp(t),3),easeIn=t=>Math.pow(clamp(t),3);
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const rnd=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);};
+const INK="#120304",RIM="rgba(255,112,72,.6)",WARM="255,196,120";
+
+/* ---------- camera ---------- */
+function setCam(cam,par=1){c.setTransform(cam.z,0,0,cam.z,W/2-cam.x*par*cam.z,cam.gy);}
+function scr(cam,wx,wy,par=1){return [W/2+(wx-cam.x*par)*cam.z,cam.gy+wy*cam.z];}
+function reset(){c.setTransform(1,0,0,1,0,0);}
+
+/* ---------- world ---------- */
+function sky(t,cam,mood){ reset(); const g=c.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#3a0708"); g.addColorStop(0.45,"#8f1611"); g.addColorStop(0.72,"#c9321c"); g.addColorStop(1,"#5a0c0b"); c.fillStyle=g; c.fillRect(0,0,W,H);
+  const mx=W*0.68-cam.x*0.02,my=H*0.2+(cam.gy-930)*0.15; let h=c.createRadialGradient(mx,my,10,mx,my,420); h.addColorStop(0,"rgba(255,120,80,.55)"); h.addColorStop(1,"rgba(255,90,60,0)"); c.fillStyle=h; c.fillRect(0,0,W,H);
+  c.fillStyle="#ff8a5c"; c.beginPath(); c.arc(mx,my,74,0,7); c.fill(); c.fillStyle="rgba(190,50,30,.35)"; c.beginPath(); c.arc(mx-22,my-14,16,0,7); c.arc(mx+26,my+20,11,0,7); c.arc(mx+8,my-34,7,0,7); c.fill();
+  c.lineWidth=3; for(let k=0;k<3;k++){ c.strokeStyle=`rgba(255,130,90,${0.32-k*0.09})`; c.beginPath(); c.arc(mx,my,118+k*52+Math.sin(t*0.8+k)*4,Math.PI*0.95,Math.PI*2.05); c.stroke(); } }
+function trees(cam,par,seed,spacing,col,wMin,wMax,branch){ setCam(cam,par); const half=W/2/cam.z+300, x0=cam.x*par-half, x1=cam.x*par+half; c.fillStyle=col; c.strokeStyle=col; c.lineCap="round";
+  for(let i=Math.floor(x0/spacing)-1;i<=Math.ceil(x1/spacing)+1;i++){ const x=i*spacing+(rnd(i*7+seed)-0.5)*spacing*0.7, w=wMin+rnd(i*3+seed)*(wMax-wMin), lean=(rnd(i*5+seed)-0.5)*90;
+    c.beginPath(); c.moveTo(x-w*0.62,30); c.lineTo(x-w*0.4,-300); c.lineTo(x+lean-w*0.28,-2200); c.lineTo(x+lean+w*0.28,-2200); c.lineTo(x+w*0.4,-300); c.lineTo(x+w*0.62,30); c.closePath(); c.fill();
+    if(branch){ for(let b=0;b<2;b++){ const by=-360-rnd(i*11+b+seed)*520, dir=rnd(i*13+b+seed)>0.5?1:-1, len=90+rnd(i*17+b)*120; c.lineWidth=w*0.16; c.beginPath(); c.moveTo(x+lean*(-by/2200),by); c.quadraticCurveTo(x+dir*len*0.5,by-30,x+dir*len,by-90-rnd(i+b)*60); c.stroke(); } } } }
+function ground(cam){ setCam(cam,1); const half=W/2/cam.z+60; c.fillStyle=INK; c.beginPath(); c.moveTo(cam.x-half,3000); for(let x=cam.x-half;x<=cam.x+half+20;x+=20){ c.lineTo(x,Math.sin(x*0.013)*6+Math.sin(x*0.05)*2); } c.lineTo(cam.x+half,3000); c.closePath(); c.fill();
+  c.strokeStyle="rgba(255,110,70,.28)"; c.lineWidth=2/cam.z; c.beginPath(); for(let x=cam.x-half;x<=cam.x+half+20;x+=20){ c.lineTo(x,Math.sin(x*0.013)*6+Math.sin(x*0.05)*2); } c.stroke(); }
+function grass(cam,par,seed,spacing,size,col,t){ setCam(cam,par); const half=W/2/cam.z+200, x0=cam.x*par-half, x1=cam.x*par+half; c.fillStyle=col;
+  for(let i=Math.floor(x0/spacing)-1;i<=Math.ceil(x1/spacing)+1;i++){ const x=i*spacing+(rnd(i*9+seed)-0.5)*spacing, n=5+Math.floor(rnd(i+seed)*4), s=size*(0.6+rnd(i*2+seed)*0.8);
+    for(let k=0;k<n;k++){ const a=(k/(n-1)-0.5)*1.5+Math.sin(t*1.4+i+k)*0.06, L=s*(0.6+rnd(i*31+k)*0.6); c.beginPath(); c.moveTo(x-s*0.07,8); c.quadraticCurveTo(x+Math.sin(a)*L*0.5,-L*0.6,x+Math.sin(a)*L,-Math.cos(a)*L); c.quadraticCurveTo(x+Math.sin(a)*L*0.4,-L*0.45,x+s*0.07,8); c.fill(); } } }
+function fog(t,cam,a){ reset(); for(let k=0;k<3;k++){ const y=cam.gy-150+k*70, off=((t*14*(k+1)+k*200-cam.x*0.3)%900+900)%900-450; const g=c.createLinearGradient(0,y-60,0,y+60); g.addColorStop(0,"rgba(255,90,60,0)"); g.addColorStop(0.5,`rgba(255,90,60,${a*(0.12-k*0.025)})`); g.addColorStop(1,"rgba(255,90,60,0)"); c.fillStyle=g; c.fillRect(off-200,y-60,W+400,120); } }
+function world(t,cam,o={}){ sky(t,cam); trees(cam,0.22,11,210,"#7c1512",26,60,false); trees(cam,0.45,23,300,"#4b0a0b",44,96,true); fog(t,cam,1);
+  trees(cam,0.8,37,420,"#240506",70,150,true); grass(cam,0.9,5,160,70,"#240506",t); if(o.back) o.back(); ground(cam); grass(cam,1,8,120,46,INK,t); }
+function foreground(t,cam){ grass(cam,1.5,91,560,200,"#060102",t); reset(); }
+
+/* ---------- lighting ---------- */
+const dk=document.createElement("canvas"); dk.width=W; dk.height=H; const dc=dk.getContext("2d");
+function darkness(alpha,lights){ lights=[...lights,{x:W*0.66,y:H*0.2,r:560,k:0.5}]; alpha*=0.84; dc.globalCompositeOperation="source-over"; dc.clearRect(0,0,W,H); dc.fillStyle=`rgba(6,1,2,${alpha})`; dc.fillRect(0,0,W,H); dc.globalCompositeOperation="destination-out";
+  for(const L of lights){ if(L.k<=0||L.r<=0) continue; const g=dc.createRadialGradient(L.x,L.y,0,L.x,L.y,L.r); g.addColorStop(0,`rgba(0,0,0,${L.k})`); g.addColorStop(0.5,`rgba(0,0,0,${L.k*0.55})`); g.addColorStop(1,"rgba(0,0,0,0)"); dc.fillStyle=g; dc.fillRect(L.x-L.r,L.y-L.r,L.r*2,L.r*2); }
+  reset(); c.drawImage(dk,0,0); c.globalCompositeOperation="lighter"; for(const L of lights){ if(!L.warm||L.k<=0) continue; const r=L.r*0.8,g=c.createRadialGradient(L.x,L.y,0,L.x,L.y,r); g.addColorStop(0,`rgba(${WARM},${0.42*L.k})`); g.addColorStop(1,`rgba(${WARM},0)`); c.fillStyle=g; c.fillRect(L.x-r,L.y-r,r*2,r*2); } c.globalCompositeOperation="source-over"; }
+function glowDot(x,y,r,a,col=WARM){ c.globalCompositeOperation="lighter"; const g=c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,`rgba(${col},${a})`); g.addColorStop(0.3,`rgba(${col},${a*0.45})`); g.addColorStop(1,`rgba(${col},0)`); c.fillStyle=g; c.fillRect(x-r,y-r,r*2,r*2); c.globalCompositeOperation="source-over"; }
+
+/* ---------- the pup (a small fox) ---------- */
+function pup(cam,x,y,s,o={}){ setCam(cam,1); c.translate(x,y); if(o.rot) { c.translate(0,-28*s); c.rotate(o.rot); c.translate(0,28*s); } c.scale(s*(o.flip?-1:1),s);
+  const ph=o.phase||0, run=o.run||0, walk=o.walk||0, amp=run?15:walk?8:0, bob=run?Math.abs(Math.sin(ph))*-5:walk?Math.abs(Math.sin(ph))*-2:0, cr=o.crouch||0, sh=(o.shake||0)*Math.sin((o.t||0)*46)*1.4;
+  c.translate(sh,bob+cr*9); c.fillStyle=INK; c.strokeStyle=INK; c.lineCap="round"; c.lineJoin="round";
+  const tw=Math.sin((o.t||0)*(o.wag?16:2.2))*(o.wag?0.5:0.12)-(run?0.5:0)+(cr?0.5:0);
+  c.save(); c.translate(-24,-30); c.rotate(-0.9+tw); c.beginPath(); c.moveTo(0,0); c.bezierCurveTo(-16,-10,-30,-36,-12,-58); c.bezierCurveTo(4,-44,14,-20,6,0); c.closePath(); c.fill(); c.strokeStyle=RIM; c.lineWidth=1.6; c.stroke(); c.restore();
+  const leg=(hx,p,front)=>{ const fx=hx+Math.sin(p)*amp*(run?1.5:1), fy=-Math.max(0,Math.cos(p))*amp*0.55-cr*-2, kx=(hx+fx)/2+(front?4:-5), ky=-9; c.strokeStyle=INK; c.lineWidth=6.5; c.beginPath(); c.moveTo(hx,-18+cr*6); c.quadraticCurveTo(kx,ky,fx,Math.min(0,fy)-cr*9); c.stroke(); };
+  leg(-17,ph+Math.PI,false); leg(15,ph+Math.PI*0.9,true);
+  c.fillStyle=INK; c.beginPath(); c.ellipse(0,-27,27,15.5,-0.06,0,7); c.fill(); c.strokeStyle=RIM; c.lineWidth=1.6; c.beginPath(); c.ellipse(0,-27,27,15.5,-0.06,Math.PI*1.05,Math.PI*1.95); c.stroke();
+  leg(-12,ph,false); leg(19,ph+0.2,true);
+  // head
+  const look=o.look||0, hx=25+look*2, hy=-46+(o.duck||0)*9+cr*3; c.save(); c.translate(hx,hy); c.rotate((o.headTilt||0)+look*0.12);
+  const ed=o.earDroop||0; c.fillStyle=INK; for(const sx of [-1,1]){ c.save(); c.translate(sx*7-1,-9); c.rotate(sx*(0.25+ed*1.1)); c.beginPath(); c.moveTo(-6,2); c.lineTo(0,-19+ed*4); c.lineTo(6,2); c.closePath(); c.fill(); c.strokeStyle=RIM; c.lineWidth=1.4; c.beginPath(); c.moveTo(-6,2); c.lineTo(0,-19+ed*4); c.stroke(); c.restore(); }
+  c.fillStyle=INK; c.beginPath(); c.arc(0,0,14,0,7); c.fill(); c.beginPath(); c.moveTo(6,-6); c.quadraticCurveTo(22,-2,23,4); c.quadraticCurveTo(14,10,4,10); c.closePath(); c.fill();
+  c.strokeStyle=RIM; c.lineWidth=1.5; c.beginPath(); c.arc(0,0,14,Math.PI*1.05,Math.PI*1.9); c.stroke();
+  if(o.mouth){ c.fillStyle="#7a1410"; c.beginPath(); c.ellipse(15,8,5,2+o.mouth*3,0.2,0,7); c.fill(); }
+  if(!(o.cover>0.5)){ const ew=o.eyeWide||0; c.fillStyle="#ffe2c8"; c.beginPath(); c.arc(5,-2,2.6+ew*2.2,0,7); c.fill(); if(ew>0.3){ c.fillStyle=INK; c.beginPath(); c.arc(5.6+look,-2,1.3,0,7); c.fill(); } }
+  if(o.cover>0){ c.strokeStyle=INK; c.lineWidth=7; c.beginPath(); c.moveTo(-6,18); c.quadraticCurveTo(2,10,7*o.cover,-2*o.cover); c.stroke(); c.strokeStyle=RIM; c.lineWidth=1.3; c.stroke(); }
+  if(o.sweat){ c.fillStyle="rgba(255,190,160,.9)"; for(let k=0;k<2;k++){ const u=((o.t*2.2+k*0.5)%1); c.beginPath(); c.ellipse(-10-u*14,-10-u*10+k*8,2,3.4,0.6,0,7); c.fill(); } }
+  c.restore();
+  // lantern held in the mouth
+  if(o.lantern!==undefined){ const lx=hx+19, ly=hy+8+Math.sin(ph*2)*1.5; c.strokeStyle=INK; c.lineWidth=1.6; c.beginPath(); c.moveTo(lx,ly); c.lineTo(lx+2,ly+9); c.stroke(); c.fillStyle=INK; c.beginPath(); c.roundRect(lx-3,ly+9,10,13,2.5); c.fill(); c.fillRect(lx-1,ly+7,6,2.5);
+    if(o.lantern>0){ c.fillStyle=`rgba(255,214,150,${0.5+o.lantern*0.5})`; c.beginPath(); c.roundRect(lx-1.2,ly+11,6.4,9,1.5); c.fill(); } o._lan=[x+(o.flip?-1:1)*(lx+2)*s, y+(ly+15+bob+cr*9)*s]; }
+  reset(); return o._lan; }
+
+/* ---------- the giant ---------- */
+function giant(cam,x,y,s,o={}){ setCam(cam,1); c.translate(x,y); c.scale(s,s); const t=o.t||0, wk=o.walk||0, bob=wk?Math.abs(Math.sin(wk))*-9:Math.sin(t*1.3)*-3, rev=o.reveal||0;
+  c.lineCap="round"; c.lineJoin="round"; const body=rev>0?(()=>{ const g=c.createRadialGradient(o.lx??160,o.ly??-120,20,o.lx??160,o.ly??-120,520); g.addColorStop(0,`rgb(${Math.round(18+100*rev)},${Math.round(3+44*rev)},${Math.round(4+22*rev)})`); g.addColorStop(1,"#150405"); return g; })():"#0d0203";
+  for(const sx of [-1,1]){ const lift=wk?Math.max(0,Math.sin(wk+(sx>0?0:Math.PI)))*16:0; c.fillStyle=rev>0?"#1a0606":"#0d0203"; c.beginPath(); c.ellipse(sx*72,-6-lift,54,20,0,0,7); c.fill(); }
+  c.translate(0,bob);
+  // left arm (far side)
+  c.strokeStyle=rev>0?"#1a0606":"#0d0203"; c.lineWidth=44; c.beginPath(); c.moveTo(-128,-236); c.quadraticCurveTo(-176,-150,-160,-62+Math.sin(wk)*14); c.stroke();
+  c.fillStyle=body; c.beginPath(); c.moveTo(-154,0); c.bezierCurveTo(-196,-200,-124,-404,0,-414); c.bezierCurveTo(124,-404,196,-200,154,0); c.closePath(); c.fill();
+  c.strokeStyle=RIM; c.lineWidth=2.4; c.beginPath(); c.moveTo(-170,-140); c.bezierCurveTo(-160,-300,-110,-404,0,-414); c.bezierCurveTo(110,-404,160,-300,170,-140); c.stroke();
+  // moss tufts and little antlers
+  c.fillStyle=rev>0?"#1a0606":"#0d0203"; for(let k=0;k<13;k++){ const a=Math.PI*(1.12+k*0.063), px=Math.cos(a)*150, py=-200+Math.sin(a)*214, L=14+rnd(k)*16; c.beginPath(); c.moveTo(px-7,py+4); c.lineTo(px+Math.cos(a)*L*0.4,py+Math.sin(a)*L-6); c.lineTo(px+7,py+4); c.fill(); }
+  c.strokeStyle=rev>0?"#1a0606":"#0d0203"; c.lineWidth=9; for(const sx of [-1,1]){ c.beginPath(); c.moveTo(sx*46,-398); c.quadraticCurveTo(sx*60,-450,sx*86,-478); c.moveTo(sx*62,-446); c.lineTo(sx*52,-486); c.moveTo(sx*74,-464); c.lineTo(sx*104,-470); c.stroke(); }
+  if(rev>0.2){ c.fillStyle=`rgba(255,170,120,${0.10*rev})`; c.beginPath(); c.ellipse(20,-150,96,120,0,0,7); c.fill(); }
+  // right arm (reaches towards the pup)
+  const hx=o.hx??150, hy=o.hy??-70, ex=(140+hx)/2+26, ey=(-236+hy)/2-10; c.strokeStyle=rev>0?"#2a0c08":"#0d0203"; c.lineWidth=44; c.beginPath(); c.moveTo(134,-236); c.quadraticCurveTo(ex,ey,hx,hy); c.stroke();
+  c.strokeStyle=RIM; c.lineWidth=2; c.beginPath(); c.moveTo(134,-258); c.quadraticCurveTo(ex+6,ey-22,hx,hy-22); c.stroke();
+  const op=o.open||0; c.fillStyle=rev>0?"#2a0c08":"#0d0203"; c.beginPath(); c.arc(hx,hy,27,0,7); c.fill(); c.strokeStyle=rev>0?"#2a0c08":"#0d0203"; c.lineWidth=13; for(let k=0;k<3;k++){ const a=0.5+k*0.42-op*0.55; c.beginPath(); c.moveTo(hx+Math.cos(a)*18,hy+Math.sin(a)*18); c.lineTo(hx+Math.cos(a)*(34+op*10),hy+Math.sin(a)*(34+op*10)-op*8); c.stroke(); }
+  // face
+  const eo=o.eyes??1, fr=o.friendly||0, ey0=-292; if(eo>0){ for(const sx of [-1,1]){ const ex0=sx*40+ (o.gaze||0)*6; if(fr<0.5){ c.fillStyle="#ffe7d2"; c.beginPath(); c.ellipse(ex0,ey0,16,16*eo,0,0,7); c.fill(); }
+      else { c.fillStyle="#ffe9cf"; c.beginPath(); c.ellipse(ex0,ey0,17,17*eo,0,0,7); c.fill(); c.fillStyle="#2a0a06"; c.beginPath(); c.arc(ex0+5,ey0+4,7.5,0,7); c.fill(); c.fillStyle="#fff"; c.beginPath(); c.arc(ex0+7,ey0+1,2.4,0,7); c.fill(); c.strokeStyle="#150405"; c.lineWidth=5; c.beginPath(); c.arc(ex0,ey0+2,19,Math.PI*1.12,Math.PI*1.88); c.stroke(); } }
+    if(fr>0.5){ c.strokeStyle="#ffcfa6"; c.lineWidth=4.5; c.beginPath(); c.arc(6,-262,24,Math.PI*0.2,Math.PI*0.8); c.stroke(); c.fillStyle="rgba(255,120,90,.35)"; c.beginPath(); c.ellipse(-62,-262,15,9,0,0,7); c.ellipse(74,-262,15,9,0,0,7); c.fill(); } }
+  reset(); return {eyeL:[x-40*s,y+(ey0+bob)*s], eyeR:[x+40*s,y+(ey0+bob)*s], hand:[x+hx*s,y+(hy+bob)*s], head:[x,y+(-300+bob)*s]}; }
+function eyesGlow(cam,g,k,red=true){ for(const e of [g.eyeL,g.eyeR]){ const [sx,sy]=scr(cam,e[0],e[1]); glowDot(sx,sy,90*cam.z,0.5*k,red?"255,120,80":WARM); glowDot(sx,sy,26*cam.z,0.9*k,"255,236,214"); } }
+
+/* ---------- little things ---------- */
+function fireflies(t,cam,amount,seedT=0){ for(let i=0;i<150;i++){ const on=seg(amount,i/150,i/150+0.12); if(on<=0) continue; const wx=cam.x+(rnd(i*3+1)-0.5)*2200+Math.sin(t*0.6+i)*26, wy=-60-rnd(i*5+2)*900+Math.cos(t*0.5+i*2)*20, par=0.5+rnd(i*7)*0.6; const [sx,sy]=scr(cam,wx,wy,par), tw=0.55+0.45*Math.sin(t*3+i*1.7); if(sx<-40||sx>W+40||sy<-40||sy>H+40) continue; glowDot(sx,sy,26*par,0.5*on*tw); c.fillStyle=`rgba(255,236,190,${on*tw})`; c.beginPath(); c.arc(sx,sy,2.2*par,0,7); c.fill(); } }
+function speedLines(t,k){ reset(); c.strokeStyle=`rgba(255,170,130,${0.22*k})`; c.lineWidth=2; for(let i=0;i<26;i++){ const y=rnd(i*3)*H, L=90+rnd(i*5)*220, x=W-((t*(900+rnd(i)*900)+rnd(i*9)*W*2)%(W+L+200)); c.beginPath(); c.moveTo(x,y); c.lineTo(x+L,y); c.stroke(); } }
+function dust(cam,x,t0,t){ const u=t-t0; if(u<0||u>1.6) return; setCam(cam,1); for(let i=0;i<12;i++){ const a=Math.PI*(1+rnd(i)*1), r=u*(60+rnd(i*3)*120), px=x+Math.cos(a)*r, py=Math.sin(a)*r*0.6-6; c.fillStyle=`rgba(255,120,80,${0.25*(1-u/1.6)})`; c.beginPath(); c.arc(px,py,10+u*26*rnd(i*7),0,7); c.fill(); } reset(); }
+function cliff(cam,x){ setCam(cam,1); c.fillStyle="#0a0102"; c.beginPath(); c.moveTo(x,20); c.lineTo(x+18,-150); c.lineTo(x-14,-330); c.lineTo(x+30,-560); c.lineTo(x+4,-900); c.lineTo(x+60,-2400); c.lineTo(x+3000,-2400); c.lineTo(x+3000,20); c.closePath(); c.fill(); c.strokeStyle="rgba(255,110,70,.35)"; c.lineWidth=2.5; c.beginPath(); c.moveTo(x,10); c.lineTo(x+18,-150); c.lineTo(x-14,-330); c.lineTo(x+30,-560); c.lineTo(x+4,-900); c.stroke(); reset(); }
+function caption(text,t,t0,t1,o={}){ const a=Math.min(seg(t,t0,t0+0.25),1-seg(t,t1-0.3,t1)); if(a<=0) return; reset(); const size=o.size||54, lines=text.split("\n"), y0=(o.y||H*0.24)-(lines.length-1)*size*0.62, pop=o.pop?1+0.25*(1-easeOut(seg(t,t0,t0+0.3))):1;
+  c.save(); c.translate(W/2,y0); c.scale(pop,pop); c.textAlign="center"; c.textBaseline="middle"; c.font=`800 ${size}px Kanit, sans-serif`; lines.forEach((l,i)=>{ c.shadowColor="rgba(20,0,0,.9)"; c.shadowBlur=18; c.shadowOffsetY=3; c.fillStyle=`rgba(255,236,216,${a})`; c.fillText(l,0,i*size*1.24); }); c.restore(); }
+const grain=document.createElement("canvas"); grain.width=grain.height=256; { const g=grain.getContext("2d"), d=g.createImageData(256,256); for(let i=0;i<d.data.length;i+=4){ const n=rnd(i*0.37)*255; d.data[i]=d.data[i+1]=d.data[i+2]=n; d.data[i+3]=26; } g.putImageData(d,0,0); }
+function post(t){ reset(); const v=c.createRadialGradient(W/2,H*0.5,W*0.42,W/2,H*0.5,H*0.72); v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(0,0,0,.48)"); c.fillStyle=v; c.fillRect(0,0,W,H);
+  const f=Math.floor(t*FPS), ox=Math.floor(rnd(f)*256), oy=Math.floor(rnd(f+9)*256); c.globalCompositeOperation="overlay"; for(let x=-ox;x<W;x+=256) for(let y=-oy;y<H;y+=256) c.drawImage(grain,x,y); c.globalCompositeOperation="source-over"; }
+
+/* ---------- the episode ---------- */
+const S1=4,S2=8.4,S3=11.4,S4=17.4,S5=20.4,S6=24.4,S7=29.4,S8=36.4;
+const PX2=-60, PX3=PX2+(S2-S1)*45, RUN0=PX3, RUNV=520, PX5=RUN0+(S4-S3)*RUNV, WALL=PX5+470, REST=WALL-70, GX=REST-250;
+function draw(t){ t=clamp(t,0,DUR-0.001); reset(); c.clearRect(0,0,W,H);
+  if(t<S1){ // 1. the pup walks in with its lantern
+    const cam={x:lerp(-120,40,ease(t/S1)),z:1,gy:930}, px=lerp(-400,PX2,t/S1); world(t,cam); const lan=pup(cam,px,0,1.45,{walk:1,phase:t*8,t,lantern:1}); foreground(t,cam);
+    const [lx,ly]=scr(cam,lan[0],lan[1]); darkness(0.5,[{x:lx,y:ly,r:300,k:1,warm:true},{x:W*0.68,y:H*0.2,r:420,k:0.5}]); glowDot(lx,ly,34,0.9);
+    caption("แสงสุดท้าย\nในป่าแดง",t,0.5,3.6,{size:84,y:H*0.3}); caption("ตอนที่ 1",t,1.0,3.6,{size:34,y:H*0.3+140});
+  } else if(t<S2){ // 2. the lantern dies
+    const u=t-S1, px=PX2+u*45, cam={x:px+30,z:1.9,gy:900}; const fl=t<7.2?(t<6?1-0.12*rnd(Math.floor(t*14)):(rnd(Math.floor(t*18))>0.45?1:0.25)):0; world(t,cam);
+    const lan=pup(cam,px,0,1.45,{walk:1,phase:t*8,t,lantern:fl,earDroop:t>7.2?seg(t,7.2,7.6):0,eyeWide:t>7.2?seg(t,7.2,7.5):0}); foreground(t,cam);
+    reset(); c.strokeStyle="rgba(255,150,110,.25)"; c.lineWidth=2; for(let i=0;i<9;i++){ const y=300+rnd(i*4)*600, x=W-((t*520+rnd(i*8)*900)%(W+300)); c.beginPath(); c.moveTo(x,y); c.quadraticCurveTo(x+60,y-8,x+140,y); c.stroke(); }
+    const [lx,ly]=scr(cam,lan[0],lan[1]); darkness(lerp(0.52,0.86,seg(t,7.2,7.6)),[{x:lx,y:ly,r:420,k:fl,warm:true},{x:lx-60,y:ly-30,r:230,k:0.42}]); if(fl>0) glowDot(lx,ly,60,0.9*fl);
+    caption("ตะเกียงดับ",t,7.5,8.35,{size:66});
+  } else if(t<S3){ // 3. something is behind
+    const px=PX3, cam={x:px-120,z:1.5,gy:920}, turned=t>10.4, g={eyeL:[px-300,-336],eyeR:[px-220,-336]}; world(t,cam);
+    pup(cam,px,0,1.45,{t,lantern:0,earDroop:1,eyeWide:turned?1:0.4,look:turned?0:Math.sin((t-S2)*2.4),flip:turned,shake:turned?1:0,crouch:turned?0.4:0}); foreground(t,cam);
+    const [sx,sy]=scr(cam,px,-40); darkness(0.88,[{x:sx,y:sy,r:250,k:0.5}]); const open=ease(seg(t,9.2,9.8))*(t>10.75&&t<10.9?0.1:1); if(open>0){ c.save(); reset(); for(const e of [g.eyeL,g.eyeR]){ const [ex,ey]=scr(cam,e[0],e[1]); glowDot(ex,ey,120,0.45*open,"255,110,70"); c.fillStyle="#ffe7d2"; c.beginPath(); c.ellipse(ex,ey,24,24*open,0,0,7); c.fill(); } c.restore(); }
+    caption("มีบางอย่าง…\nอยู่ข้างหลัง",t,9.7,11.3,{size:58});
+  } else if(t<S4){ // 4. run!
+    const u=t-S3, px=RUN0+u*RUNV, close=t>14.3&&t<15.5, sh=Math.sin(t*38)*5, cam=close?{x:px+34,z:3.0,gy:H*0.55+64*3.0}:{x:px-80+sh,z:1.25,gy:930+Math.cos(t*31)*4}, gx=px-lerp(330,215,u/(S4-S3));
+    let g; world(t,cam,{back:()=>{ g=giant(cam,gx,0,1.2,{t,walk:t*7,eyes:1,hx:160,hy:-120}); }});
+    pup(cam,px,0,1.45,{run:1,phase:t*19,t,lantern:0,earDroop:0.8,eyeWide:1,mouth:close?0.5+0.5*Math.sin(t*20):0.3,sweat:close}); if(!close) foreground(t,cam);
+    const [sx,sy]=scr(cam,px,-40); darkness(close?0.6:0.8,[{x:sx,y:sy,r:close?520:300,k:0.6}]); if(!close) eyesGlow(cam,g,1); speedLines(t,close?1.4:1);
+    caption("วิ่ง!",t,S3+0.1,S3+1.3,{size:150,pop:true,y:H*0.26});
+  } else if(t<S5){ // 5. a fall, and a dead end
+    const u=t-S4, slide=easeOut(seg(u,0,1.3)), px=lerp(PX5,REST,slide), rot=u<1.0?easeOut(u/1.0)*Math.PI*4:0, hop=u<1.0?-Math.sin(u/1.0*Math.PI)*46:0, cam={x:lerp(PX5-80,REST-90,ease(seg(u,0,1.6))),z:1.4,gy:930+(u<0.5?Math.sin(u*60)*8*(1-u*2):0)};
+    const gx=lerp(PX5-420,GX,ease(seg(u,1.2,3))); let g; world(t,cam,{back:()=>{ g=giant(cam,gx,0,1.2,{t,walk:u<3?t*5:0,eyes:1,hx:150,hy:-80}); }}); cliff(cam,WALL);
+    pup(cam,px,hop,1.45,{t,rot,lantern:0,earDroop:1,eyeWide:1,flip:u>1.1,shake:u>1.3?1:0,crouch:u>1.3?seg(u,1.3,1.8):0,cover:seg(u,2.3,2.7)}); dust(cam,PX5+60,S4+0.15,t); dust(cam,REST-20,S4+0.9,t); foreground(t,cam);
+    const [sx,sy]=scr(cam,px,-40); darkness(lerp(0.78,0.9,seg(u,1.6,3)),[{x:sx,y:sy,r:270,k:0.55}]); eyesGlow(cam,g,seg(u,1.0,1.8)); if(u<0.9) speedLines(t,1-u/0.9);
+    caption("ทางตัน",t,S4+1.5,S5-0.1,{size:70});
+  } else if(t<S6){ // 6. the hand comes down ... and opens
+    const u=t-S5, cam={x:GX+150,z:lerp(1.05,1.18,ease(u/4)),gy:1010}, reach=ease(seg(u,0.5,2.3)), open=ease(seg(u,2.4,2.9)), hx=lerp(150,222,reach), hy=lerp(-80,-66,reach)+Math.sin(reach*Math.PI)*-130, light=easeOut(seg(u,2.5,3.9));
+    let g; world(t,cam,{back:()=>{ g=giant(cam,GX,0,1.2,{t,eyes:1,hx,hy,open,reveal:light*0.8,lx:hx,ly:hy,friendly:light>0.75?1:0}); }}); cliff(cam,WALL);
+    pup(cam,REST,0,1.45,{t,lantern:0,earDroop:1,flip:true,shake:1-light,crouch:1,cover:1-seg(u,3.3,3.8),eyeWide:1}); foreground(t,cam);
+    const [hxs,hys]=scr(cam,g.hand[0]+26,g.hand[1]-22), [sx,sy]=scr(cam,REST,-40); darkness(lerp(0.9,0.72,light),[{x:sx,y:sy,r:240,k:0.5},{x:hxs,y:hys,r:60+light*520,k:light,warm:true}]); if(light<0.75) eyesGlow(cam,g,1-light*0.6);
+    if(light>0){ glowDot(hxs,hys,70*light+10,0.95); c.fillStyle="#fff3d6"; c.beginPath(); c.arc(hxs,hys,4,0,7); c.fill(); }
+  } else if(t<S7){ // 7. it only wanted to give the light back
+    const u=t-S6, face=u<2.2; let g,lan;
+    if(face){ const cam={x:GX+20,z:1.9,gy:H*0.5+290*1.2*1.9}; world(t,cam,{back:()=>{ g=giant(cam,GX,0,1.2,{t,eyes:(u>1.2&&u<1.32)?0.1:1,friendly:1,reveal:1,lx:230,ly:-150,hx:222,hy:-196,open:1,gaze:1}); }});
+      const [hxs,hys]=scr(cam,g.hand[0]+26,g.hand[1]-22); darkness(0.62,[{x:hxs,y:hys,r:900,k:1,warm:true}]); glowDot(hxs,hys,90,0.95); c.fillStyle="#fff3d6"; c.beginPath(); c.arc(hxs,hys,6,0,7); c.fill(); }
+    else { const v=u-2.2, cam={x:REST-80,z:1.7,gy:1000}, give=ease(seg(v,0.2,1.5)), lit=easeOut(seg(v,1.5,2.1)), hx=lerp(222,238,give), hy=lerp(-196,-74,give);
+      world(t,cam,{back:()=>{ g=giant(cam,GX,0,1.2,{t,friendly:1,reveal:1,lx:hx,ly:hy,hx,hy,open:1,gaze:1}); }}); cliff(cam,WALL);
+      lan=pup(cam,REST,lit>0.5?-Math.abs(Math.sin(v*9))*10:0,1.45,{t,lantern:lit,flip:true,earDroop:1-lit,eyeWide:0.6,wag:lit>0.3,crouch:(1-give)*0.6}); foreground(t,cam);
+      const [hxs,hys]=scr(cam,g.hand[0]+26,g.hand[1]-22), [lx,ly]=scr(cam,lan[0],lan[1]), fx=lerp(hxs,lx,ease(seg(v,1.0,1.5))), fy=lerp(hys,ly,ease(seg(v,1.0,1.5)));
+      darkness(0.6,[{x:fx,y:fy,r:520+lit*240,k:1,warm:true}]); glowDot(fx,fy,60+lit*40,0.95); c.fillStyle="#fff3d6"; c.beginPath(); c.arc(fx,fy,4,0,7); c.fill();
+      caption("มันแค่…\nเอาแสงมาคืน",t,S6+3.4,S7-0.05,{size:60,y:H*0.2}); }
+  } else if(t<S8){ // 8. walking on together, and the forest lights up
+    const u=t-S7, px=REST-40-u*0, wx=REST+u*-58, cam={x:wx-130,z:lerp(1.0,0.72,ease(u/7)),gy:lerp(960,1010,ease(u/7))}; let g;
+    world(t,cam,{back:()=>{ g=giant(cam,wx-250,0,1.2,{t,walk:t*3.2,friendly:1,reveal:0.9,lx:260,ly:-60,hx:150,hy:-80,gaze:-1}); }});
+    const lan=pup(cam,wx,0,1.45,{walk:1,phase:t*8,t,lantern:1,flip:true,wag:true,eyeWide:0.4}); foreground(t,cam);
+    const [lx,ly]=scr(cam,lan[0],lan[1]); darkness(lerp(0.6,0.42,seg(u,1,6)),[{x:lx,y:ly,r:520,k:1,warm:true}]); glowDot(lx,ly,44,0.9); fireflies(t,cam,seg(u,0.8,5.2));
+    caption("บางครั้ง สิ่งที่ตามเรามา\nแค่อยากคืนแสงให้เรา",t,S7+2.6,S8-0.2,{size:50,y:H*0.2});
+  } else { // 9. end card
+    const u=t-S8, cam={x:REST-7*58-130,z:0.72,gy:1010}; sky(t,cam); trees(cam,0.22,11,210,"#7c1512",26,60,false); trees(cam,0.45,23,300,"#4b0a0b",44,96,true); ground(cam); reset(); c.fillStyle=`rgba(10,1,2,${lerp(0.42,0.8,seg(u,0,1))})`; c.fillRect(0,0,W,H); fireflies(t,cam,1);
+    caption("จบตอนที่ 1",t,S8+0.4,DUR+1,{size:76,y:H*0.4}); caption("การ์ตูนวาดด้วยโค้ดทั้งเรื่อง",t,S8+0.9,DUR+1,{size:32,y:H*0.4+110}); }
+  post(t); reset(); const fin=seg(t,0,0.5)*(1-seg(t,DUR-0.5,DUR)); if(fin<1){ c.fillStyle=`rgba(0,0,0,${1-fin})`; c.fillRect(0,0,W,H); }
+}
+window.draw=draw; window.EP={W,H,FPS,DUR};
+window.ready=(document.fonts?Promise.all([document.fonts.load("800 60px Kanit","แสงสุดท้าย"),document.fonts.load("500 30px Kanit","ตอน")]).catch(()=>{}):Promise.resolve()).then(()=>true);
+// simple player when opened directly
+let playing=true,t0=performance.now(),tt=0; function loop(n){ if(playing){ tt=((n-t0)/1000)%DUR; draw(tt); } requestAnimationFrame(loop); }
+if(!navigator.webdriver){ window.ready.then(()=>requestAnimationFrame(loop)); addEventListener("keydown",e=>{ if(e.code==="Space"){ playing=!playing; t0=performance.now()-tt*1000; } }); }
+</script></body></html>
