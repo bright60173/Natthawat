@@ -289,3 +289,4 @@ tools: film.js (แถบภาพหลายเวลาในช็อตเ�
   EP12: "you swore to bring back the sun, not the same sun"; the new sun fulfils his oath and frees him, but he still holds seat 1 (hook for S2).
   Foreshadowing in EP8: Theo's shadow does not move with the lamplight. The name Kanon is no longer used.
 - Plot page updated to version 5 at the same link.
+- Same day the owner said "7ตัวแบบเก่าดีกว่า": reverted. Seat 1 is Kanon again and Theo is not a general (plot page back to the version 4 content, published as version 6).
