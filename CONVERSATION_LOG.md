@@ -290,3 +290,11 @@ tools: film.js (แถบภาพหลายเวลาในช็อตเ�
   Foreshadowing in EP8: Theo's shadow does not move with the lamplight. The name Kanon is no longer used.
 - Plot page updated to version 5 at the same link.
 - Same day the owner said "7ตัวแบบเก่าดีกว่า": reverted. Seat 1 is Kanon again and Theo is not a general (plot page back to the version 4 content, published as version 6).
+
+### 15 Nov 2026: EP3 "หนี้แสงตะวัน"
+- Owner: "ทำตอน3เลย ขอแบบ15นาที++". Built `cartoons/astra_ep03/` (10 scenes, 169 shots, 131 lines, 17:24 with estimated voice lengths).
+  Story: first shift as a lamp-lighter, the lamp debt, the sun tower history on the roof, the pale-children ward (Pip, Aunt Marta the old midwife who
+  half-recognises El), Theo's oath to find the "vessel", Mira and the memory vault, Gron stripped of seat seven, the herald's announcement
+  (ends on the blood moon in 47 days), Jax's fake lamp mark, Solen steps out of the lamp light.
+- No voices again (ElevenLabs quota still exhausted): subtitles + music/SFX only.
+- Render note: 2 parallel workers are much faster than 3 on this 4-core container.
