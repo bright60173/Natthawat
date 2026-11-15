@@ -281,3 +281,11 @@ tools: film.js (แถบภาพหลายเวลาในช็อตเ�
   - โควตา ElevenLabs เดือนนี้หมดหลังพากย์ได้ 11/50 ประโยค รุ่นแรกจึงเป็นซับอย่างเดียว ต้องพากย์ต่อแล้วเรนเดอร์ใหม่เมื่อโควตากลับมา
 - **คำสั่งล่าสุดของเจ้าของ (14 พ.ย. 2026): "ตัดสินใจเองได้เลย ไม่ต้องถามแล้ว"** ใช้แทนค่าที่เคยตั้งว่าให้ถามก่อนทุกครั้ง
   (ยังต้องขออนุมัติเฉพาะเรื่องที่ย้อนกลับไม่ได้หรือเรื่องคีย์/เงิน)
+
+### 15 Nov 2026: Ren's father joins the seven
+- Owner asked for Ren's father to be one of the seven generals. Decided: Theo replaces Kanon as seat 1 (power "คำสัตย์").
+  Seventeen years ago he swore to the shadow "I will bring the sun back to this city, whatever life it costs"; that oath binds him.
+  Reveal at the end of EP10 (he says "รับรอง" in tears). EP11: father and son are both forced toward the tower.
+  EP12: "you swore to bring back the sun, not the same sun"; the new sun fulfils his oath and frees him, but he still holds seat 1 (hook for S2).
+  Foreshadowing in EP8: Theo's shadow does not move with the lamplight. The name Kanon is no longer used.
+- Plot page updated to version 5 at the same link.
