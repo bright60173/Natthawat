@@ -614,7 +614,7 @@ h2,h3,h4{letter-spacing:0}
           </div>
           <div class="opt">
             <label for="lookSel">โทนภาพ</label>
-            <select id="lookSel"><option value="bright">สดใส</option><option value="cinematic">ภาพยนตร์ (สีหม่น ขอบมืด ตัวละครเด่น)</option></select>
+            <select id="lookSel"><option value="doc">แบบ promptkub (ภาพแบนสีหม่น มีเกรน)</option><option value="bright">สดใส</option><option value="cinematic">ภาพยนตร์ (สีหม่น ขอบมืด ตัวละครเด่น)</option></select>
           </div>
           <div class="opt">
             <label for="aspectStudio">สัดส่วนวิดีโอ</label>
@@ -1124,12 +1124,12 @@ const FONT_IDS=CLIP_FONTS.map(f=>f[0]);
 const famOf=f=>`"${FONT_IDS.includes(f)?f:"Kanit"}", Kanit, sans-serif`;
 const CF={ff:famOf("Kanit"),cs:"cute"};
 const CAT = {
-  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse"],
+  backgrounds:["sky","space","city","ocean","forest","desert","snow","room","classroom","lab","abstract","studio","warehouse","beach","estate","school","nightroom","aerial","street","blueprint","home","hospital","canal","carin","cabin","stadium"],
   times:["day","sunset","night"],
-  characters:["boy","girl","scientist","robot","cat","alien"],
-  emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry"],
-  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd"],
-  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave"],
+  characters:["boy","girl","kid","man","woman","crew","sprinter","scientist","robot","cat","alien"],
+  emotions:["happy","excited","neutral","thinking","shocked","scared","sad","angry","droop"],
+  props:["earth","sun","moon","star","cloud","rocket","ufo","meteor","car","house","building","tree","clock","lightning","fire","ice","drop","coin","phone","heart","question","exclamation","bomb","lightbulb","burger","book","volcano","wave","arrow","machine","boxes","truck","door","gauge","balance","crowd","needle","brain","ambulance","spoon","ct","medicine","sinkcar","cardoor","seatbelt","winswitch","hammer","powerbank","safebag","extinguisher","handbank","bag","smokebank","stopwatch","blocks","bed","stopwatchfin"],
+  motions:["none","float","spin","pulse","shake","fall","rise","move","walk","run","jump","talk","point","celebrate","shrug","nod","wave","sit","lie","handup","reach","hold","duck","crouch","sithandup","sitreach","sithold","sitduck"],
   enters:["none","pop","fade","left","right","top","bottom"],
   cameras:["static","zoom-in","zoom-out","pan-left","pan-right","orbit","drone","shake"],
   effects:["none","rain","snow","sparkles","confetti","speedlines","fireworks","flash","darken","heat","bubbles"],
@@ -1160,30 +1160,32 @@ function normalizeProject(p){
   if(!p||typeof p!=="object") throw new Error("ไม่ใช่ JSON ของโปรเจกต์");
   const scenesIn=Array.isArray(p.scenes)?p.scenes:[];
   if(!scenesIn.length) throw new Error("ไม่มีฉากใน JSON");
-  const scenes=scenesIn.slice(0,14).map(s=>{
+  const scenes=scenesIn.slice(0,20).map(s=>{
     const els=(Array.isArray(s.elements)?s.elements:[]).slice(0,8).map(e=>{
       const type=pick(e.type,["character","prop","text","emoji","card"],"prop");
-      const o={ type, x:num(e.x,-0.3,1.3,0.5), y:num(e.y,-0.3,1.3,0.6), scale:num(e.scale,0.2,4,1),
+      const o={ type, x:num(e.x,-0.3,1.3,0.5), y:num(e.y,-0.3,2.2,0.6), scale:num(e.scale,0.2,4,1),
         enter:pick(e.enter,CAT.enters,"pop"), at:num(e.at,0,12,0), motion:pick(e.motion,CAT.motions,"none"),
         toX:num(e.toX,-0.5,1.5,num(e.x,-0.3,1.3,0.5)), toY:num(e.toY,-0.5,1.5,num(e.y,-0.3,1.3,0.6)), flip:!!e.flip };
       if(type==="character"){ o.look=pick(e.look,CAT.characters,"boy"); o.emotion=pick(e.emotion,CAT.emotions,"happy"); o.say=str(e.say,24); }
       else if(type==="prop"){ o.name=pick(e.name,CAT.props,"star"); o.glow=!!e.glow; }
+      if(type==="character") o.pin=str(e.pin,16);
       else if(type==="emoji"){ o.char=str(e.char||e.text,8)||"✨"; }
       else if(type==="card"){ const side=v=>({label:str(v?.label,22),value:str(v?.value,12),unit:str(v?.unit,14),note:str(v?.note,20),good:v?.good===false?false:v?.good===true?true:null});
-        o.kind=pick(e.kind,["stat","timer","compare"],"stat"); o.label=str(e.label,28); o.labelEn=str(e.labelEn,30).toUpperCase(); o.value=str(e.value,16)||"0"; o.unit=str(e.unit,14);
+        o.kind=pick(e.kind,["stat","timer","compare","icons","bars","lesson","note","phone","plan"],"stat"); o.tag=str(e.tag,28); o.src=str(e.src,48); o.tilt=num(e.tilt,-0.08,0.08,0); o.strike=str(e.strike,28); o.total=Math.round(num(e.total,2,20,10)); o.icon=pick(e.icon,["house","person","car","building","tree"],"person");
+        o.rows=(Array.isArray(e.rows)?e.rows:[]).slice(0,4).map(r=>({label:str(r?.label,16),value:str(r?.value,12),pct:num(r?.pct,0,100,50),good:r?.good===false?false:r?.good===true?true:null})); o.label=str(e.label,28); o.labelEn=o.kind==="lesson"?str(e.labelEn,60):str(e.labelEn,30).toUpperCase(); if(o.kind==="lesson") o.label=str(e.label,30); o.value=str(e.value,16)||(["lesson","bars","note","phone","plan"].includes(o.kind)?"":"0"); o.unit=str(e.unit,14);
         o.pct=e.pct==null||e.pct===""?null:num(e.pct,0,100,0); o.note=str(e.note,24); o.good=e.good===false?false:e.good===true?true:null; if(o.kind==="compare"){ o.left=side(e.left); o.right=side(e.right); } }
       else { o.text=str(e.text,30)||"!"; o.color=/^#[0-9a-f]{3,8}$/i.test(e.color||"")?e.color:"#ffffff"; }
       return o;
     });
     const {text:narration,emph}=parseEmph(s.narration,s.emph);
     const al=s.align&&Array.isArray(s.align.e)&&s.align.e.length===narration.length?s.align.e:null;
-    const minDur=al?VOICE_LEAD+Math.max(0,...al.map(Number))+0.35:speakSeconds(narration)+0.6;
+    const pad=num(s.pad,0.05,1.5,0.35), minDur=al?VOICE_LEAD+Math.max(0,...al.map(Number))+pad:speakSeconds(narration)+0.6;
     return {
       bg:pick(s.bg,CAT.backgrounds,"sky"), time:pick(s.time,CAT.times,"day"),
       camera:pick(s.camera,CAT.cameras,"static"), effect:pick(s.effect,CAT.effects,"none"),
       transition:pick(s.transition,CAT.transitions,"fade"), sfx:pick(s.sfx,CAT.sfx,"none"),
-      caption:str(s.caption,40), narration, emph, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"),
-      duration:al?clamp(minDur,1.2,20):clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15),
+      caption:str(s.caption,40), hold:num(s.hold,0,12,0), narration, emph, speak:str(s.speak,220)||undefined, subEn:str(s.subEn,140), align:(s.align&&Array.isArray(s.align.s)&&Array.isArray(s.align.e)&&s.align.s.length===narration.length)?{s:s.align.s.map(Number),e:s.align.e.map(Number)}:undefined, subPos:pick(s.subPos,CAT.subPos,"auto"), punch:!!s.punch, tag:str(s.tag,28), clock:str(s.clock,8), pad, beat:!!s.beat,
+      duration:al?clamp(Math.max(minDur,num(s.hold,0,12,0)),1.2,20):narration.trim()?clamp(Math.max(num(s.duration,1,15,3), minDur),1.5,15):clamp(num(s.duration,0.6,15,1),0.6,15),
       voice:{ emotion:str(s.voice?.emotion,20), rate:num(s.voice?.rate,0.6,1.6,1), pitch:num(s.voice?.pitch,0.5,1.8,1) },
       elements:els,
     };
@@ -1192,9 +1194,11 @@ function normalizeProject(p){
     title:str(p.title,80)||"คลิปใหม่",
     aspect:p.aspect==="16:9"?"16:9":"9:16",
     music:pick(p.music,CAT.music,"upbeat"),
-    subStyle:pick(p.subStyle,CAT.subStyles,"pop"),
-    look:pick(p.look,["bright","cinematic"],"bright"),
-    charStyle:"cute",
+    subStyle:pick(p.subStyle,CAT.subStyles,"doc"),
+    look:pick(p.look,["bright","cinematic","doc"],"doc"),
+    charStyle:pick(p.charStyle,["cute","slim","pk"],"pk"),
+    grammar:pick(p.grammar,["explainer","slowburn","rapid","story"],""), skin:pick(p.skin,["paper","dark","flat","outline"],"paper"), enSub:p.enSub!==false,
+    endStyle:pick(p.endStyle,["chip","plain","black"],"chip"), tint:pick(p.tint,["warm","cool","neutral","green"],"warm"),
     font:pick(p.font,FONT_IDS,pick(store.get("clipFont","Kanit"),FONT_IDS,"Kanit")),
     emphOn:p.emphOn!==false,
     bg3d:p.bg3d!==false,
@@ -1220,7 +1224,125 @@ function starsField(c,W,H,t,n=90,hMax=1){ for(let i=0;i<n;i++){ const x=rnd(i)*W
 function cloudShape(c,x,y,s,a=1){ c.globalAlpha=a; c.fillStyle="#ffffff"; c.beginPath(); c.arc(x,y,28*s,0,7); c.arc(x+30*s,y-12*s,34*s,0,7); c.arc(x+64*s,y,26*s,0,7); c.rect(x,y-4*s,64*s,30*s); c.fill(); c.globalAlpha=1; }
 function hills(c,W,H,y,col,amp,ph){ c.fillStyle=col; c.beginPath(); c.moveTo(0,H); for(let x=0;x<=W;x+=W/40){ c.lineTo(x,y+Math.sin(x/W*Math.PI*2+ph)*amp); } c.lineTo(W,H); c.closePath(); c.fill(); }
 
+/* Palette and helpers for the illustrated 2D sets. */
+function SET_PAL(time){ const n=time==="night", ss=time==="sunset";
+  return { night:n, skyTop:n?"#1d2340":ss?"#e9a77a":"#bcd8de", skyBot:n?"#33395a":ss?"#f3d1a2":"#e4ecdf", sun:n?"#f2ecd2":ss?"#ffd9a0":"#fff6dc",
+    hill:n?"#1f3a33":"#3f6e55", hill2:n?"#25463c":"#5a8a63", sea:n?"#1f4656":"#4f97a0", sea2:n?"#1a3c4a":"#3f8792", sand:n?"#6f6650":"#e8d3a8", sand2:n?"#5d5542":"#d8c08f",
+    wall:n?"#8c8a86":"#f0ede6", roof:n?"#2b2f3a":"#3f4552", wood:n?"#5a4430":"#a3774f", glass:n?"#30405a":"#b9d3dc", frame:n?"#2a2f38":"#4a4f5a", door:n?"#3a2f26":"#6b4f3a",
+    fence:n?"#6d6a64":"#e9e4da", road:n?"#3a3c42":"#7c7e84", grass:n?"#2f4a33":"#6f9a58", grass2:n?"#284030":"#5f8a4b", tree:n?"#22402f":"#4f8a50", tree2:n?"#1b3426":"#3f7442" }; }
+function setSky(c,W,H,P,hz){ c.fillStyle=P.skyTop; c.fillRect(0,0,W,hz); for(let k=1;k<=4;k++){ c.globalAlpha=k/4; c.fillStyle=P.skyBot; c.fillRect(0,hz*(0.4+k*0.12),W,hz*(0.6-k*0.12)+1); } c.globalAlpha=1; c.fillStyle=P.sun; c.beginPath(); c.arc(W*0.24,hz*0.38,W*0.055,0,7); c.fill();
+  if(P.night){ c.fillStyle="rgba(255,255,255,.7)"; for(let i=0;i<30;i++) c.fillRect(rnd(i+200)*W,rnd(i+300)*hz*0.8,W*0.003,W*0.003); }
+  else { c.fillStyle="rgba(255,255,255,.75)"; [[0.6,0.18],[0.15,0.1],[0.85,0.3]].forEach(([x,y],k)=>{ const cx=W*x, cy=hz*y; c.beginPath(); c.ellipse(cx,cy,W*0.09,W*0.025,0,0,7); c.ellipse(cx+W*0.04,cy-W*0.018,W*0.05,W*0.025,0,0,7); c.fill(); }); } }
+function umbrella(c,x,y,w,col,P){ c.strokeStyle="#5a5248"; c.lineWidth=w*0.03; c.beginPath(); c.moveTo(x,y-w*0.3); c.lineTo(x+w*0.03,y+w*0.12); c.stroke();
+  c.save(); c.translate(x,y-w*0.3); c.scale(1,0.5); for(let i=0;i<6;i++){ c.fillStyle=i%2?"#f4efe4":col; c.beginPath(); c.moveTo(0,0); c.arc(0,0,w*0.5,Math.PI+i*Math.PI/6,Math.PI+(i+1)*Math.PI/6); c.closePath(); c.fill(); } c.restore();
+  c.fillStyle="rgba(0,0,0,.12)"; c.beginPath(); c.ellipse(x+w*0.05,y+w*0.13,w*0.35,w*0.05,0,0,7); c.fill(); }
+function tree2d(c,x,y,r,P){ c.fillStyle="#5a4632"; c.fillRect(x-r*0.08,y-r*0.6,r*0.16,r*0.6); c.fillStyle=P.tree2; c.beginPath(); c.arc(x-r*0.35,y-r*0.75,r*0.5,0,7); c.arc(x+r*0.4,y-r*0.8,r*0.45,0,7); c.fill(); c.fillStyle=P.tree; c.beginPath(); c.arc(x,y-r*1.05,r*0.6,0,7); c.fill(); }
 const BG={
+  /* Illustrated flat 2D sets per situation (muted documentary palette, as in the owner's viral references).
+     Ground line near 0.78H so characters (y 0.75-0.85) stand on it. time: day | sunset | night. */
+  /* Thai home, dining corner: wall, window, photo frame, shelf, dining table with dishes (characters stand in front). */
+  home(c,W,H,t,time){ const P=SET_PAL(time), n=P.night; c.fillStyle=n?"#8a7a62":"#ebdfc8"; c.fillRect(0,0,W,H); c.fillStyle=n?"#7f6f58":"#e2d4ba"; c.fillRect(0,H*0.5,W,H*0.24); c.fillStyle=n?"#3e3427":"#c9b493"; c.fillRect(0,H*0.5,W,H*0.008);
+    const wx=W*0.06,wy=H*0.14,ww=W*0.34,wh=H*0.26; c.save(); c.beginPath(); c.rect(wx,wy,ww,wh); c.clip(); setSky(c,W,H,P,H*0.4); c.fillStyle=P.tree; for(let i=0;i<4;i++){ c.beginPath(); c.arc(wx+ww*(0.1+i*0.28),wy+wh*0.95,ww*0.16,0,7); c.fill(); } c.restore();
+    c.strokeStyle=n?"#2e271f":"#8a6a4a"; c.lineWidth=W*0.012; c.strokeRect(wx,wy,ww,wh); c.lineWidth=W*0.006; c.beginPath(); c.moveTo(wx+ww/2,wy); c.lineTo(wx+ww/2,wy+wh); c.stroke();
+    c.fillStyle=n?"#7a4a3a":"#c97b5e"; c.fillRect(wx-W*0.03,wy-H*0.01,W*0.05,wh*1.05); c.fillRect(wx+ww-W*0.02,wy-H*0.01,W*0.05,wh*1.05);
+    c.fillStyle=n?"#3a3026":"#7a5a3d"; c.fillRect(W*0.6,H*0.18,W*0.16,H*0.11); c.fillStyle=n?"#8f8a80":"#e9ecef"; c.fillRect(W*0.615,H*0.188,W*0.13,H*0.094); c.fillStyle=n?"#6f6a62":"#b8c4cc"; c.beginPath(); c.arc(W*0.68,H*0.225,W*0.025,0,7); c.fill(); c.fillRect(W*0.645,H*0.25,W*0.07,H*0.032);
+    c.fillStyle=n?"#3a3026":"#8a6a4a"; c.fillRect(W*0.56,H*0.34,W*0.36,H*0.012); c.fillStyle="#e2b33a"; c.fillRect(W*0.6,H*0.31,W*0.02,H*0.03); c.fillRect(W*0.86,H*0.31,W*0.02,H*0.03); c.fillStyle=n?"#7a6a55":"#d8c7a8"; c.fillRect(W*0.7,H*0.305,W*0.08,H*0.035);
+    c.fillStyle=n?"#4a3a2a":"#a97b52"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(0,0,0,.08)"; for(let x=0;x<W;x+=W*0.11) c.fillRect(x,H*0.74,W*0.004,H*0.26);
+    c.fillStyle=n?"#3a2c20":"#8d6440"; c.fillRect(W*0.1,H*0.645,W*0.8,H*0.022); c.fillStyle=n?"#2e2219":"#7a5536"; c.fillRect(W*0.14,H*0.667,W*0.025,H*0.075); c.fillRect(W*0.835,H*0.667,W*0.025,H*0.075);
+    [[0.25,"#f3f1ea"],[0.45,"#f3f1ea"],[0.68,"#f3f1ea"]].forEach(([x,col])=>{ c.fillStyle=col; c.beginPath(); c.ellipse(W*x,H*0.643,W*0.06,H*0.007,0,0,7); c.fill(); }); c.fillStyle="#e9e4d8"; c.beginPath(); c.arc(W*0.56,H*0.63,W*0.04,Math.PI,0); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.ellipse(W*0.56,H*0.628,W*0.032,H*0.004,0,0,7); c.fill();
+    if(n){ c.save(); c.globalCompositeOperation="lighter"; const g=c.createRadialGradient(W*0.5,H*0.2,0,W*0.5,H*0.2,W*0.7); g.addColorStop(0,"rgba(255,200,120,.22)"); g.addColorStop(1,"rgba(255,200,120,0)"); c.fillStyle=g; c.fillRect(0,0,W,H); c.restore(); } },
+  /* Hospital emergency entrance: pale walls, red ER sign, double doors with round windows, handrail, gurney. */
+  hospital(c,W,H,t,time){ const n=time==="night"; c.fillStyle=n?"#9aa8a3":"#e1e9e4"; c.fillRect(0,0,W,H); c.fillStyle=n?"#8a9893":"#d3ddd7"; c.fillRect(0,H*0.52,W,H*0.22);
+    c.fillStyle=n?"#cfd8d3":"#f6faf8"; for(let x=W*0.08;x<W;x+=W*0.3) c.fillRect(x,H*0.02,W*0.16,H*0.012);
+    c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(W*0.28,H*0.17,W*0.44,H*0.06,W*0.01); c.fill(); c.fillStyle="#fff"; c.font=`700 ${W*0.045}px sans-serif`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("ฉุกเฉิน  EMERGENCY",W*0.5,H*0.2,W*0.4);
+    const dx=W*0.3,dy=H*0.26,dw=W*0.4,dh=H*0.48; c.fillStyle=n?"#6f7d78":"#b9c6c0"; c.fillRect(dx-W*0.015,dy-H*0.01,dw+W*0.03,dh+H*0.01); c.fillStyle=n?"#8d9b96":"#cfdad5"; c.fillRect(dx,dy,dw/2-W*0.004,dh); c.fillRect(dx+dw/2+W*0.004,dy,dw/2-W*0.004,dh);
+    c.fillStyle=n?"#3e4f5a":"#9fc1d1"; [dx+dw*0.25,dx+dw*0.75].forEach(x=>{ c.beginPath(); c.arc(x,dy+dh*0.28,dw*0.09,0,7); c.fill(); }); c.fillStyle="#7a8a85"; c.fillRect(dx+dw/2-W*0.03,dy+dh*0.5,W*0.02,H*0.004); c.fillRect(dx+dw/2+W*0.01,dy+dh*0.5,W*0.02,H*0.004);
+    c.fillStyle=n?"#7d8a85":"#aab7b1"; c.fillRect(0,H*0.5,dx-W*0.02,H*0.01); c.fillRect(dx+dw+W*0.02,H*0.5,W,H*0.01);
+    c.fillStyle=n?"#b8c2be":"#eef2f0"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(dx,H*0.76,dw,H*0.08);
+    c.fillStyle="#f4f6f5"; c.fillRect(W*0.76,H*0.66,W*0.22,H*0.025); c.fillStyle="#7f8c88"; c.fillRect(W*0.78,H*0.685,W*0.01,H*0.05); c.fillRect(W*0.96,H*0.685,W*0.01,H*0.05); c.fillStyle="#9fc1d1"; c.fillRect(W*0.79,H*0.648,W*0.06,H*0.014); },
+  /* Roadside canal (Thai klong): road with posts and a lamp on top, grass bank, dark water with moving ripples, reeds. */
+  canal(c,W,H,t,time){ const P=SET_PAL(time), n=P.night; setSky(c,W,H,P,H*0.34); c.fillStyle=P.tree2; for(let i=0;i<9;i++){ c.beginPath(); c.arc(W*(i*0.13-0.02),H*0.335,W*(0.07+rnd(i+11)*0.03),Math.PI,0); c.fill(); }
+    c.fillStyle=P.road; c.fillRect(0,H*0.335,W,H*0.055); c.fillStyle="rgba(255,255,255,.7)"; for(let x=0;x<W;x+=W*0.14) c.fillRect(x,H*0.36,W*0.07,H*0.004);
+    c.fillStyle=n?"#b9b4aa":"#e9e4da"; for(let x=W*0.04;x<W;x+=W*0.12){ c.fillRect(x,H*0.378,W*0.012,H*0.022); } c.fillStyle="#c8452f"; for(let x=W*0.04;x<W;x+=W*0.12) c.fillRect(x,H*0.378,W*0.012,H*0.006);
+    c.strokeStyle="#3a352f"; c.lineWidth=W*0.01; c.beginPath(); c.moveTo(W*0.82,H*0.39); c.lineTo(W*0.82,H*0.16); c.lineTo(W*0.72,H*0.15); c.stroke(); if(n){ c.save(); c.globalCompositeOperation="lighter"; c.fillStyle="rgba(255,214,140,.16)"; c.beginPath(); c.moveTo(W*0.72,H*0.15); c.lineTo(W*0.5,H*0.6); c.lineTo(W*0.94,H*0.6); c.closePath(); c.fill(); c.restore(); }
+    c.fillStyle=P.grass; c.beginPath(); c.moveTo(0,H*0.39); c.lineTo(W,H*0.39); c.lineTo(W,H*0.5); c.quadraticCurveTo(W*0.5,H*0.54,0,H*0.5); c.closePath(); c.fill(); c.fillStyle=P.grass2; for(let i=0;i<24;i++) c.fillRect(rnd(i+61)*W,H*(0.4+rnd(i+17)*0.09),W*0.02,H*0.004);
+    c.fillStyle=n?"#17333a":"#3f7f80"; c.beginPath(); c.moveTo(0,H*0.5); c.quadraticCurveTo(W*0.5,H*0.54,W,H*0.5); c.lineTo(W,H); c.lineTo(0,H); c.closePath(); c.fill(); c.fillStyle=n?"#12292f":"#356f72"; c.fillRect(0,H*0.72,W,H*0.28);
+    c.strokeStyle="rgba(255,255,255,.28)"; c.lineWidth=Math.max(1,W*0.003); for(let r=0;r<9;r++){ const y=H*(0.56+r*0.05), o=(t*W*0.03*(r%2?1:-1)+r*131)%(W*0.36); for(let x=-W*0.36+o;x<W;x+=W*0.36){ c.beginPath(); c.moveTo(x,y); c.lineTo(x+W*(0.06+r*0.008),y); c.stroke(); } }
+    c.strokeStyle=n?"#2b4a36":"#4f8a50"; c.lineWidth=W*0.006; [[0.04,0.54],[0.09,0.56],[0.93,0.55],[0.97,0.53]].forEach(([x,y],k)=>{ c.beginPath(); c.moveTo(W*x,H*y); c.quadraticCurveTo(W*(x+0.01*Math.sin(t+k)),H*(y-0.05),W*(x+0.015*Math.sin(t*1.3+k)),H*(y-0.09)); c.stroke(); }); },
+  /* Inside a sinking car, seen from the driver's seat: windscreen with murky water rising, pillars, dashboard, wheel. */
+  carin(c,W,H,t){ c.fillStyle="#1d2126"; c.fillRect(0,0,W,H); const wl=H*(0.36-0.22*clamp(t/9,0,1));
+    c.save(); c.beginPath(); c.moveTo(W*0.1,H*0.1); c.lineTo(W*0.9,H*0.1); c.lineTo(W*0.98,H*0.5); c.lineTo(W*0.02,H*0.5); c.closePath(); c.clip(); c.fillStyle="#31404a"; c.fillRect(0,0,W,H*0.5);
+      c.fillStyle="#2f6a66"; c.beginPath(); c.moveTo(0,wl); for(let x=0;x<=W;x+=W/24) c.lineTo(x,wl+Math.sin(x*0.02+t*2.2)*H*0.006); c.lineTo(W,H*0.5); c.lineTo(0,H*0.5); c.closePath(); c.fill(); c.fillStyle="#285a58"; c.fillRect(0,wl+H*0.07,W,H*0.5);
+      c.fillStyle="rgba(255,255,255,.35)"; for(let i=0;i<14;i++){ const bx=W*(0.08+rnd(i+33)*0.84), by=H*0.5-((t*H*0.05*(0.6+rnd(i+7))+rnd(i+90)*H*0.3)%(H*0.5-wl+1)); c.beginPath(); c.arc(bx,by,W*(0.004+rnd(i+3)*0.006),0,7); c.fill(); } c.restore();
+    c.strokeStyle="#14171b"; c.lineWidth=W*0.05; c.beginPath(); c.moveTo(W*0.1,H*0.1); c.lineTo(W*0.02,H*0.5); c.moveTo(W*0.9,H*0.1); c.lineTo(W*0.98,H*0.5); c.stroke(); c.fillStyle="#14171b"; c.fillRect(0,0,W,H*0.1); c.fillStyle="#2a2f36"; c.fillRect(W*0.44,H*0.105,W*0.12,H*0.03);
+    c.fillStyle="#262b31"; c.beginPath(); c.moveTo(0,H*0.5); c.quadraticCurveTo(W*0.5,H*0.46,W,H*0.5); c.lineTo(W,H*0.68); c.lineTo(0,H*0.68); c.closePath(); c.fill(); c.fillStyle="#1a1e23"; for(let k=0;k<3;k++) c.fillRect(W*(0.62+k*0.09),H*0.54,W*0.07,H*0.03); c.fillStyle="#e2483d"; c.fillRect(W*0.5,H*0.545,W*0.05,H*0.02);
+    c.strokeStyle="#0f1215"; c.lineWidth=W*0.04; c.beginPath(); c.arc(W*0.27,H*0.63,W*0.17,0,7); c.stroke(); c.lineWidth=W*0.025; c.beginPath(); c.moveTo(W*0.1,H*0.63); c.lineTo(W*0.44,H*0.63); c.moveTo(W*0.27,H*0.63); c.lineTo(W*0.27,H*0.72); c.stroke(); c.fillStyle="#0f1215"; c.beginPath(); c.arc(W*0.27,H*0.63,W*0.05,0,7); c.fill();
+    c.fillStyle="#191c20"; c.fillRect(0,H*0.68,W,H*0.32); },
+  /* Aircraft cabin, side-on: overhead bins with reading lights, oval windows, seat backs with headrests, carpet aisle. */
+  cabin(c,W,H,t,time){ const n=time==="night"; c.fillStyle=n?"#7d796f":"#a6a193"; c.fillRect(0,0,W,H);
+    c.fillStyle=n?"#6f6b61":"#948f81"; c.beginPath(); c.roundRect(-W*0.02,H*0.05,W*1.04,H*0.14,H*0.02); c.fill(); c.fillStyle="rgba(0,0,0,.1)"; for(let x=0;x<W;x+=W*0.25) c.fillRect(x,H*0.05,W*0.004,H*0.14); c.fillStyle=n?"#b3ad9c":"#e6e2d6"; for(let x=W*0.1;x<W;x+=W*0.25){ c.beginPath(); c.arc(x,H*0.205,W*0.008,0,7); c.fill(); }
+    for(let x=W*0.12;x<W*1.1;x+=W*0.34){ c.fillStyle=n?"#625e55":"#8a8577"; c.beginPath(); c.roundRect(x-W*0.055,H*0.27,W*0.11,H*0.17,W*0.05); c.fill(); c.save(); c.beginPath(); c.roundRect(x-W*0.045,H*0.282,W*0.09,H*0.146,W*0.04); c.clip(); c.fillStyle=n?"#1d2340":"#8fbfe0"; c.fillRect(x-W*0.05,H*0.28,W*0.1,H*0.16); if(!n){ c.fillStyle="rgba(255,255,255,.85)"; c.beginPath(); c.ellipse(x-W*0.01+Math.sin(t*0.4+x)*W*0.004,H*0.37,W*0.05,H*0.016,0,0,7); c.fill(); } c.restore(); }
+    c.fillStyle=n?"#4b525f":"#6f7885"; c.fillRect(0,H*0.8,W,H*0.2); c.fillStyle="rgba(255,255,255,.12)"; for(let y=H*0.84;y<H;y+=H*0.05) c.fillRect(0,y,W,H*0.003);
+    for(let x=-W*0.05;x<W*1.1;x+=W*0.34){ c.fillStyle=n?"#2b3f56":"#3b6f9e"; c.beginPath(); c.roundRect(x,H*0.5,W*0.24,H*0.31,W*0.04); c.fill(); c.fillStyle=n?"#b8b3a6":"#d2cec2"; c.beginPath(); c.roundRect(x+W*0.02,H*0.5,W*0.2,H*0.055,W*0.02); c.fill(); c.fillStyle="rgba(0,0,0,.14)"; c.fillRect(x,H*0.75,W*0.24,H*0.012); }
+    if(n){ c.fillStyle="rgba(10,14,30,.25)"; c.fillRect(0,0,W,H); } },
+  /* Athletics stadium, side-on: crowd stands, boards, infield, red track with lanes, start and finish lines. */
+  stadium(c,W,H,t,time){ const n=time==="night"; c.fillStyle=n?"#1d2340":"#a9c4d6"; c.fillRect(0,0,W,H*0.2); c.fillStyle=n?"#262c4a":"#2e3955"; c.fillRect(0,H*0.15,W,H*0.3);
+    for(let r=0;r<5;r++){ const y=H*(0.17+r*0.055); c.fillStyle="rgba(255,255,255,.07)"; c.fillRect(0,y+H*0.045,W,H*0.003); const cols=["#6b4a52","#7a6a3a","#3f5f8a","#8a8f9a","#3f7a58","#7a5a3a"]; c.globalAlpha=0.55; for(let x=0;x<W;x+=W*0.05){ const k=Math.floor(rnd(x*0.37+r*11)*6), bob=Math.sin(t*2.4+x*0.2+r)*H*0.002*(rnd(x+r)>0.7?1:0); c.fillStyle=cols[k]; c.beginPath(); c.arc(x+rnd(x+r*3)*W*0.02,y+H*0.03+bob,W*0.014,0,7); c.fill(); c.fillRect(x+rnd(x+r*3)*W*0.02-W*0.012,y+H*0.036+bob,W*0.024,H*0.012); } c.globalAlpha=1; }
+    c.fillStyle=n?"#101426":"#1f2740"; c.fillRect(0,H*0.15,W,H*0.012); [0.14,0.86].forEach(x=>{ c.fillStyle="#2a2e38"; c.fillRect(W*x-W*0.004,H*0.02,W*0.008,H*0.14); c.fillStyle=n?"#fff6d8":"#e9e4d0"; c.fillRect(W*x-W*0.05,H*0.02,W*0.1,H*0.022); if(n){ c.save(); c.globalCompositeOperation="lighter"; c.fillStyle="rgba(255,244,200,.12)"; c.beginPath(); c.moveTo(W*x-W*0.05,H*0.042); c.lineTo(W*x+W*0.05,H*0.042); c.lineTo(W*x+W*0.3,H*0.7); c.lineTo(W*x-W*0.3,H*0.7); c.closePath(); c.fill(); c.restore(); } });
+    ["#e2483d","#2f6fa8","#f2c230","#46b56a","#e2483d","#2f6fa8"].forEach((col,k)=>{ c.fillStyle=col; c.fillRect(W*(k/6),H*0.445,W/6-W*0.004,H*0.028); c.fillStyle="rgba(255,255,255,.55)"; c.fillRect(W*(k/6)+W*0.02,H*0.455,W*0.09,H*0.006); });
+    c.fillStyle=n?"#2f5a38":"#4f8a50"; c.fillRect(0,H*0.473,W,H*0.09); c.fillStyle="rgba(255,255,255,.06)"; for(let x=0;x<W;x+=W*0.12) c.fillRect(x,H*0.473,W*0.06,H*0.09);
+    c.fillStyle=n?"#7a3a2c":"#b4553a"; c.fillRect(0,H*0.56,W,H*0.42); c.fillStyle="rgba(255,255,255,.85)"; [0.565,0.66,0.76,0.86,0.96].forEach(y=>c.fillRect(0,H*y,W,H*0.004));
+    c.fillStyle="rgba(255,255,255,.55)"; c.font=`700 ${W*0.035}px sans-serif`; c.textAlign="center"; c.textBaseline="middle"; [2,3,4,5].forEach((k,i)=>c.fillText(String(k),W*0.04,H*(0.61+i*0.1)));
+    c.fillStyle="#f4f1ea"; c.fillRect(W*0.1,H*0.565,W*0.007,H*0.395);
+    const fx=W*0.905; for(let r=0;r<22;r++){ c.fillStyle=r%2?"#17130f":"#f4f1ea"; c.fillRect(fx,H*0.565+r*H*0.018,W*0.014,H*0.018); c.fillStyle=r%2?"#f4f1ea":"#17130f"; c.fillRect(fx+W*0.014,H*0.565+r*H*0.018,W*0.014,H*0.018); }
+    if(n){ c.fillStyle="rgba(8,10,24,.22)"; c.fillRect(0,0,W,H); } },
+  blueprint(c,W,H){ c.fillStyle="#1f4a73"; c.fillRect(0,0,W,H); c.strokeStyle="rgba(255,255,255,.06)"; c.lineWidth=1; const g=W/18; c.beginPath(); for(let x=0;x<W;x+=g){ c.moveTo(x,0); c.lineTo(x,H); } for(let y=0;y<H;y+=g){ c.moveTo(0,y); c.lineTo(W,y); } c.stroke(); },
+  beach(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.5);
+    c.fillStyle=P.hill; c.beginPath(); c.moveTo(W*0.45,H*0.5); c.bezierCurveTo(W*0.6,H*0.36,W*0.78,H*0.33,W*0.92,H*0.4); c.bezierCurveTo(W*1.0,H*0.43,W*1.05,H*0.46,W*1.1,H*0.5); c.closePath(); c.fill();
+    c.fillStyle=P.hill2; c.beginPath(); c.moveTo(W*0.62,H*0.5); c.bezierCurveTo(W*0.72,H*0.42,W*0.84,H*0.41,W*0.98,H*0.46); c.lineTo(W*1.05,H*0.5); c.closePath(); c.fill();
+    c.fillStyle=P.sea; c.fillRect(0,H*0.5,W,H*0.16); c.fillStyle=P.sea2; c.fillRect(0,H*0.58,W,H*0.08);
+    c.strokeStyle="rgba(255,255,255,.55)"; c.lineWidth=Math.max(1,W*0.003); for(let r=0;r<5;r++){ const y=H*(0.52+r*0.028), o=(t*W*0.02*(r%2?1:-1)+r*97)%(W*0.3); for(let x=-W*0.3+o;x<W;x+=W*0.3){ c.beginPath(); c.moveTo(x,y); c.lineTo(x+W*0.08,y); c.stroke(); } }
+    c.fillStyle="rgba(255,255,255,.8)"; c.beginPath(); for(let x=0;x<=W;x+=W/40) c.lineTo(x,H*0.66+Math.sin(x*0.02+t*1.6)*H*0.004); c.lineTo(W,H*0.675); c.lineTo(0,H*0.675); c.fill();
+    c.fillStyle=P.sand; c.fillRect(0,H*0.67,W,H*0.33); c.fillStyle=P.sand2; for(let i=0;i<40;i++){ c.fillRect(rnd(i+3)*W,H*(0.7+rnd(i+9)*0.28),W*0.012,H*0.003); }
+    [[0.62,0.7,"#d9a23a",0.2],[0.12,0.74,"#c8452f",0.28],[0.88,0.73,"#2f6fa8",0.26]].forEach(([x,y,col,sz])=>umbrella(c,W*x,H*y,W*sz,col,P));
+    c.fillStyle=P.night?"rgba(0,0,0,.25)":"rgba(0,0,0,0)"; c.fillRect(0,0,W,H); },
+  estate(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.62);
+    for(let i=0;i<5;i++) tree2d(c,W*(-0.05+i*0.27),H*0.6,W*0.12,P);
+    const house=(x,w,k)=>{ const y=H*0.62, h=H*0.2; c.fillStyle=P.wall; c.fillRect(x,y-h,w,h); c.fillStyle=P.roof; c.beginPath(); c.moveTo(x-w*0.06,y-h); c.lineTo(x+w*0.5,y-h-H*0.07); c.lineTo(x+w*1.06,y-h); c.closePath(); c.fill();
+      c.fillStyle=P.wood; c.fillRect(x+w*0.08,y-h*0.92,w*0.26,h*0.5); c.fillStyle="rgba(0,0,0,.18)"; for(let s=0;s<6;s++) c.fillRect(x+w*0.08+s*w*0.045,y-h*0.92,w*0.006,h*0.5);
+      c.fillStyle=P.glass; c.fillRect(x+w*0.45,y-h*0.9,w*0.42,h*0.3); c.fillRect(x+w*0.45,y-h*0.45,w*0.42,h*0.3); c.strokeStyle=P.frame; c.lineWidth=W*0.004; c.strokeRect(x+w*0.45,y-h*0.9,w*0.42,h*0.3); c.strokeRect(x+w*0.45,y-h*0.45,w*0.42,h*0.3);
+      c.fillStyle=P.door; c.fillRect(x+w*0.12,y-h*0.36,w*0.18,h*0.36); if(P.night){ c.fillStyle="rgba(255,214,140,.55)"; c.fillRect(x+w*0.45,y-h*0.45,w*0.42,h*0.3); } };
+    house(W*0.02,W*0.42,0); house(W*0.55,W*0.42,1);
+    c.fillStyle=P.fence; c.fillRect(0,H*0.62,W,H*0.025); c.fillStyle="#c8452f"; for(let x=0;x<W;x+=W*0.08) c.fillRect(x,H*0.645,W*0.04,H*0.012); c.fillStyle="#f2efe8"; for(let x=W*0.04;x<W;x+=W*0.08) c.fillRect(x,H*0.645,W*0.04,H*0.012);
+    c.fillStyle=P.road; c.fillRect(0,H*0.657,W,H*0.11); c.fillStyle="rgba(255,255,255,.75)"; for(let x=0;x<W;x+=W*0.14) c.fillRect(x,H*0.71,W*0.07,H*0.005);
+    c.fillStyle=P.grass; c.fillRect(0,H*0.767,W,H*0.233); c.fillStyle=P.grass2; for(let i=0;i<30;i++) c.fillRect(rnd(i+51)*W,H*(0.78+rnd(i+7)*0.2),W*0.02,H*0.004); },
+  school(c,W,H,t,time){ const P=SET_PAL(time); c.fillStyle=P.night?"#4a4640":"#ece4d4"; c.fillRect(0,0,W,H);
+    c.fillStyle=P.night?"#3b3832":"#ddd3c0"; c.fillRect(0,H*0.5,W,H*0.24); c.fillStyle="#9a3b2c"; c.fillRect(0,H*0.18,W,H*0.012); c.fillRect(0,H*0.5,W,H*0.01);
+    for(let i=0;i<4;i++){ const x=W*(0.04+i*0.25), y=H*0.22; c.fillStyle="#8e3426"; c.fillRect(x,y,W*0.2,H*0.24); c.save(); c.beginPath(); c.rect(x+W*0.012,y+H*0.008,W*0.176,H*0.224); c.clip(); setSky(c,W,H,P,H*0.5); c.fillStyle=P.hill; c.fillRect(x,y+H*0.16,W*0.2,H*0.1); c.restore(); c.fillStyle="#8e3426"; c.fillRect(x+W*0.097,y,W*0.006,H*0.24); c.fillRect(x,y+H*0.115,W*0.2,H*0.006); }
+    c.fillStyle="#2f5d46"; c.fillRect(W*0.32,H*0.53,W*0.36,H*0.15); c.strokeStyle="#a37548"; c.lineWidth=W*0.008; c.strokeRect(W*0.32,H*0.53,W*0.36,H*0.15); c.fillStyle="rgba(255,255,255,.55)"; c.fillRect(W*0.36,H*0.57,W*0.18,H*0.004); c.fillRect(W*0.36,H*0.6,W*0.25,H*0.004);
+    
+    c.fillStyle=P.night?"#5b554c":"#c9bda6"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="rgba(0,0,0,.08)"; for(let y=H*0.74;y<H;y+=H*0.045) c.fillRect(0,y,W,H*0.003); },
+  nightroom(c,W,H,t,time){ c.fillStyle="#2a2440"; c.fillRect(0,0,W,H); c.fillStyle="#241f38"; for(let x=0;x<W;x+=W*0.1) c.fillRect(x,0,W*0.05,H*0.74);
+    const wx=W*0.42,wy=H*0.1,ww=W*0.52,wh=H*0.42; c.fillStyle="#141a33"; c.fillRect(wx,wy,ww,wh); c.save(); c.beginPath(); c.rect(wx,wy,ww,wh); c.clip(); c.fillStyle="#1d2550"; c.fillRect(wx,wy,ww,wh);
+      for(let i=0;i<9;i++){ const bx=wx+i*ww/8-W*0.02, bh=wh*(0.3+rnd(i+70)*0.5), bw=ww*0.11; c.fillStyle=i%2?"#262c55":"#2e3564"; c.fillRect(bx,wy+wh-bh,bw,bh); for(let yy=wy+wh-bh+wh*0.03;yy<wy+wh;yy+=wh*0.05) for(let xx=bx+bw*0.15;xx<bx+bw*0.85;xx+=bw*0.25){ if(rnd(xx*0.3+yy*0.7)>0.55){ c.fillStyle=`rgba(255,${200+rnd(xx)*40|0},120,${0.6+0.3*Math.sin(t*0.8+xx)})`; c.fillRect(xx,yy,bw*0.1,wh*0.018); } } } c.restore();
+    c.strokeStyle="#3d3560"; c.lineWidth=W*0.012; c.strokeRect(wx,wy,ww,wh); c.beginPath(); c.moveTo(wx+ww/2,wy); c.lineTo(wx+ww/2,wy+wh); c.moveTo(wx,wy+wh/2); c.lineTo(wx+ww,wy+wh/2); c.stroke();
+    c.fillStyle="#3a2f4f"; c.fillRect(W*0.02,H*0.12,W*0.3,H*0.62); const bk=["#8a5a44","#5f7a8c","#a78a4f","#6b4f7a","#4f7a5f","#9a6b5a"]; for(let s=0;s<4;s++){ c.fillStyle="#2a2238"; c.fillRect(W*0.02,H*(0.24+s*0.14),W*0.3,H*0.012); for(let b=0;b<9;b++){ const bh=H*(0.08+rnd(b+s*11)*0.035); c.fillStyle=bk[(b+s)%6]; c.fillRect(W*(0.035+b*0.031),H*(0.24+s*0.14)-bh,W*0.026,bh); } }
+    c.fillStyle="#1f1a2e"; c.fillRect(0,H*0.74,W,H*0.26); c.fillStyle="#3b2f52"; c.beginPath(); c.ellipse(W*0.55,H*0.86,W*0.42,H*0.05,0,0,7); c.fill();
+    c.save(); c.globalCompositeOperation="lighter"; const lx=W*0.8, ly=H*0.56; const g=c.createRadialGradient(lx,ly,0,lx,ly,W*0.5); g.addColorStop(0,"rgba(255,190,110,.32)"); g.addColorStop(1,"rgba(255,190,110,0)"); c.fillStyle=g; c.fillRect(0,0,W,H); c.restore();
+    c.fillStyle="#5a4632"; c.fillRect(W*0.6,H*0.62,W*0.38,H*0.018); c.fillRect(W*0.62,H*0.638,W*0.015,H*0.12); c.fillRect(W*0.95,H*0.638,W*0.015,H*0.12); c.strokeStyle="#1b1726"; c.lineWidth=W*0.008; c.beginPath(); c.moveTo(W*0.84,H*0.62); c.lineTo(W*0.8,H*0.54); c.lineTo(W*0.76,H*0.555); c.stroke(); c.fillStyle="#1b1726"; c.beginPath(); c.moveTo(W*0.74,H*0.545); c.lineTo(W*0.79,H*0.56); c.lineTo(W*0.77,H*0.585); c.closePath(); c.fill(); },
+  aerial(c,W,H,t,time){ const P=SET_PAL(time); c.fillStyle=P.night?"#2c3b2e":"#8fb27a"; c.fillRect(0,0,W,H);
+    c.fillStyle=P.road; c.fillRect(W*0.44,0,W*0.12,H); c.fillStyle="rgba(255,255,255,.7)"; for(let y=0;y<H;y+=H*0.06) c.fillRect(W*0.497,y,W*0.006,H*0.03);
+    for(let r=0;r<9;r++) for(let k=0;k<2;k++){ const x=W*(0.06+k*0.18), y=H*(0.03+r*0.11); c.fillStyle="rgba(0,0,0,.15)"; c.fillRect(x+W*0.012,y+W*0.012,W*0.13,W*0.13); const s2=W*0.13; c.fillStyle=(r+k)%3?"#5b6475":"#7a5e4c"; c.fillRect(x,y,s2,s2); c.fillStyle="rgba(255,255,255,.12)"; c.fillRect(x,y,s2,s2/2); c.fillStyle="rgba(0,0,0,.25)"; c.fillRect(x,y+s2/2-W*0.002,s2,W*0.004); }
+    c.fillStyle="#5d8fa0"; c.beginPath(); c.roundRect(W*0.6,H*0.08,W*0.34,H*0.55,W*0.05); c.fill(); c.strokeStyle="rgba(255,255,255,.25)"; c.lineWidth=W*0.004; for(let i=0;i<4;i++){ const y=H*(0.15+i*0.12)+Math.sin(t+i)*H*0.005; c.beginPath(); c.moveTo(W*0.66,y); c.lineTo(W*0.88,y); c.stroke(); }
+    for(let i=0;i<12;i++){ c.fillStyle=i%2?"#4f7a45":"#5f8c50"; c.beginPath(); c.arc(W*(0.62+rnd(i+90)*0.34),H*(0.66+rnd(i+40)*0.32),W*0.035,0,7); c.fill(); } },
+  street(c,W,H,t,time){ const P=SET_PAL(time); setSky(c,W,H,P,H*0.62);
+    const cols=["#d9c7a7","#c9b48f","#e3d5bb","#bfa98a"]; for(let i=0;i<5;i++){ const x=W*(-0.04+i*0.22), w=W*0.22, h=H*(0.3+rnd(i+5)*0.06), y=H*0.66; c.fillStyle=cols[i%4]; c.fillRect(x,y-h,w,h); c.fillStyle="rgba(0,0,0,.1)"; c.fillRect(x+w-W*0.006,y-h,W*0.006,h);
+      for(let f=0;f<2;f++){ c.fillStyle=P.glass; c.fillRect(x+w*0.15,y-h+H*(0.03+f*0.1),w*0.7,H*0.06); c.fillStyle="rgba(0,0,0,.2)"; c.fillRect(x+w*0.15,y-h+H*(0.03+f*0.1)+H*0.055,w*0.7,H*0.005); }
+      c.fillStyle=["#c8452f","#2f6fa8","#d9a23a","#2e7a4d","#6b4f7a"][i]; c.fillRect(x+w*0.08,y-H*0.105,w*0.84,H*0.025); c.fillStyle="#6c6458"; c.fillRect(x+w*0.08,y-H*0.08,w*0.84,H*0.08); for(let s=0;s<8;s++){ c.fillStyle="rgba(255,255,255,.12)"; c.fillRect(x+w*0.08,y-H*0.08+s*H*0.01,w*0.84,H*0.002); } }
+    c.strokeStyle="#3a352f"; c.lineWidth=W*0.012; [0.3,0.85].forEach(x=>{ c.beginPath(); c.moveTo(W*x,H*0.7); c.lineTo(W*x,H*0.15); c.stroke(); c.lineWidth=W*0.006; c.beginPath(); c.moveTo(W*x-W*0.05,H*0.18); c.lineTo(W*x+W*0.05,H*0.18); c.stroke(); c.lineWidth=W*0.012; });
+    c.strokeStyle="rgba(30,28,25,.75)"; c.lineWidth=Math.max(1,W*0.0025); for(let k=0;k<3;k++){ c.beginPath(); c.moveTo(-W*0.1,H*(0.17+k*0.012)); c.quadraticCurveTo(W*0.15,H*(0.24+k*0.012),W*0.3,H*(0.175+k*0.012)); c.quadraticCurveTo(W*0.58,H*(0.25+k*0.012),W*0.85,H*(0.175+k*0.012)); c.quadraticCurveTo(W*1.0,H*(0.22+k*0.012),W*1.1,H*(0.2+k*0.012)); c.stroke(); }
+    c.fillStyle="#b9b0a2"; c.fillRect(0,H*0.66,W,H*0.04); c.fillStyle=P.road; c.fillRect(0,H*0.7,W,H*0.3); c.fillStyle="rgba(255,255,255,.7)"; for(let x=0;x<W;x+=W*0.14) c.fillRect(x,H*0.85,W*0.07,H*0.005);
+    if(P.night){ c.fillStyle="rgba(14,18,38,.5)"; c.fillRect(0,0,W,H); c.fillStyle="rgba(255,206,130,.5)"; for(let i=0;i<5;i++) c.fillRect(W*(-0.04+i*0.22)+W*0.22*0.15,H*0.66-H*0.3+H*0.03,W*0.22*0.7,H*0.06); } },
   sky(c,W,H,t,time){ skyGrad(c,W,H,time,H*0.75); if(time==="night") starsField(c,W,H,t,70,.6);
     for(let i=0;i<4;i++){ const x=((rnd(i)*W*1.4 + t*W*0.02*(1+i*.3))%(W*1.4))-W*.2; cloudShape(c,x,H*(0.1+rnd(i+3)*0.25),W/720*(0.8+rnd(i+5)*.6),time==="night"?.25:.9); }
     hills(c,W,H,H*0.72,time==="night"?"#2b5a3e":"#7ccf6a",H*0.03,1); hills(c,W,H,H*0.8,time==="night"?"#1f4a31":"#5bb85a",H*0.025,3); },
@@ -1333,6 +1455,76 @@ const CONTINENTS=[
 ];
 function globeProj(lon,lat,rot,r){ const L=(lon-rot)*Math.PI/180, A=lat*Math.PI/180; return [r*Math.cos(A)*Math.sin(L), -r*Math.sin(A), Math.cos(A)*Math.cos(L)]; }
 const PROPS_HQ={
+  /* Stopwatch that counts up to 9.58 s about three times faster than real time, then flashes. */
+  stopwatch(c,t){ const v=Math.min(9.58,t*3.2), done=v>=9.58, fl=done&&Math.sin(t*14)>0; c.fillStyle="#6a7078"; c.beginPath(); c.roundRect(-9,-84,18,16,3); c.fill(); c.fillStyle="#22262d"; c.beginPath(); c.roundRect(-58,-70,116,142,22); c.fill(); c.fillStyle="#3a4048"; c.beginPath(); c.roundRect(-52,-64,104,130,18); c.fill();
+    c.fillStyle="#0e1014"; c.beginPath(); c.roundRect(-44,-38,88,50,8); c.fill(); c.fillStyle=fl?"#fff2b0":"#ff4a3a"; c.font="800 34px monospace"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(v.toFixed(2),0,-12);
+    c.fillStyle="#9aa3b2"; c.font="700 11px sans-serif"; c.fillText("SEC",0,-50); c.fillStyle=done?"#46b56a":"#c8352b"; c.beginPath(); c.arc(0,38,12,0,7); c.fill(); c.fillStyle="#fff"; c.font="800 10px sans-serif"; c.fillText(done?"STOP":"RUN",0,38); },
+  stopwatchfin(c,t){ PROPS_HQ.stopwatch(c,t+4); },
+  blocks(c,t){ c.fillStyle="#3a3f47"; c.fillRect(-52,12,104,8); [[-34,0],[24,0]].forEach(([x])=>{ c.fillStyle="#c8352b"; c.beginPath(); c.moveTo(x-6,12); c.lineTo(x+16,-26); c.lineTo(x+26,-20); c.lineTo(x+12,12); c.closePath(); c.fill(); c.fillStyle="#1f2226"; c.fillRect(x-8,10,30,5); }); c.fillStyle="#d9d4c7"; c.fillRect(-52,6,104,3); },
+  bed(c,t){ c.fillStyle="#6b4f3a"; c.fillRect(-82,10,10,26); c.fillRect(72,10,10,26); c.fillStyle="#e9e4da"; c.beginPath(); c.roundRect(-80,-12,160,28,8); c.fill(); c.fillStyle="#f4f1e8"; c.beginPath(); c.roundRect(-74,-26,44,20,10); c.fill();
+    c.fillStyle="#3b6f9e"; c.beginPath(); c.roundRect(-30,-24,106,40,8); c.fill(); c.fillStyle="rgba(255,255,255,.18)"; c.fillRect(-30,-24,106,6); c.fillRect(-30,-10,106,2); },
+  /* Swollen power bank (bulging case, split seam, warm LED); heat shimmer above. */
+  /* the same bank held in a fist from below; shakes harder and gets smokier as t grows */
+  handbank(c,t){ const heat=Math.min(1,t/4), sh2=Math.sin(t*(9+heat*14))*(0.8+heat*2.6), skin="#e2ae86", sk2="#d39c74"; c.save(); c.translate(sh2,0);
+    c.fillStyle="#3a4a5f"; c.beginPath(); c.moveTo(-34,130); c.lineTo(-26,74); c.lineTo(30,74); c.lineTo(40,130); c.closePath(); c.fill(); c.fillStyle=sk2; c.beginPath(); c.roundRect(-24,40,50,42,12); c.fill();
+    c.save(); c.translate(0,-24); c.scale(0.8,0.8); PROPS_HQ.powerbank(c,t); c.restore();
+    c.fillStyle=skin; c.beginPath(); c.roundRect(-34,10,64,52,[10,10,18,18]); c.fill(); [[-26,5],[-9,-1],[8,-1],[24,5]].forEach(([x,y])=>{ c.beginPath(); c.roundRect(x-7,y-4,14,27,7); c.fill(); });
+    c.fillStyle=sk2; c.save(); c.translate(-38,28); c.rotate(-0.5); c.beginPath(); c.roundRect(-7,-24,14,36,7); c.fill(); c.restore(); c.restore(); },
+  smokebank(c,t){ PROPS_HQ.powerbank(c,t+3); },
+  bag(c,t){ c.fillStyle="#34425a"; c.beginPath(); c.roundRect(-50,-48,100,96,[16,16,12,12]); c.fill(); c.fillStyle="#2a3548"; c.beginPath(); c.roundRect(-38,2,76,40,10); c.fill(); c.strokeStyle="#c9cfd4"; c.lineWidth=2; c.beginPath(); c.moveTo(-26,12); c.lineTo(26,12); c.stroke();
+    c.fillStyle="#1d2430"; c.beginPath(); c.ellipse(0,-48,42,9,0,0,7); c.fill(); c.strokeStyle="#34425a"; c.lineWidth=7; c.lineCap="round"; c.beginPath(); c.arc(0,-52,15,Math.PI,0); c.stroke(); },
+  powerbank(c,t){ const bl=5+Math.sin(t*2)*0.8; c.save(); c.rotate(-0.12);
+    c.fillStyle="#2c3138"; c.beginPath(); c.moveTo(-34,-58); c.lineTo(34,-58); c.quadraticCurveTo(34+bl*3.2,0,34,58); c.lineTo(-34,58); c.quadraticCurveTo(-34-bl*3.2,0,-34,-58); c.closePath(); c.fill();
+    c.fillStyle="#3b424b"; c.beginPath(); c.moveTo(-30,-54); c.lineTo(30,-54); c.quadraticCurveTo(30+bl*2.6,0,30,54); c.lineTo(-30,54); c.quadraticCurveTo(-30-bl*2.6,0,-30,-54); c.closePath(); c.fill();
+    c.strokeStyle="#15181c"; c.lineWidth=2; c.beginPath(); c.moveTo(-36-bl*1.4,-4); c.quadraticCurveTo(0,-9-bl*0.6,36+bl*1.4,-4); c.stroke(); c.strokeStyle="rgba(255,255,255,.18)"; c.lineWidth=2.4; c.beginPath(); c.moveTo(-24,-46); c.lineTo(-24,-14); c.stroke();
+    c.fillStyle="#d9d4c7"; c.fillRect(-20,12,40,5); c.fillRect(-20,22,26,4); c.fillStyle="#15181c"; c.fillRect(-12,-58,24,6); const on=Math.sin(t*6)>0; c.fillStyle=on?"#ff8a3a":"#7a3a18"; for(let k=0;k<4;k++){ c.beginPath(); c.arc(-15+k*10,-36,2.6,0,7); c.fill(); }
+    c.restore(); c.strokeStyle="rgba(255,150,80,.55)"; c.lineWidth=2.2; c.lineCap="round"; for(let k=0;k<3;k++){ c.beginPath(); for(let y=0;y<=34;y+=4) c.lineTo(-18+k*18+Math.sin(y*0.3+t*5+k*2)*3.5,-72-y); c.stroke(); }
+    if(t>2.2){ for(let k=0;k<5;k++){ const u=((t-2.2)*34+k*20)%100; c.fillStyle=`rgba(210,212,218,${0.62*(1-u/100)})`; c.beginPath(); c.arc(-14+k*8+Math.sin(u*0.09+k)*7,-76-u,6+u*0.16,0,7); c.fill(); } } },
+  safebag(c,t){ c.fillStyle="#5d646c"; c.beginPath(); c.roundRect(-52,-36,104,76,10); c.fill(); c.fillStyle="#6f777f"; c.beginPath(); c.roundRect(-46,-30,92,64,7); c.fill(); c.fillStyle="#e8862e"; c.fillRect(-52,-36,104,12); c.fillStyle="#2c3138"; for(let x=-46;x<46;x+=8) c.fillRect(x,-33,4,5);
+    c.fillStyle="#f4f1ea"; c.beginPath(); c.moveTo(0,-14); c.lineTo(18,18); c.lineTo(-18,18); c.closePath(); c.fill(); c.fillStyle="#c8352b"; c.font="800 18px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("!",0,7); c.fillStyle="#d9d4c7"; c.font="700 9px sans-serif"; c.fillText("FIRE CONTAINMENT",0,30); },
+  extinguisher(c,t){ c.save(); c.scale(-1,1); c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(-20,-30,40,84,14); c.fill(); c.fillStyle="#9e2a21"; c.fillRect(-20,28,40,8); c.fillStyle="#2c3138"; c.fillRect(-7,-44,14,16); c.fillRect(-7,-44,36,7); c.strokeStyle="#2c3138"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(29,-40); c.quadraticCurveTo(46,-32,40,-6); c.stroke();
+    c.fillStyle="#f4f1ea"; c.beginPath(); c.roundRect(-13,-8,26,26,3); c.fill(); c.fillStyle="#c8352b"; c.fillRect(-8,-3,16,3); c.fillRect(-8,4,16,3); c.fillRect(-8,11,10,3); c.restore();
+    if(t>0.7){ const k=Math.min(1,(t-0.7)/1.2); for(let i=0;i<9;i++){ const d=i*14*k, r=5+i*3.4*k; c.fillStyle=`rgba(246,248,250,${Math.max(0,0.92-i*0.08)})`; c.beginPath(); c.arc(-46-d,-4+Math.sin(i*1.7+t*9)*(2+i*1.2)*k,r,0,7); c.fill(); } } },
+  /* Car-in-water inserts (flat style). */
+  sinkcar(c,t){ c.save(); c.rotate(0.3+Math.sin(t*1.2)*0.02); c.translate(0,Math.sin(t*1.5)*2); c.fillStyle="#c8452f"; c.beginPath(); c.roundRect(-58,-12,116,30,8); c.fill(); c.beginPath(); c.moveTo(-32,-12); c.lineTo(-18,-36); c.lineTo(24,-36); c.lineTo(40,-12); c.closePath(); c.fill();
+      c.fillStyle="#9fc1d1"; c.beginPath(); c.moveTo(-24,-13); c.lineTo(-14,-31); c.lineTo(1,-31); c.lineTo(1,-13); c.closePath(); c.fill(); c.beginPath(); c.moveTo(6,-13); c.lineTo(6,-31); c.lineTo(21,-31); c.lineTo(32,-13); c.closePath(); c.fill();
+      c.fillStyle="#22232a"; c.beginPath(); c.arc(-32,18,11,0,7); c.arc(34,18,11,0,7); c.fill(); c.fillStyle="#f2e3a0"; c.fillRect(52,-6,6,7); c.restore();
+    c.fillStyle="rgba(28,62,68,.9)"; c.beginPath(); c.moveTo(-700,4); for(let x=-700;x<=700;x+=10) c.lineTo(x,4+Math.sin(x*0.09+t*3)*2.5); c.lineTo(700,700); c.lineTo(-700,700); c.closePath(); c.fill();
+    c.strokeStyle="rgba(255,255,255,.7)"; c.lineWidth=2; c.beginPath(); for(let x=-60;x<=70;x+=6) c.lineTo(x,4+Math.sin(x*0.09+t*3)*2.5); c.stroke(); c.fillStyle="rgba(255,255,255,.6)"; for(let i=0;i<6;i++){ const by=60-((t*26+i*17)%56); c.beginPath(); c.arc(30+i*7-((i*13)%20),by,2+i%3,0,7); c.fill(); } },
+  cardoor(c,t){ c.fillStyle="#b53d2a"; c.beginPath(); c.moveTo(-50,-58); c.lineTo(34,-58); c.quadraticCurveTo(52,-56,54,-20); c.lineTo(54,58); c.lineTo(-50,58); c.closePath(); c.fill(); c.fillStyle="#9fc1d1"; c.beginPath(); c.moveTo(-42,-50); c.lineTo(30,-50); c.quadraticCurveTo(44,-48,46,-12); c.lineTo(-42,-12); c.closePath(); c.fill();
+    c.fillStyle="#2a2d33"; c.beginPath(); c.roundRect(-40,2,22,7,3.5); c.fill(); c.fillStyle="rgba(0,0,0,.12)"; c.fillRect(-50,40,104,18);
+    const wl=14+Math.sin(t*1.5)*2; c.fillStyle="rgba(28,62,68,.85)"; c.beginPath(); c.moveTo(-700,wl); for(let x=-700;x<=700;x+=8) c.lineTo(x,wl+Math.sin(x*0.1+t*3)*2); c.lineTo(700,700); c.lineTo(-700,700); c.closePath(); c.fill();
+    c.fillStyle="#bfe3ff"; const a=Math.abs(Math.sin(t*3))*6; [[-64,30],[-64,48]].forEach(([x,y])=>{ c.beginPath(); c.moveTo(x-12+a,y-4); c.lineTo(x+4+a,y-4); c.lineTo(x+4+a,y-9); c.lineTo(x+14+a,y); c.lineTo(x+4+a,y+9); c.lineTo(x+4+a,y+4); c.lineTo(x-12+a,y+4); c.closePath(); c.fill(); }); },
+  seatbelt(c,t){ const pr=Math.abs(Math.sin(t*4))*2.5; c.save(); c.rotate(-0.5); c.fillStyle="#4a4f57"; c.fillRect(-9,-80,18,62); c.restore(); c.fillStyle="#c9cfd4"; c.beginPath(); c.roundRect(-12,-26,24,22,3); c.fill(); c.fillStyle="#6f757c"; c.fillRect(-5,-20,10,9);
+    c.fillStyle="#1f2226"; c.beginPath(); c.roundRect(-24,-8,48,50,8); c.fill(); c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(-16,2+pr,32,18,4); c.fill(); c.fillStyle="#fff"; c.font="800 7px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("PRESS",0,11+pr);
+    c.fillStyle="#4a4f57"; c.fillRect(-7,42,14,26); c.fillStyle="#e2ae86"; c.beginPath(); c.roundRect(20,-2+pr,44,19,9.5); c.fill(); c.fillStyle="#f4d8c2"; c.beginPath(); c.roundRect(22,1+pr,12,9,4.5); c.fill(); },
+  winswitch(c,t){ const pr=Math.abs(Math.sin(t*4))*2; c.fillStyle="#2a2e34"; c.beginPath(); c.roundRect(-64,-8,128,44,10); c.fill(); c.fillStyle="#1c1f23"; c.beginPath(); c.roundRect(-52,2,104,24,6); c.fill();
+    [[-34,true],[-6,false],[22,false]].forEach(([x,on])=>{ c.fillStyle=on?"#5d646c":"#3d4249"; c.beginPath(); c.roundRect(x,6+(on?pr:0),22,16,3); c.fill(); c.strokeStyle=on?"#ffb84a":"#8a9097"; c.lineWidth=1.4; c.strokeRect(x+6,10+(on?pr:0),10,8); c.beginPath(); c.moveTo(x+6,14+(on?pr:0)); c.lineTo(x+16,14+(on?pr:0)); c.stroke(); });
+    c.fillStyle="#e2ae86"; c.save(); c.translate(-23,6+pr); c.rotate(0.25); c.beginPath(); c.roundRect(-9,-58,19,62,9.5); c.fill(); c.fillStyle="#f4d8c2"; c.beginPath(); c.roundRect(-6,-8,13,9,4.5); c.fill(); c.restore();
+    c.strokeStyle="#ffb84a"; c.lineWidth=2.2; c.lineCap="round"; c.beginPath(); c.moveTo(40,-34); c.lineTo(40,-16); c.moveTo(34,-22); c.lineTo(40,-16); c.lineTo(46,-22); c.stroke(); },
+  hammer(c,t){ const hit=Math.max(0,Math.sin(t*5)); c.fillStyle="rgba(159,193,209,.75)"; c.beginPath(); c.roundRect(-64,-52,104,96,6); c.fill(); c.strokeStyle="rgba(255,255,255,.5)"; c.lineWidth=2; c.beginPath(); c.moveTo(-50,-40); c.lineTo(-20,-40); c.stroke();
+    c.strokeStyle="#f4f8fa"; c.lineWidth=1.6; [[-22,0],[-8,14],[4,36],[-30,24],[-40,6],[-2,-6]].forEach(([x,y])=>{ c.beginPath(); c.moveTo(24,30); c.lineTo(24+(x-24)*0.5+4,30+(y-30)*0.5-3); c.lineTo(x,y); c.stroke(); }); c.fillStyle="#f4f8fa"; c.beginPath(); c.arc(24,30,3,0,7); c.fill();
+    c.save(); c.translate(30+hit*5,36+hit*4); c.rotate(-0.75); c.fillStyle="#e8862e"; c.beginPath(); c.roundRect(4,-7,62,14,7); c.fill(); c.fillStyle="#c96f1f"; c.beginPath(); c.roundRect(-4,-17,18,34,4); c.fill(); c.fillStyle="#c9cfd4"; c.beginPath(); c.moveTo(-4,-8); c.lineTo(-15,0); c.lineTo(-4,8); c.closePath(); c.fill(); c.restore(); },
+  /* Close-up inserts in the flat promptkub style (about 120 units wide). */
+  needle(c,t){ const j=Math.sin(t*3)*2.5, sk="#e2ae86", sk2="#d39c74", rr2=(x,y,w,h,r,col)=>{ c.fillStyle=col; c.beginPath(); c.roundRect(x,y,w,h,r); c.fill(); };
+    rr2(-78,2,92,30,15,sk); rr2(-10,5,20,11,5.5,"#f4d8c2"); c.fillStyle="rgba(0,0,0,.07)"; c.fillRect(-78,24,84,8);
+    c.save(); c.translate(34+j,-14-j); c.rotate(-0.72); rr2(-4,-40,8,44,3,"#5d7f96"); rr2(-5.5,-44,11,9,2,"#3f5a6d"); c.strokeStyle="#c9d2d8"; c.lineWidth=1.6; c.lineCap="round"; c.beginPath(); c.moveTo(0,4); c.lineTo(0,17); c.stroke();
+      rr2(-17,-34,13,34,6.5,sk2); rr2(5,-30,13,32,6.5,sk); c.restore(); },
+  brain(c,t){ const pk="#e3a39d", dk="#c47d78"; c.save(); HQ.smooth(c,[[-52,-6],[-46,-34],[-18,-48],[16,-48],[44,-34],[54,-8],[44,12],[20,18],[-8,16],[-36,14]]); c.fillStyle=pk; c.fill(); c.clip();
+      const r=8+((t*0.9)%5)/5*34; c.fillStyle="rgba(84,78,92,.78)"; c.beginPath(); c.arc(6,-12,r,0,7); c.fill(); c.restore();
+    c.strokeStyle=dk; c.lineWidth=2.4; c.lineCap="round"; [[-34,-26,-18,-36,-6,-24],[-2,-40,10,-30,24,-38],[-40,-4,-22,-12,-10,0],[4,-8,18,-18,34,-8],[14,6,28,0,40,4]].forEach(q=>{ c.beginPath(); c.moveTo(q[0],q[1]); c.quadraticCurveTo(q[2],q[3],q[4],q[5]); c.stroke(); });
+    c.fillStyle="#d18f8a"; c.beginPath(); c.ellipse(30,20,17,10,0.2,0,7); c.fill(); c.fillStyle="#c98a86"; c.beginPath(); c.roundRect(6,16,10,26,5); c.fill();
+    c.fillStyle="#c8352b"; c.beginPath(); c.arc(6,-12,4+Math.abs(Math.sin(t*5))*2,0,7); c.fill(); },
+  ambulance(c,t){ const fl=Math.sin(t*10)>0; c.fillStyle="#f4f4f1"; c.beginPath(); c.roundRect(-64,-34,128,54,[8,14,4,4]); c.fill(); c.fillStyle="#9fc1d1"; c.beginPath(); c.roundRect(30,-27,28,20,[3,9,2,2]); c.fill();
+    c.fillStyle="#c8352b"; c.fillRect(-64,-4,128,7); c.fillStyle="#e8a03a"; c.fillRect(-64,3,128,3); c.fillStyle="#c8352b"; c.fillRect(-36,-27,8,20); c.fillRect(-42,-21,20,8);
+    c.fillStyle="#1f1c18"; c.font="800 11px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("1669",-2,-17); c.fillStyle=fl?"#e2483d":"#7a2620"; c.fillRect(-14,-41,12,7); c.fillStyle=fl?"#2a4f9a":"#4f8cf0"; c.fillRect(0,-41,12,7);
+    c.fillStyle="#22232a"; c.beginPath(); c.arc(-36,20,11,0,7); c.arc(38,20,11,0,7); c.fill(); c.fillStyle="#9aa0a6"; c.beginPath(); c.arc(-36,20,4.5,0,7); c.arc(38,20,4.5,0,7); c.fill(); },
+  spoon(c,t){ c.save(); c.rotate(0.6); c.fillStyle="#c9cfd4"; c.beginPath(); c.ellipse(0,-30,15,21,0,0,7); c.fill(); c.fillStyle="#aab2b8"; c.beginPath(); c.ellipse(1,-28,9,14,0,0,7); c.fill(); c.fillStyle="#c9cfd4"; c.beginPath(); c.roundRect(-3.5,-12,7,62,3.5); c.fill(); c.restore(); },
+  ct(c,t){ c.fillStyle="#e9edef"; c.beginPath(); c.roundRect(-46,-56,92,96,16); c.fill(); c.fillStyle="#cfd6da"; c.beginPath(); c.arc(0,-10,30,0,7); c.fill(); c.fillStyle="#2c3a44"; c.beginPath(); c.arc(0,-10,22,0,7); c.fill();
+    c.strokeStyle="#5fd3c0"; c.lineWidth=2; c.beginPath(); c.arc(0,-10,26,t*2,t*2+1.6); c.stroke(); c.fillStyle="#b9c2c8"; c.fillRect(-58,34,116,8); c.fillStyle="#8fb7c6"; c.beginPath(); c.roundRect(-22,22,70,12,6); c.fill(); c.fillStyle="#e2ae86"; c.beginPath(); c.arc(-8,18,8,0,7); c.fill(); },
+  medicine(c,t){ c.fillStyle="#7a4a2a"; c.beginPath(); c.roundRect(-44,-18,34,52,6); c.fill(); c.fillStyle="#3a2a1e"; c.fillRect(-38,-30,22,13); c.fillStyle="#efe6cf"; c.fillRect(-42,-2,30,22); c.fillStyle="#b5694f"; c.fillRect(-38,4,22,4); c.fillRect(-38,11,14,3);
+    c.fillStyle="rgba(190,225,240,.55)"; c.beginPath(); c.moveTo(6,-22); c.lineTo(46,-22); c.lineTo(41,34); c.lineTo(11,34); c.closePath(); c.fill(); c.fillStyle="rgba(120,190,225,.75)"; c.beginPath(); c.moveTo(8,-2+Math.sin(t*2)); c.lineTo(44,-2-Math.sin(t*2)); c.lineTo(41,34); c.lineTo(11,34); c.closePath(); c.fill();
+    c.fillStyle="#f4f1ea"; c.beginPath(); c.ellipse(-2,40,7,3.5,0.3,0,7); c.ellipse(52,42,7,3.5,-0.2,0,7); c.fill(); },
   earth(c,t){ const r=50, rot=-20+t*14;
     c.fillStyle=HQ.rad(c,0,0,r*0.9,r*1.32,[[0,"rgba(120,200,255,.45)"],[1,"rgba(120,200,255,0)"]]); c.beginPath(); c.arc(0,0,r*1.32,0,7); c.fill();
     c.save(); c.beginPath(); c.arc(0,0,r,0,7); c.clip();
@@ -1486,31 +1678,94 @@ function limb(c,pts,w,col){ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w
 function fillE(c,x,y,rx,ry,col,rot=0){ c.beginPath(); c.ellipse(x,y,Math.abs(rx),Math.abs(ry),rot,0,Math.PI*2); c.fillStyle=col; c.fill(); }
 /* Info cards (motion-graphics style): stat with optional progress bar, stopwatch timer, and A-vs-B comparison.
    Numbers count up after the card enters. Drawn centred at (0,0); size follows base (px for scale 1). */
-function cardSize(el,base){ const k=base*el.scale; if(el.kind==="compare") return {w:k*0.88,h:k*0.36}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)}; }
-function countUp(v,q){ v=String(v||""); if(q>=1) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
+function cardSize(el,base){ const k=base*el.scale, sr=el.src?k*0.04:0; if(el.kind==="compare") return {w:k*0.88,h:k*0.36+sr};
+  if(el.kind==="icons") return {w:k*0.7,h:k*(0.29+(el.total>10?0.07:0))+sr}; if(el.kind==="bars") return {w:k*0.72,h:k*(0.08+0.085*Math.max(1,el.rows?.length||1))+sr};
+  if(el.kind==="lesson") return {w:k*0.86,h:k*(el.strike?0.42:0.34)};
+  if(el.kind==="note") return {w:k*0.7,h:k*0.2}; if(el.kind==="phone") return {w:k*0.62,h:k*1.25}; if(el.kind==="plan") return {w:k*0.86,h:k*0.82}; return {w:k*0.64,h:k*(el.pct!=null?0.27:el.note?0.25:0.21)+sr}; }
+/* Small flat pictograms for icon-array cards ("8 in 10 houses"). Centred at (x,y), size s. */
+function pictogram(c,kind,x,y,s,col){ c.fillStyle=col; c.beginPath();
+  if(kind==="house"){ c.moveTo(x-s*0.42,y-s*0.02); c.lineTo(x,y-s*0.45); c.lineTo(x+s*0.42,y-s*0.02); c.lineTo(x+s*0.32,y-s*0.02); c.lineTo(x+s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y+s*0.4); c.lineTo(x-s*0.32,y-s*0.02); c.closePath(); c.fill(); c.fillStyle="rgba(255,255,255,.75)"; c.fillRect(x-s*0.08,y+s*0.14,s*0.16,s*0.26); return; }
+  if(kind==="building"){ c.roundRect(x-s*0.3,y-s*0.45,s*0.6,s*0.85,s*0.04); c.fill(); c.fillStyle="rgba(255,255,255,.7)"; for(let r=0;r<3;r++) for(let q=0;q<2;q++) c.fillRect(x-s*0.2+q*s*0.24,y-s*0.34+r*s*0.24,s*0.14,s*0.13); return; }
+  if(kind==="car"){ c.roundRect(x-s*0.45,y-s*0.08,s*0.9,s*0.3,s*0.08); c.fill(); c.beginPath(); c.roundRect(x-s*0.26,y-s*0.3,s*0.5,s*0.26,s*0.1); c.fill(); c.fillStyle="#3a332b"; c.beginPath(); c.arc(x-s*0.26,y+s*0.24,s*0.11,0,7); c.arc(x+s*0.26,y+s*0.24,s*0.11,0,7); c.fill(); return; }
+  if(kind==="tree"){ c.arc(x,y-s*0.15,s*0.3,0,7); c.fill(); c.fillRect(x-s*0.06,y,s*0.12,s*0.4); return; }
+  c.arc(x,y-s*0.28,s*0.15,0,7); c.fill(); c.beginPath(); c.roundRect(x-s*0.2,y-s*0.08,s*0.4,s*0.48,[s*0.18,s*0.18,s*0.04,s*0.04]); c.fill(); }
+function countUp(v,q){ v=String(v||""); if(/^(1669|1784|191|199|1129|1441|1193|1155|1137)$/.test(v)) return v; if(q>=1||/\d\s*[-–]\s*\d/.test(v)) return v; const t=v.match(/^(\d{1,2}):(\d{2})$/); if(t){ const sec=Math.round((+t[1]*60+ +t[2])*q); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
   const m=v.match(/\d[\d,]*(\.\d+)?/); if(!m) return v; const n=parseFloat(m[0].replace(/,/g,"")), dec=(m[1]||"").length?m[1].length-1:0, cur=n*q;
   let s=cur.toFixed(dec); if(m[0].includes(",")) s=Number(s).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}); return v.slice(0,m.index)+s+v.slice(m.index+m[0].length); }
-function cardPanel(c,x,y,w,h,u,accent){ c.save(); c.shadowColor="rgba(0,0,0,.35)"; c.shadowBlur=u*5; c.shadowOffsetY=u*1.6; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.fill(); c.restore();
-  c.strokeStyle="#d9cdb8"; c.lineWidth=Math.max(1,u*0.35); c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.stroke(); c.fillStyle=accent; c.beginPath(); c.roundRect(x,y,u*1.6,h,[u*2.6,0,0,u*2.6]); c.fill(); }
-function drawInfoCard(c,el,base,since,fam){ const {w,h}=cardSize(el,base), u=w/100, q=easeOut(clamp((since-0.15)/0.9,0,1)), ink="#1f1c18", soft="#8a7f70";
-  const accent=el.good===false?"#c8452f":el.good===true?"#2e7a4d":"#d9a23a";
-  const pill=(x,y,text,good,s)=>{ c.font=`600 ${s}px ${fam}`; const tw=c.measureText(text).width+s*1.6; c.fillStyle=good===false?"#c8452f":good===true?"#2e7a4d":"#5f5648"; c.beginPath(); c.roundRect(x,y-s*0.75,tw,s*1.5,s*0.75); c.fill(); c.fillStyle="#fff"; c.textAlign="left"; c.textBaseline="middle"; c.fillText(text,x+s*0.8,y+s*0.05); };
-  if(el.kind==="compare"){ const cw=w*0.45, gap=w-cw*2; [["left",-w/2],["right",-w/2+cw+gap]].forEach(([k,x0],i)=>{ const d=el[k]; const acc=d.good===false?"#c8452f":d.good===true?"#2e7a4d":"#d9a23a"; cardPanel(c,x0,-h/2,cw,h,u,acc);
+/* Card skins: the clip's "grammar" picks one so cards do not look the same in every clip. */
+const SKIN={
+  paper:{fill:"#f5f0e6",edge:"#d9cdb8",ink:"#1f1c18",soft:"#8a7f70",sub:"#5f5648",good:"#2e7a4d",bad:"#c8452f",mid:"#b5851f",blue:"#2f5fa8",track:"#e6dccb",sh:0.35,bar:true},
+  dark:{fill:"#1b2130",edge:"#38425a",ink:"#f2efe6",soft:"#9aa3b2",sub:"#c4cad6",good:"#6fd49a",bad:"#ff7a63",mid:"#f0c05a",blue:"#8fb4ff",track:"#38425a",sh:0.55,bar:true},
+  flat:{fill:"#e9b93d",edge:"#e9b93d",ink:"#15130f",soft:"#6a4f12",sub:"#3a2c08",good:"#0f4d27",bad:"#8c1a0e",mid:"#5a3a00",blue:"#10306e",track:"#cf9f27",sh:0,bar:false},
+  outline:{fill:"rgba(12,16,24,.42)",edge:"#f2efe6",ink:"#f2efe6",soft:"#c9c4b8",sub:"#dcd7ca",good:"#7ee0a4",bad:"#ff8a73",mid:"#f5cc6a",blue:"#a5c4ff",track:"rgba(242,239,230,.25)",sh:0,bar:false}};
+function SKINK(){ return SKIN[CF.skin]||SKIN.paper; }
+function cardPanel(c,x,y,w,h,u,accent){ const K=SKINK(); c.save(); if(K.sh){ c.shadowColor=`rgba(0,0,0,${K.sh})`; c.shadowBlur=u*5; c.shadowOffsetY=u*1.6; } c.fillStyle=K.fill; c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.fill(); c.restore();
+  c.strokeStyle=K.edge; c.lineWidth=Math.max(1,u*(K.bar?0.35:0.8)); c.beginPath(); c.roundRect(x,y,w,h,u*2.6); c.stroke(); if(K.bar){ c.fillStyle=accent; c.beginPath(); c.roundRect(x,y,u*1.6,h,[u*2.6,0,0,u*2.6]); c.fill(); } }
+function drawInfoCard(c,el,base,since,fam){ if(el.tilt) c.rotate(el.tilt); const {w,h}=cardSize(el,base), u=w/100, q=easeOut(clamp((since-0.15)/0.9,0,1)), K=SKINK(), ink=K.ink, soft=K.soft;
+  const accent=el.good===false?K.bad:el.good===true?K.good:"#d9a23a";
+  const pill=(x,y,text,good,s)=>{ c.font=`600 ${s}px ${fam}`; const tw=c.measureText(text).width+s*1.6; c.fillStyle=good===false?K.bad:good===true?K.good:K.sub; c.beginPath(); c.roundRect(x,y-s*0.75,tw,s*1.5,s*0.75); c.fill(); c.fillStyle="#fff"; c.textAlign="left"; c.textBaseline="middle"; c.fillText(text,x+s*0.8,y+s*0.05); };
+  if(el.kind==="compare"){ const cw=w*0.45, gap=w-cw*2; [["left",-w/2],["right",-w/2+cw+gap]].forEach(([k,x0],i)=>{ const d=el[k]; const acc=d.good===false?K.bad:d.good===true?K.good:"#d9a23a"; cardPanel(c,x0,-h/2,cw,h,u,acc);
       c.textAlign="center"; c.textBaseline="middle"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(d.label,x0+cw/2,-h/2+u*6,cw*0.9);
-      c.font=`800 ${u*15}px ${fam}`; c.fillStyle=d.good===false?"#c8452f":d.good===true?"#2e7a4d":ink; c.fillText(countUp(d.value,q),x0+cw/2,-h/2+u*17,cw*0.9);
+      const vl=String(d.value).length; c.font=`800 ${u*(vl>6?8.5:vl>4?11:15)}px ${fam}`; c.fillStyle=d.good===false?K.bad:d.good===true?K.good:ink; c.fillText(countUp(d.value,q),x0+cw/2,-h/2+u*17,cw*0.86);
       c.font=`600 ${u*4.4}px ${fam}`; c.fillStyle=ink; c.fillText(d.unit,x0+cw/2,-h/2+u*26.5,cw*0.9);
       if(d.note){ c.font=`600 ${u*3.6}px ${fam}`; const tw=c.measureText(d.note).width+u*5.5; pill(x0+cw/2-tw/2,-h/2+u*32.5,(d.good===false?"✕ ":d.good===true?"✓ ":"")+d.note,d.good,u*3.6); } });
     c.fillStyle="#1f1c18"; c.beginPath(); c.arc(0,0,gap*0.62,0,7); c.fill(); c.fillStyle="#f5f0e6"; c.font=`800 ${gap*0.5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("VS",0,u*0.4); return; }
-  cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; let tx=x0;
+  const srcLine=()=>{ if(!el.src) return; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=soft; c.font=`500 ${u*2.9}px ${fam}`; c.fillText(el.src,-w/2+u*6,h/2-u*2.6,w-u*12); };
+  if(el.kind==="lesson"){ const a=easeOut(clamp(since/0.5,0,1)); cardPanel(c,-w/2,-h/2,w,h,u,K.blue); c.fillStyle=K.bad; c.beginPath(); c.arc(0,-h/2,u*4.2,0,7); c.fill(); c.fillStyle="#fff"; c.font=`800 ${u*5}px ${fam}`; c.textAlign="center"; c.textBaseline="middle"; c.fillText("!",0,-h/2+u*0.3);
+    let y=-h/2+u*12; if(el.strike){ c.font=`600 ${u*5}px ${fam}`; c.fillStyle=ink; c.fillText(el.strike,0,y,w*0.88); const sw=Math.min(c.measureText(el.strike).width,w*0.88)*clamp((since-0.35)/0.4,0,1); c.strokeStyle=K.bad; c.lineWidth=u*0.9; c.beginPath(); c.moveTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2,y+u*0.4); c.lineTo(-Math.min(c.measureText(el.strike).width,w*0.88)/2+sw,y+u*0.4); c.stroke(); y+=u*11; }
+    const big=el.label||el.value; c.globalAlpha=clamp((since-(el.strike?0.7:0.1))/0.35,0,1); c.fillStyle=K.blue; c.font=`800 ${u*7.4}px ${fam}`; const ln=wrap(c,big,w*0.86).slice(0,2); ln.forEach((l,i)=>c.fillText(l,0,y+i*u*9.2,w*0.9)); y+=ln.length*u*9.2-u*1;
+    if(el.labelEn){ c.fillStyle=K.sub; c.font=`500 ${u*3.4}px ${fam}`; c.fillText(el.labelEn,0,y+u*2.5,w*0.9); } c.globalAlpha=1; return; }
+  /* note: small labelled sticky card (tag chip + coloured title + English line), stacks well for recaps */
+  if(el.kind==="note"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="middle"; let y=-h/2+u*6;
+    if(el.tag){ c.font=`600 ${u*3.2}px ${fam}`; const tw=c.measureText(el.tag).width+u*7; c.fillStyle="#1f1c18"; c.beginPath(); c.roundRect(x0,y-u*2.4,tw,u*4.8,u*2.4); c.fill(); c.fillStyle="#e2483d"; c.beginPath(); c.arc(x0+u*2.4,y,u*0.9,0,7); c.fill(); c.fillStyle="#fff"; c.fillText(el.tag,x0+u*4.4,y+u*0.2); }
+    y+=u*7.5; c.fillStyle=el.good===false?K.bad:el.good===true?K.good:K.mid; c.font=`800 ${u*7}px ${fam}`; const t=[el.value,el.label].filter(Boolean).join(" "); c.fillText(t,x0,y,w-u*12);
+    if(el.labelEn){ c.fillStyle=soft; c.font=`600 ${u*2.8}px ${fam}`; c.fillText(el.labelEn,x0,y+u*5.6,w-u*12); } return; }
+  /* phone: a hand holding a phone in point-of-view. With value it is a call screen (number + label + running timer), else a notice screen. */
+  if(el.kind==="phone"){ const pw=w*0.52, ph=h*0.52, px=-pw/2-u*2, py=-h/2+u*4, skin="#c98b62", skin2="#b47650";
+    const OL2="rgba(60,30,15,.35)", cap=(x,y,cw,chh,r,col)=>{ c.fillStyle=col; c.beginPath(); c.roundRect(x,y,cw,chh,r); c.fill(); c.strokeStyle=OL2; c.lineWidth=Math.max(1,u*0.5); c.stroke(); };
+    // forearm with a sleeve cuff, coming up from the bottom of the frame
+    const yb=h*0.9; c.fillStyle=skin2; c.beginPath(); c.moveTo(-pw*0.3,yb); c.quadraticCurveTo(-pw*0.36,py+ph*1.25,-pw*0.42,py+ph*0.9); c.lineTo(pw*0.46,py+ph*0.9); c.quadraticCurveTo(pw*0.44,py+ph*1.3,pw*0.55,yb); c.closePath(); c.fill();
+    const cy=py+ph*1.45; c.fillStyle="#2f6b6a"; c.beginPath(); c.moveTo(-pw*0.38,yb); c.lineTo(-pw*0.34,cy); c.lineTo(pw*0.5,cy); c.lineTo(pw*0.64,yb); c.closePath(); c.fill(); c.fillStyle="#285c5b"; c.fillRect(-pw*0.35,cy,pw*0.86,u*3.4);
+    // palm behind the lower half of the phone
+    cap(px-u*5,py+ph*0.46,pw+u*11,ph*0.6,u*14,skin);
+    c.save(); c.shadowColor="rgba(0,0,0,.45)"; c.shadowBlur=u*6; c.fillStyle="#15181d"; c.beginPath(); c.roundRect(px,py,pw,ph,u*7); c.fill(); c.restore();
+    const call=!!el.value; c.fillStyle=call?"#173a2f":"#1d3a48"; c.beginPath(); c.roundRect(px+u*1.6,py+u*1.6,pw-u*3.2,ph-u*3.2,u*5.6); c.fill(); c.fillStyle="#0b0d10"; c.beginPath(); c.roundRect(-pw*0.17,py+u*3.2,pw*0.34,u*3.4,u*1.7); c.fill();
+    c.textAlign="center"; c.textBaseline="middle";
+    if(call){ c.fillStyle="#cfe9dc"; c.font=`600 ${u*3.4}px ${fam}`; c.fillText(el.tag||"กำลังโทร · CALLING",0,py+ph*0.2,pw*0.9); c.fillStyle="#fff"; c.font=`800 ${u*13}px ${fam}`; c.fillText(el.value,0,py+ph*0.33,pw*0.9);
+      c.fillStyle="#cfe9dc"; c.font=`600 ${u*3.6}px ${fam}`; c.fillText(el.label||"",0,py+ph*0.43,pw*0.9); const sec=Math.max(0,Math.floor(since)); c.fillStyle="#5fd38d"; c.font=`700 ${u*5}px ${fam}`; c.fillText(`00:${String(sec%60).padStart(2,"0")}`,0,py+ph*0.52);
+      c.fillStyle="#e2483d"; c.beginPath(); c.arc(0,py+ph*0.8,u*6,0,7); c.fill(); c.strokeStyle="#fff"; c.lineWidth=u*1.4; c.lineCap="round"; c.beginPath(); c.arc(0,py+ph*0.8+u*2.2,u*3,Math.PI*1.15,Math.PI*1.85); c.stroke(); }
+    else { c.textAlign="left"; const x1=px+pw*0.14; c.fillStyle="#f2c94c"; c.font=`600 ${u*4}px ${fam}`; c.fillText(el.tag||"ประกาศ",x1,py+ph*0.22,pw*0.75); c.fillStyle="#fff"; c.font=`800 ${u*7}px ${fam}`; wrap(c,el.label||"",pw*0.72).slice(0,3).forEach((l,i)=>c.fillText(l,x1,py+ph*0.33+i*u*8.4));
+      if(el.note){ c.fillStyle="#a9c1cc"; c.font=`500 ${u*3.2}px ${fam}`; c.fillText(el.note,x1,py+ph*0.62,pw*0.75); } }
+    // four fingers wrap round the right edge (front of the phone), thumb over the left edge
+    for(let k=0;k<4;k++){ const fy=py+ph*(0.36+k*0.13), fl=u*(16-Math.abs(k-1.2)*1.8); cap(px+pw-fl*0.5,fy,fl,u*10.5,u*5.2,skin); c.fillStyle="rgba(255,255,255,.18)"; c.beginPath(); c.roundRect(px+pw-fl*0.55+u*1.4,fy+u*1.4,fl*0.42,u*2,u*1); c.fill(); }
+    c.save(); c.translate(px+u*1.5,py+ph*0.62); c.rotate(-0.4); cap(-u*6,-u*17,u*12,u*28,u*6,skin); c.fillStyle="rgba(255,255,255,.22)"; c.beginPath(); c.roundRect(-u*3.2,-u*14.5,u*6.4,u*5,u*2.5); c.fill(); c.restore(); return; }
+  /* plan: a house cut in half (blueprint lines) with the safe room highlighted and labelled. Put it over bg "blueprint". */
+  if(el.kind==="plan"){ const L="rgba(235,244,255,.85)", lw=Math.max(1.5,u*0.9), x0=-w*0.42, x1=w*0.42, y0=-h*0.12, y1=h*0.46, mid=(y0+y1)/2, q=easeOut(clamp(since/0.8,0,1));
+    c.strokeStyle=L; c.lineWidth=lw; c.lineCap="round"; c.beginPath(); c.moveTo(x0-w*0.06,y0); c.lineTo(0,y0-h*0.3*q); c.lineTo(x1+w*0.06,y0); c.stroke(); c.strokeRect(x0,y0,x1-x0,y1-y0); c.beginPath(); c.moveTo(x0,mid); c.lineTo(x1,mid); c.moveTo(w*0.04,mid); c.lineTo(w*0.04,y1); c.moveTo(w*0.04,y0); c.lineTo(w*0.04,mid); c.stroke();
+    c.beginPath(); for(let k=0;k<5;k++){ const sx=x0+w*0.08+k*w*0.05, sy=y1-k*(y1-mid)/5.5; c.lineTo(sx,sy); c.lineTo(sx+w*0.05,sy); } c.stroke(); c.lineWidth=lw*2; c.beginPath(); c.moveTo(x0+u*3,y0+(mid-y0)*0.3); c.lineTo(x0+u*3,y0+(mid-y0)*0.7); c.moveTo(x1-u*3,mid+(y1-mid)*0.3); c.lineTo(x1-u*3,mid+(y1-mid)*0.7); c.stroke();
+    const a=clamp((since-0.6)/0.4,0,1), rx=w*0.1, rw=x1-rx-u*7, ry=mid+u*3, rh=y1-mid-u*6; c.globalAlpha=a; c.fillStyle="rgba(95,211,141,.25)"; c.strokeStyle="#7fe0a6"; c.lineWidth=lw*1.4; c.beginPath(); c.roundRect(rx,ry,rw,rh,u*2); c.fill(); c.stroke();
+    c.fillStyle="#d8f5e3"; c.textAlign="center"; c.textBaseline="middle"; c.font=`700 ${u*3.8}px ${fam}`; const pl=wrap(c,el.label||"ห้องปลอดภัย",rw*0.86).slice(0,3); pl.forEach((l,i)=>c.fillText(l,rx+rw/2,ry+rh*0.5-(pl.length-1)*u*2.4-u*3+i*u*4.8)); c.fillStyle="#7fe0a6"; c.beginPath(); c.arc(rx+rw/2,ry+rh*0.84,u*1.8+Math.sin(since*5)*u*0.5,0,7); c.fill(); c.globalAlpha=1; return; }
+  if(el.kind==="icons"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6; c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*4.6}px ${fam}`; c.fillText(el.label,x0,-h/2+u*8.5,w-u*12);
+    const n=Math.round(clamp(parseFloat(String(el.value).replace(/,/g,""))||0,0,el.total)), per=Math.min(10,el.total), rows=Math.ceil(el.total/per), cell=(w-u*12)/per, sz=cell*0.78, hit=el.good===true?K.good:K.bad;
+    for(let i=0;i<el.total;i++){ const r=Math.floor(i/per), k=i%per, on=i<n, pop=easeBack(clamp((since-0.15-i*0.05)/0.3,0,1)); if(pop<=0) continue; c.save(); c.translate(x0+cell*(k+0.5),-h/2+u*17+r*cell*1.05); c.scale(pop,pop); pictogram(c,el.icon,0,0,sz,on?hit:"#b9ae9c"); c.restore(); }
+    const vy=-h/2+u*17+(rows-1)*cell*1.05+cell*0.5+u*10; c.fillStyle=hit; c.font=`800 ${u*9}px ${fam}`; c.fillText(`${countUp(String(n),q)} ใน ${el.total}${el.unit?" "+el.unit:""}`,x0,vy,w-u*12); srcLine(); return; }
+  if(el.kind==="bars"){ cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6, rw=w-u*12; let y=-h/2+u*(el.label?9:5); c.textBaseline="alphabetic";
+    if(el.label){ c.textAlign="left"; c.fillStyle=soft; c.font=`600 ${u*3.6}px ${fam}`; c.fillText(el.label,x0,y,rw); y+=u*3; }
+    (el.rows||[]).forEach((r,i)=>{ const col=r.good===false?K.bad:r.good===true?K.good:K.blue, cy=y+u*5.5+i*u*8.5, bq=easeOut(clamp((since-0.2-i*0.15)/0.8,0,1));
+      c.textAlign="left"; c.textBaseline="middle"; c.fillStyle=col; c.font=`700 ${u*4.2}px ${fam}`; c.fillText(r.label,x0,cy,rw*0.24);
+      const bx=x0+rw*0.26, bw=rw*0.5; c.fillStyle=K.track; c.beginPath(); c.roundRect(bx,cy-u*2.2,bw,u*4.4,u*1.2); c.fill(); c.fillStyle=col; c.beginPath(); c.roundRect(bx,cy-u*2.2,Math.max(u*2,bw*r.pct/100*bq),u*4.4,u*1.2); c.fill();
+      c.textAlign="right"; c.font=`800 ${u*5.6}px ${fam}`; c.fillText(countUp(r.value,bq),x0+rw,cy+u*0.3,rw*0.22); }); srcLine(); return; }
+  cardPanel(c,-w/2,-h/2,w,h,u,accent); const x0=-w/2+u*6, hb=h/2-(el.src?u*6.25:0); let tx=x0;
   if(el.kind==="timer"){ const r=u*7.5, cx=x0+r, cy=-h/2+h*0.5; c.strokeStyle=ink; c.lineWidth=u*1.3; c.beginPath(); c.arc(cx,cy+u,r,0,7); c.stroke(); c.fillStyle=ink; c.fillRect(cx-u*1.6,cy-r-u*0.9,u*3.2,u*1.6);
-    const a=since*5; c.strokeStyle="#c8452f"; c.lineWidth=u*1.1; c.beginPath(); c.moveTo(cx,cy+u); c.lineTo(cx+Math.sin(a)*r*0.75,cy+u-Math.cos(a)*r*0.75); c.stroke(); tx=x0+r*2+u*5; }
+    const a=since*5; c.strokeStyle=K.bad; c.lineWidth=u*1.1; c.beginPath(); c.moveTo(cx,cy+u); c.lineTo(cx+Math.sin(a)*r*0.75,cy+u-Math.cos(a)*r*0.75); c.stroke(); tx=x0+r*2+u*5; }
   c.textAlign="left"; c.textBaseline="alphabetic"; c.fillStyle=ink; c.font=`600 ${u*5.4}px ${fam}`; c.fillText(el.label,tx,-h/2+u*9.5,w-(tx-x0)-u*8);
   if(el.labelEn){ c.fillStyle=soft; c.font=`600 ${u*3.2}px ${fam}`; c.fillText(el.labelEn,tx,-h/2+u*14);  }
   c.fillStyle=ink; c.font=`800 ${u*16}px ${fam}`; const val=countUp(el.value,q); c.fillText(val,tx,-h/2+u*(el.labelEn?30:28),w-(tx-x0)-u*22);
   if(el.unit){ const vw=Math.min(c.measureText(val).width,w-(tx-x0)-u*22); c.font=`600 ${u*5.2}px ${fam}`; c.fillText(el.unit,tx+vw+u*2,-h/2+u*(el.labelEn?30:28)); }
-  if(el.pct!=null){ const pq=el.pct*q; c.textAlign="right"; c.fillStyle="#2e7a4d"; c.font=`800 ${u*7}px ${fam}`; c.fillText(Math.round(pq)+"%",w/2-u*5,-h/2+u*28);
-    const by=h/2-u*7, bx=tx, bw=w/2-u*5-bx; c.fillStyle="#e6dccb"; c.beginPath(); c.roundRect(bx,by,bw,u*3.2,u*1.6); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.roundRect(bx,by,Math.max(u*3.2,bw*pq/100),u*3.2,u*1.6); c.fill(); }
-  else if(el.note) pill(tx,h/2-u*6.5,(el.good===false?"✕ ":el.good===true?"✓ ":"")+el.note,el.good,u*3.6);
+  if(el.pct!=null){ const pq=el.pct*q; c.textAlign="right"; c.fillStyle=K.good; c.font=`800 ${u*7}px ${fam}`; c.fillText(Math.round(pq)+"%",w/2-u*5,-h/2+u*28);
+    const by=hb-u*7, bx=tx, bw=w/2-u*5-bx; c.fillStyle=K.track; c.beginPath(); c.roundRect(bx,by,bw,u*3.2,u*1.6); c.fill(); c.fillStyle="#d9a23a"; c.beginPath(); c.roundRect(bx,by,Math.max(u*3.2,bw*pq/100),u*3.2,u*1.6); c.fill(); }
+  else if(el.note) pill(tx,hb-u*6.5,(el.good===false?"✕ ":el.good===true?"✓ ":"")+el.note,el.good,u*3.6);
+  srcLine();
 }
 /* "Slim" character style (realistic proportions, small head, flat colours, simple face) for documentary-style clips.
    Same coordinate system as the cute style: feet at (0,0), about 290 units tall. Robot/cat/alien keep the cute drawing. */
@@ -1549,7 +1804,53 @@ function drawSlim(c,el,lt,talking){ const L=LOOKS[el.look]||LOOKS.boy, T=SLIM_TO
   const front=run?[-18,shoulder+6,-18+sw*24,-180,-18+sw*32,-150]:mo==="shrug"?[-18,shoulder+6,-44,-200,-58,-216]:pt?[-18,shoulder+6,lerp(-24,-52,pt),lerp(-180,-232,pt),lerp(-22,-86,pt),lerp(-136,-246,pt)]:emo==="thinking"?[-18,shoulder+6,-26,-196,-4,-222]:armUp?[-18,shoulder+6,-38,-262,-46,-292]:[-18,shoulder+6,-24,-180,-22,-136+Math.sin(lt*2.2+1)*2];
   limb2(front,12,top); c.fillStyle=L.skin; c.beginPath(); c.arc(front[front.length-2],front[front.length-1],6.5,0,7); c.fill(); if(pt>0.6) limb2([front[4],front[5],front[4]-12,front[5]-3],4,L.skin);
   c.restore(); }
-function drawCharacter(c,el,lt,talking){ if(CF.cs==="slim"&&!["robot","cat","alien"].includes(el.look)) return drawSlim(c,el,lt,talking);
+/* promptkub-style people (the owner asked to copy that channel's animation): tall flat figures, small round head,
+   dot eyes, thin straight limbs, flat muted colours, no outlines. Feet at (0,0), about 300 units tall. */
+const PK_TONES={boy:{top:"#3f6fb0",bottom:"#2a2f3c",hair:"#1d1b1a",skin:"#e2ae86"},girl:{top:"#f1f0ec",bottom:"#283457",hair:"#151413",skin:"#ecbf98",skirt:true},
+  scientist:{top:"#f3f3f0",bottom:"#3b4050",hair:"#cfcac2",skin:"#dcaa82",coat:true,glasses:true},kid:{top:"#f1f0ec",bottom:"#2b3550",hair:"#1d1b1a",skin:"#e6b48c"},
+  sprinter:{top:"#f2c230",bottom:"#1f7a3c",hair:"#17130f",skin:"#6a4330"},
+  crew:{top:"#1f3a63",bottom:"#1f3a63",hair:"#2a2422",skin:"#e8b891",skirt:true,scarf:"#c8352b"},
+  man:{top:"#6b7f5a",bottom:"#7d6f57",hair:"#4a4644",skin:"#d9a47c"},woman:{top:"#b5694f",bottom:"#3a3f4d",hair:"#2a2422",skin:"#e4b38f",skirt:true}};
+function drawPK(c,el,lt,talking){ const T=PK_TONES[el.look]||PK_TONES.boy, emo=el.emotion, mo=el.motion, run=mo==="run", walk=mo==="walk"||mo==="move"||run, sw=walk?Math.sin(lt*(run?14:7.5)):0;
+  const lift=mo==="jump"||mo==="celebrate"||emo==="excited"?-Math.abs(Math.sin(lt*6))*14:run?-Math.abs(Math.sin(lt*14))*5:0, breath=Math.sin(lt*2)*0.8, armsUp=mo==="celebrate"||emo==="excited"||mo==="jump", handsIn=emo==="shocked"||emo==="scared"||emo==="sad";
+  const ln=(pts,w,col)=>{ c.lineCap="round"; c.lineJoin="round"; c.lineWidth=w; c.strokeStyle=col; c.beginPath(); c.moveTo(pts[0],pts[1]); for(let k=2;k<pts.length;k+=2) c.lineTo(pts[k],pts[k+1]); c.stroke(); };
+  const sit=mo.startsWith("sit"), pz=mo.replace(/^sit/,""), lie=mo==="lie", droop=emo==="droop";
+  c.save(); if(run) c.rotate(0.12); c.translate(0,lift); if(lie){ c.translate(-135,-17); c.rotate(Math.PI/2); } if(sit) c.translate(0,70);
+  const hip=-140, sh=-236, legW=11;
+  if(sit&&!CF.noChair){ c.fillStyle="#6b4f3a"; c.fillRect(-26,hip+8,44,7); c.fillRect(-22,hip+15,5,56); c.fillRect(9,hip+15,5,56); }
+  // legs: straight, swing from the hip; skirt for the girl look
+  const leg=(x,ph,col)=>{ if(pz==="crouch"){ const f=x>0; ln([x,hip+40,x+(f?42:22),hip+82,x+(f?6:-34),hip+130],legW,col); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(x+(f?12:-28),hip+133,12,5,0,0,7); c.fill(); return; } if(sit){ ln([x,hip,x+50,hip+2,x+50,hip+62],legW,col); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(x+56,hip+67,11,5,0,0,7); c.fill(); return; } const a=ph*(run?0.55:0.35), fx=x+Math.sin(a)*140, fy=hip+Math.cos(a)*140; ln([x,hip,fx,fy-4],legW,col); c.fillStyle="#f2f2ee"; c.fillRect(fx-5,fy-16,10,12); c.fillStyle="#22232a"; c.beginPath(); c.ellipse(fx+5,fy-3,11,5,0,0,7); c.fill(); };
+  leg(5,-sw,T.skirt?T.skin:T.bottom); leg(-5,sw,T.skirt?shade(T.skin,-0.06):shade(T.bottom,-0.12));
+  if(pz==="duck"||pz==="crouch"){ const dk=Math.min(1,lt/0.45), ang=pz==="crouch"?0.8:0.62; if(pz==="crouch") c.translate(0,40*dk); c.translate(10*dk,hip); c.rotate(ang*dk); c.translate(0,-hip); }   // fold forward at the hips, hands to the face
+  c.translate(0,breath);
+  if(T.skirt){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-17,hip-14); c.lineTo(17,hip-14); c.lineTo(25,hip+44); c.lineTo(-25,hip+44); c.closePath(); c.fill(); }
+  else { c.fillStyle=T.bottom; c.fillRect(-15,hip-14,30,22); }
+  // arms (thin, sleeve then skin)
+  const wv=Math.sin(lt*8), arm=(sx,side,ph)=>{ const a=pz==="handup"&&side>0?[sx,sh+8,sx+16,sh-40,sx+8+Math.sin(lt*4)*10,sh-98]:pz==="reach"?[sx,sh+8,sx+34,sh+58,sx+62+Math.sin(lt*6)*4,sh+104]:pz==="hold"?[sx,sh+8,sx+20,sh+46,sx+46+side*2,sh+26]:pz==="duck"?[sx,sh+8,sx+side*12,sh-6,sx+side*4+6,sh-38]:pz==="crouch"?[sx,sh+8,sx+16,sh+70,sx+26,sh+132]:sit&&!armsUp&&!(droop&&side<0)&&mo!=="point"?[sx,sh+8,sx+16,sh+52,sx+44,sh+60]:armsUp&&!lie?[sx,sh+8,sx+side*26,sh-40,sx+side*20+(mo==="celebrate"?wv*6:0),sh-78]:walk?[sx,sh+8,sx-ph*20,sh+52,sx-ph*30,sh+92]:mo==="point"&&side>0?[sx,sh+8,sx+44,sh+18,sx+86,sh+10]:mo==="shrug"?[sx,sh+8,sx+side*30,sh+44,sx+side*40,sh+24]:handsIn?(emo==="shocked"?[sx,sh+8,sx+side*14,sh+50,sx+side*7,sh-12]:[sx,sh+8,sx+side*10,sh+48,sx-side*12,sh+40]):[sx,sh+8,sx+side*5,sh+52,sx+side*4,sh+96];
+    ln(a.slice(0,4),10,T.coat?T.top:T.top); ln(a.slice(2),8.5,T.skin); };
+  arm(-16,-1,-sw); 
+  // torso: flat shirt block (lab coat longer)
+  c.fillStyle=T.top; c.beginPath(); c.roundRect(-18,sh,36,T.coat?120:102,[9,9,3,3]); c.fill(); c.fillStyle="rgba(0,0,0,.06)"; c.fillRect(-18,sh+(T.coat?108:90),36,12);
+  if(T.skirt||el.look==="kid"){ c.fillStyle=T.bottom; c.beginPath(); c.moveTo(-4,sh+2); c.lineTo(4,sh+2); c.lineTo(2,sh+34); c.lineTo(-2,sh+34); c.fill(); }
+  if(T.coat){ c.strokeStyle="rgba(0,0,0,.12)"; c.lineWidth=2; c.beginPath(); c.moveTo(0,sh+6); c.lineTo(0,sh+118); c.stroke(); }
+  arm(16,1,sw);
+  // neck + head
+  c.fillStyle=shade(T.skin,-0.08); c.fillRect(-5,sh-12,10,14); if(T.scarf){ c.fillStyle=T.scarf; c.beginPath(); c.moveTo(-10,sh-3); c.lineTo(10,sh-3); c.lineTo(0,sh+15); c.closePath(); c.fill(); }
+  const tilt=(emo==="thinking"?-0.12:0)+(mo==="nod"?Math.sin(lt*5)*0.08:0); c.save(); c.translate(0,sh-30); c.rotate(tilt);
+  c.fillStyle=T.skin; c.beginPath(); c.arc(0,0,21,0,7); c.fill();
+  c.fillStyle=T.hair; if(el.look==="girl"){ c.beginPath(); c.arc(0,-3,23,Math.PI*0.95,Math.PI*2.05); c.lineTo(23,14); c.lineTo(15,14); c.lineTo(15,-6); c.lineTo(-15,-6); c.lineTo(-15,14); c.lineTo(-23,14); c.closePath(); c.fill(); }
+  else if(el.look==="scientist"){ c.beginPath(); c.arc(0,-4,22,Math.PI*1.05,Math.PI*1.95); c.fill(); fillE(c,-19,0,5,9,T.hair); fillE(c,19,0,5,9,T.hair); }
+  else { c.beginPath(); c.arc(0,-3,22,Math.PI*1.02,Math.PI*1.98); c.lineTo(20,-8); c.lineTo(-20,-8); c.closePath(); c.fill(); if(el.look==="boy") for(let i=-3;i<=3;i++){ c.beginPath(); c.moveTo(i*6-4,-20); c.lineTo(i*6+1,-31-Math.abs(i)%2*4); c.lineTo(i*6+5,-19); c.fill(); } }
+  const blink=(lt+el.x*3)%3.8<0.12, big=emo==="shocked"||emo==="scared", ey=3;
+  if(big){ c.fillStyle="#fbfaf6"; c.beginPath(); c.arc(-7,ey,5,0,7); c.arc(7,ey,5,0,7); c.fill(); }
+  c.fillStyle="#1b1a1c"; if(blink){ c.fillRect(-10,ey,6,1.8); c.fillRect(4,ey,6,1.8); } else { c.beginPath(); c.arc(-7,ey,big?2.4:2.2,0,7); c.arc(7,ey,big?2.4:2.2,0,7); c.fill(); }
+  if(droop&&!blink){ c.fillStyle=T.skin; c.fillRect(3,ey-3.2,8.5,3.4); c.strokeStyle="#1b1a1c"; c.lineWidth=1.1; c.beginPath(); c.moveTo(3.5,ey+0.1); c.lineTo(11,ey+1.2); c.stroke(); }
+  if(T.glasses){ c.strokeStyle="#1b1a1c"; c.lineWidth=1.4; c.beginPath(); c.arc(-7,ey,5.5,0,7); c.moveTo(12.5,ey); c.arc(7,ey,5.5,0,7); c.stroke(); }
+  const ta=typeof talking==="number"?talking:0, my=12; c.fillStyle="#8a3b3b";
+  if(ta>0.02){ c.beginPath(); c.ellipse(0,my,3,1+ta*3.5,0,0,7); c.fill(); } else if(big){ c.beginPath(); c.ellipse(0,my+1,2.6,3.4,0,0,7); c.fill(); } else { c.strokeStyle="#8a3b3b"; c.lineWidth=1.6; c.beginPath(); if(droop){ c.moveTo(-5,my-1.5); c.quadraticCurveTo(1,my-0.5,7,my+5.5); } else if(emo==="sad"||emo==="angry"){ c.moveTo(-4,my+2); c.quadraticCurveTo(0,my-1,4,my+2); } else if(emo==="happy"||emo==="excited"){ c.moveTo(-4,my-1); c.quadraticCurveTo(0,my+3,4,my-1); } else { c.moveTo(-3,my); c.lineTo(3,my); } c.stroke(); }
+  if(emo==="scared"||emo==="sad"||droop){ c.fillStyle="#9fd0ff"; c.beginPath(); c.moveTo(18,-14); c.quadraticCurveTo(24,-4,18,-2); c.quadraticCurveTo(13,-4,18,-14); c.fill(); }
+  c.restore(); c.restore(); }
+function drawCharacter(c,el,lt,talking){ if(CF.cs==="pk"&&!["robot","cat","alien"].includes(el.look)) return drawPK(c,el,lt,talking); if(CF.cs==="slim"&&!["robot","cat","alien"].includes(el.look)) return drawSlim(c,el,lt,talking);
   const L=LOOKS[el.look]||LOOKS.boy, emo=el.emotion, mo=el.motion, running=mo==="run", walking=mo==="walk"||mo==="move"||running, waving=mo==="wave";
   // talking: a 0..1 mouth level from the spoken words (lip sync), or a loop when no timing is known
   const talkAmt=typeof talking==="number"?talking:(talking?Math.abs(Math.sin(lt*13))*0.75+0.25:0); talking=talkAmt>0.02;
@@ -1904,18 +2205,21 @@ class Renderer{
   constructor(canvas){ this.cv=canvas; this.c=canvas.getContext("2d"); this.bufA=document.createElement("canvas"); this.bufB=document.createElement("canvas"); this.project=null; }
   load(project){ this.project=project; const [w,h]=project.aspect==="16:9"?[1280,720]:[720,1280]; for(const cv of [this.cv,this.bufA,this.bufB]){ cv.width=w; cv.height=h; } this.W=w; this.H=h; this.layout(); }
   rc(s){ let o=this._rc.get(s); if(!o){ o={}; this._rc.set(s,o); } return o; }
-  layout(){ this._rc=new WeakMap(); const P=this.project; let t=0; this.starts=P.scenes.map(s=>{ const st=t; t+=s.duration; return st; }); this.endStart=t; this.total=t+2.6; this.subs=P.scenes.map((s,i)=>this.buildSubs(s,i)); }
+  layout(){ this._rc=new WeakMap(); const P=this.project; let t=0; this.starts=P.scenes.map(s=>{ const st=t; t+=s.duration; return st; }); this.endStart=t; this.total=t+(P.endStyle==="black"?1.2:2.6); this.subs=P.scenes.map((s,i)=>this.buildSubs(s,i)); }
   buildSubs(s,i){
     const text=s.narration||"", ranges=[];
     if(this.project.emphOn!==false) (s.emph||[]).forEach(ph=>{ let k=text.indexOf(ph); while(ph&&k>=0){ ranges.push([k,k+ph.length]); k=text.indexOf(ph,k+ph.length); } });
     const segs=segmenter?[...segmenter.segment(text)].map(x=>({w:x.segment,at:x.index})):(()=>{ const out=[]; let at=0; text.split(/(\s+)/).forEach(w=>{ if(w) out.push({w,at}); at+=w.length; }); return out; })();
+    // cut word pieces at the edges of emphasised phrases, so a highlight (or the red keyword box) never covers half a word
+    if(ranges.length){ const cuts=new Set(ranges.flat()); for(let i=segs.length-1;i>=0;i--){ const t=segs[i], inner=[...cuts].filter(c=>c>t.at&&c<t.at+t.w.length).sort((a,b)=>a-b); if(!inner.length) continue;
+        const parts=[]; let from=t.at; [...inner,t.at+t.w.length].forEach(c=>{ parts.push({w:text.slice(from,c),at:from,glue:c<t.at+t.w.length}); from=c; }); segs.splice(i,1,...parts); } }
     const words=[]; segs.forEach(t=>{ if(/^\s+$/.test(t.w)){ if(words.length) words[words.length-1].sp=true; return; } const end=t.at+t.w.length; const tw=t.w.trim(); if(words.length&&/^[!?,.…:;)\]"'”’ๆ]+$/.test(tw)){ const L=words[words.length-1]; L.text+=tw; L.end=end; L.sp=/\s$/.test(t.w); return; } words.push({text:tw,at:t.at,end,emph:ranges.some(([a,b])=>t.at<b&&end>a),sp:/\s$/.test(t.w)}); });
     const t0=0.15, t1=Math.max(t0+0.6,s.duration-0.35), lens=words.map(w=>Math.max(1,w.text.replace(/[ัิ-ฺ็-๎]/g,"").length)+(w.sp?2:0)), tot=lens.reduce((a,b)=>a+b,0)||1; let acc=0;
     words.forEach((w,k)=>{ w.from=t0+(acc/tot)*(t1-t0); acc+=lens[k]; w.to=t0+(acc/tot)*(t1-t0); });
     // real voiceover timings (ElevenLabs character alignment, scene-local seconds, voice starts at VOICE_LEAD)
     const A=s.align; if(A&&A.s?.length===text.length&&A.e?.length===text.length) words.forEach(w=>{ let a=w.at; while(a<w.end-1&&/\s/.test(text[a])) a++; let b=Math.max(a,w.end-1); while(b>a&&/\s/.test(text[b])) b--; w.from=VOICE_LEAD+A.s[a]; w.to=Math.max(w.from+0.05,VOICE_LEAD+A.e[b]); });
     const chunks=[]; let cur=[], len=0;
-    words.forEach((w,k)=>{ const L=lens[k], prev=cur[cur.length-1]; if(cur.length&&(len+L>15||(w.emph!==prev.emph&&len>5))){ chunks.push(cur); cur=[]; len=0; } cur.push(w); len+=L; if((w.sp||/[,.!?…]$/.test(w.text))&&len>7){ chunks.push(cur); cur=[]; len=0; } });
+    words.forEach((w,k)=>{ const L=lens[k], prev=cur[cur.length-1]; if(cur.length&&(len+L>18||(w.emph!==prev.emph&&len>9))){ chunks.push(cur); cur=[]; len=0; } cur.push(w); len+=L; if((w.sp||/[,.!?…]$/.test(w.text))&&len>10){ chunks.push(cur); cur=[]; len=0; } });
     if(cur.length) chunks.push(cur);
     // Never leave a tiny fragment (e.g. "ออก" from "ส่งออก") on its own: merge it into a neighbour.
     const base=c=>c.reduce((n,w)=>n+w.text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g,"").length,0);
@@ -1929,13 +2233,19 @@ class Renderer{
     if(s.caption){ const fs=Math.round(m*0.085); c.font=`800 ${fs}px ${this.fam}`; const lines=wrap(c,s.caption,W*0.88).slice(0,2); const y0=H*(W>H?0.13:0.12), w=Math.max(...lines.map(l=>c.measureText(l).width));
       R.push({x0:W/2-w/2-fs*0.3,x1:W/2+w/2+fs*0.3,y0:y0-fs*0.8,y1:y0+(lines.length-1)*fs*1.15+fs*0.85,w:100}); }
     for(const e of s.elements){ const pts=[[e.x,e.y]]; if(e.motion==="move"||e.motion==="walk"){ pts.push([e.toX,e.toY]); pts.push([(e.x+e.toX)/2,(e.y+e.toY)/2]); }
+      if(e.motion==="jump"||e.motion==="celebrate") pts.push([e.x,e.y-0.06]);
+      if(e.motion==="rise"||e.motion==="fall"){ const y2=e.motion==="rise"?(e.toY<e.y?e.toY:e.y-0.5):e.y-0.7; for(let k=1;k<=4;k++) pts.push([e.x,e.y+(y2-e.y)*k/4]); }
       for(const [x,y] of pts){ const X=x*W, Y=y*H;
-        if(e.type==="character"){ const h=m*0.58*e.scale, w=m*0.32*e.scale; R.push({x0:X-w/2,x1:X+w/2,y0:Y-h,y1:Y,w:4}); const k=m*0.0024*e.scale, slim=s&&this.project.charStyle==="slim"&&!["robot","cat","alien"].includes(e.look), hy=Y-k*(slim?266:188), hr=k*(slim?30:52); R.push({x0:X-hr,x1:X+hr,y0:hy-hr,y1:hy+hr*1.1,w:100});
+        if(e.type==="character"){ const h=m*(this.project.charStyle==="pk"?0.72:0.58)*e.scale, w=m*0.32*e.scale; R.push({x0:X-w/2,x1:X+w/2,y0:Y-h,y1:Y,w:4}); const k=m*0.0024*e.scale, pkS=this.project.charStyle==="pk"&&!["robot","cat","alien"].includes(e.look), slim=s&&this.project.charStyle==="slim"&&!["robot","cat","alien"].includes(e.look), hy=Y-k*(pkS?266:slim?266:188), hr=k*(pkS?26:slim?30:52); R.push({x0:X-hr,x1:X+hr,y0:hy-hr,y1:hy+hr*1.1,w:100});
+          if(e.pin){ const top=Y-k*(pkS?300:250), py=top-m*0.07, fs=m*0.026; R.push({x0:X-fs*4,x1:X+fs*4,y0:py-fs,y1:top,w:100}); }
           if(e.say){ const fs=34*m/720, by=Y-m*0.0024*e.scale*240; c.font=`600 ${fs}px ${this.fam}`; const bw=Math.min(c.measureText(e.say).width+fs,W*0.8); R.push({x0:X-bw/2,x1:X+bw/2,y0:by-fs*1.8,y1:by+fs*0.6,w:100}); R.push({x0:X-bw-m*0.11*e.scale,x1:X+bw+m*0.11*e.scale,y0:by,y1:by+m*0.11*e.scale+fs*1.7,w:6}); } }
         else if(e.type==="text"){ const r=this.textRect(s,e,this.textShift(s,e)+(y-e.y)); R.push({x0:r.x0,x1:r.x1,y0:r.y0,y1:r.y1,w:100}); }
         else if(e.type==="emoji"){ const r=m*0.1*e.scale; R.push({x0:X-r,x1:X+r,y0:Y-r,y1:Y+r,w:10}); }
         else if(e.type==="card"){ const z=cardSize(e,m); R.push({x0:X-z.w/2,x1:X+z.w/2,y0:Y-z.h/2,y1:Y+z.h/2,w:100}); }
         else { const r=m*0.11*e.scale; R.push({x0:X-r,x1:X+r,y0:Y-r,y1:Y+r,w:2.5}); } } }
+    // the camera scales the scene (not the subtitles) by up to ~14% around the centre: grow each scene obstacle to cover that
+    const cam=s.camera, k=cam==="zoom-in"||cam==="zoom-out"||cam==="drone"?1.14:cam==="pan-left"||cam==="pan-right"?1.12:cam==="orbit"?1.1:1.06, ox=cam==="orbit"||cam.startsWith("pan")?W*0.05:W*0.01;
+    const n0=s.caption?1:0; for(let i=n0;i<R.length;i++){ const o=R[i], sx=v=>W/2+(v-W/2)*k, sy=v=>H/2+(v-H/2)*k; R[i]={...o,x0:Math.min(o.x0,sx(o.x0))-ox,x1:Math.max(o.x1,sx(o.x1))+ox,y0:Math.min(o.y0,sy(o.y0)),y1:Math.max(o.y1,sy(o.y1))}; }
     return R;
   }
   /* Pop style: fit a chunk on one line (shrinking up to 28%), wrap only if it still does not fit */
@@ -1952,7 +2262,7 @@ class Renderer{
   blockSize(S,style){ const W=this.W,m=Math.min(W,this.H),c=this.c;
     if(style==="pop"){ let w=0,h=0; S.chunks.forEach(ch=>{ const L=this.popLayout(ch); w=Math.max(w,L.w); h=Math.max(h,L.h); }); return {w:w+m*0.04,h:h+m*0.03}; }
     const cfg=this.pageCfg(style), pages=this.pages(c,S,cfg.fs,W*cfg.maxW,cfg.weight); let w=0,lines=1; pages.forEach(p=>{ lines=Math.max(lines,p.lines.length); p.lines.forEach(l=>w=Math.max(w,l.w)); });
-    let hh=lines*cfg.fs*cfg.lh+cfg.fs*(cfg.box?0.9:0.3); if(style==="doc"&&S.scene?.subEn){ hh+=this.enLines(S.scene.subEn).length*cfg.fs*0.62+cfg.fs*0.9; w=Math.max(w,this.W*0.72); }
+    let hh=lines*cfg.fs*cfg.lh+cfg.fs*(cfg.box?0.9:0.3); if(style==="doc"&&S.scene?.subEn&&this.project.enSub!==false){ hh+=this.enLines(S.scene.subEn).length*cfg.fs*0.62+cfg.fs*0.9; w=Math.max(w,this.W*0.72); }
     return {w:w+cfg.fs*1.4,h:hh}; }
   enLines(t){ const c=this.c, fs=Math.round(Math.min(this.W,this.H)*0.066)*0.46; c.font=`600 ${fs}px ${this.fam}`; return wrap(c,t,this.W*0.74).slice(0,2); }
   pageCfg(style){ const m=Math.min(this.W,this.H); if(style==="doc") return {fs:Math.round(m*0.066),maxW:0.86,weight:700,lh:1.35,box:false}; return style==="karaoke"?{fs:Math.round(m*0.06),maxW:0.8,weight:700,lh:1.6,box:true}:style==="bounce"?{fs:Math.round(m*0.072),maxW:0.86,weight:800,lh:1.5,box:false}:{fs:Math.round(m*0.052),maxW:0.84,weight:600,lh:1.55,box:true}; }
@@ -1976,12 +2286,15 @@ class Renderer{
   beatPulse(t){ const m=this.project.music; if(m==="none"||m==="calm"||reduceMotion) return 0; const bps=(MOODS[m]||MOODS.upbeat).bpm/60; return 0.012*Math.exp(-((t*bps)%1)*7); }
   emphTimes(){ if(this.project.emphOn===false) return []; const out=[]; this.subs.forEach((S,i)=>S.emphStarts.forEach(f=>out.push(this.starts[i]+f))); return out; }
   pages(c,S,fs,maxW,weight){ const key=fs+"|"+maxW+"|"+weight+"|"+fontEpoch; if(S._pk===key) return S._pages; const lines=[]; let line=[],lw=0;
-    S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*1.15:fs}px ${this.fam}`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
-    if(line.length) lines.push({items:line,w:lw}); const pages=[]; for(let k=0;k<lines.length;k+=2){ const ls=lines.slice(k,k+2); pages.push({lines:ls,from:ls[0].items[0].w.from}); }
+    const emK=this.project.subStyle==="doc"?1:1.15; S.words.forEach(w=>{ c.font=`${weight} ${w.emph?fs*emK:fs}px ${this.fam}`; const wd=c.measureText(w.text).width+(w.sp?fs*0.3:0); if(line.length&&lw+wd>maxW){ lines.push({items:line,w:lw}); line=[]; lw=0; } line.push({w,width:wd}); lw+=wd; });
+    if(line.length) lines.push({items:line,w:lw});
+    // balance the lines so no page is a one-word orphan ("...ข้าง / เดียว")
+    if(lines.length>1){ const all=lines.flatMap(l=>l.items), tot=all.reduce((a,x)=>a+x.width,0), n=lines.length; for(let lim=tot/n*1.08; lim<=maxW*1.001; lim*=1.07){ const out=[]; let cur=[],w=0; all.forEach(it=>{ if(cur.length&&w+it.width>lim){ out.push({items:cur,w}); cur=[]; w=0; } cur.push(it); w+=it.width; }); if(cur.length) out.push({items:cur,w}); if(out.length<=n){ lines.length=0; lines.push(...out); break; } } }
+    const per=this.project.subStyle==="doc"?1:2, pages=[]; for(let k=0;k<lines.length;k+=per){ const ls=lines.slice(k,k+per); pages.push({lines:ls,from:ls[0].items[0].w.from}); }  // promptkub shows one line at a time
     S._pk=key; S._pages=pages; return pages; }
   curPage(pages,lt){ let k=0; pages.forEach((p,j)=>{ if(lt>=p.from-0.05) k=j; }); return {p:pages[k],k}; }
   sceneAt(t){ const st=this.starts; for(let i=st.length-1;i>=0;i--) if(t>=st[i]) return i; return 0; }
-  drawFrame(t){ CF.ff=this.fam; CF.cs=this.project?.charStyle||"cute";
+  drawFrame(t){ CF.ff=this.fam; CF.cs=this.project?.charStyle||"cute"; CF.skin=this.project?.skin||"paper";
     const P=this.project, c=this.c, W=this.W, H=this.H;
     if(t>=this.endStart){ this.drawEnd(c,t-this.endStart); this.drawProgress(c,t); return; }
     const i=this.sceneAt(t), s=P.scenes[i], lt=t-this.starts[i];
@@ -2019,8 +2332,10 @@ class Renderer{
     const bg3=this.project.bg3d!==false?bg3dFrame(s,lt,idx,W,H):null;
     if(bg3){ c.save(); const k=1+this.punch(idx,lt)*0.5+this.beatPulse((this.starts[idx]||0)+lt)*0.5; c.translate(W/2,H/2); c.scale(k,k); c.translate(-W/2,-H/2); c.drawImage(bg3,0,0,W,H); c.restore(); }
     else { c.save(); const bsc=1+(sc-1)*0.5+0.02; c.translate(W/2+dx*0.45,H/2+dy*0.6); c.scale(bsc,bsc); c.translate(-W/2,-H/2);
-    (BG[s.bg]||BG.sky)(c,W,H,lt+idx*3,s.time); c.restore(); }
-    if(this.project.look==="cinematic") this.grade(c,W,H);
+    // promptkub close-ups: the set goes soft (shallow depth of field) when a character or object is shot close
+    const close=this.project.look==="doc"&&s.elements.some(e=>(e.type==="character"&&e.scale>=1.15)||(e.type==="prop"&&e.scale>=1.6)||(e.type==="card"&&(e.kind==="phone"||e.kind==="plan")));
+    CF.noChair=s.bg==="cabin"; if(close) c.filter=`blur(${Math.round(Math.min(W,H)*0.007)}px)`; (BG[s.bg]||BG.sky)(c,W,H,lt+idx*3,s.time); c.filter="none"; c.restore(); }
+    if(this.project.look==="cinematic") this.grade(c,W,H); else if(this.project.look==="doc") this.gradeDoc(c,W,H,lt);
     c.translate(W/2+dx,H/2+dy); c.scale(sc,sc); c.translate(-W/2,-H/2);
     // elements (props behind characters, text on top)
     const order=[...s.elements].sort((a,b)=>({prop:0,character:1,text:2}[a.type]-{prop:0,character:1,text:2}[b.type]));
@@ -2050,7 +2365,7 @@ class Renderer{
     if(el.type==="character"&&!reduceMotion){ const br=Math.sin(T*2.4)*0.012; sy*=1+br; sx*=1-br*0.5; }
     const base=Math.min(W,H), X=x*W, Y=y*H;
     // ground shadow (characters and grounded props)
-    const GROUND=["car","house","building","tree","coin","burger","book","bomb","volcano","ice","phone","wave"];
+    const GROUND=["car","house","building","tree","coin","burger","book","bomb","volcano","ice","phone","wave","ambulance","ct"];
     if(alpha>0.05&&(el.type==="character"||(el.type==="prop"&&GROUND.includes(el.name)&&!["float","fall","rise","spin"].includes(el.motion)))){
       const gy=(y+lift)*H+(el.type==="character"?0:base*0.0022*el.scale*48), r=(el.type==="character"?base*0.075:base*0.09)*el.scale*(1-lift*4);
       c.save(); c.globalAlpha=alpha*0.22; c.fillStyle="#1b1230"; c.beginPath(); c.ellipse(X,gy,r,r*0.22,0,0,Math.PI*2); c.fill(); c.restore(); }
@@ -2061,7 +2376,13 @@ class Renderer{
       if(ep<1&&["left","right","top","bottom"].includes(el.enter)){ const dir={left:[-1,0],right:[1,0],top:[0,-1],bottom:[0,1]}[el.enter]; const cy=el.type==="character"?Y-base*0.25*el.scale:Y;
         c.save(); c.globalAlpha=(1-ep)*0.6; c.strokeStyle="#ffffff"; c.lineCap="round"; for(let i=-1;i<=1;i++){ c.lineWidth=base*0.006; const ox=dir[1]?i*base*0.05:0, oy=dir[0]?i*base*0.06:0, L0=base*0.12, L1=base*0.32; c.beginPath(); c.moveTo(X+ox+dir[0]*L0,cy+oy+dir[1]*L0); c.lineTo(X+ox+dir[0]*L1,cy+oy+dir[1]*L1); c.stroke(); } c.restore(); } }
     c.save(); c.globalAlpha=alpha; c.translate(X,Y); c.rotate(rot); c.scale(sx,sy);
-    if(el.type==="character"){ const k=base*0.0024*sc; c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,this.talkLevel(s,el,lt,at)); c.restore();
+    if(el.type==="character"){ const k=base*0.0024*sc; c.save(); c.scale(el.flip?-k:k,k); drawCharacter(c,el,T,this.talkLevel(s,el,lt,at)); c.restore();
+      // promptkub pin label: a small pill above the head with a dotted leader ("คุณ", "ต้น", "ฟ้า · หัวหน้าห้อง")
+      if(el.pin){ const top=-(this.project.charStyle==="pk"?300:250)*k, fs=base*0.026, py=top-base*0.07, q=easeBack(clamp((lt-at-0.3)/0.35,0,1)); c.save(); c.globalAlpha=clamp(q,0,1); c.strokeStyle="rgba(30,26,22,.8)"; c.lineWidth=Math.max(1,fs*0.1); c.setLineDash([fs*0.15,fs*0.25]); c.beginPath(); c.moveTo(0,py+fs*0.9); c.lineTo(0,top-fs*0.2); c.stroke(); c.setLineDash([]);
+        c.fillStyle="#1e1a16"; c.beginPath(); c.arc(0,top-fs*0.2,fs*0.18,0,7); c.fill(); c.font=`700 ${fs}px ${this.fam}`; const tw=c.measureText(el.pin).width, bw=tw+fs*2.6; c.translate(0,py); c.scale(q,q);
+        c.fillStyle="#f5f0e6"; c.shadowColor="rgba(0,0,0,.3)"; c.shadowBlur=fs*0.5; c.beginPath(); c.roundRect(-bw/2,-fs*0.85,bw,fs*1.7,fs*0.85); c.fill(); c.shadowBlur=0; c.strokeStyle="#1e1a16"; c.lineWidth=Math.max(1,fs*0.08); c.stroke();
+        c.fillStyle="#e2b33a"; c.beginPath(); c.arc(-bw/2+fs*0.95,0,fs*0.5,0,7); c.fill(); c.fillStyle="#1e1a16"; c.beginPath(); c.arc(-bw/2+fs*0.95,-fs*0.05,fs*0.18,0,7); c.fill(); c.textAlign="left"; c.textBaseline="middle"; c.fillText(el.pin,-bw/2+fs*1.75,fs*0.05); c.restore(); }
+      c.restore();
       if(el.say && lt>=at+0.3) this.drawBubble(c,el.say,X,Y-base*0.0024*sc*250,u,s,sc);
       return; }
     if(el.type==="card"){ drawInfoCard(c,el,base*sc/Math.max(0.01,el.scale),lt-at,this.fam); c.restore(); return; }
@@ -2088,6 +2409,11 @@ class Renderer{
     return C[key]=R; }
   // on-screen labels move clear of the caption and of each other (earlier labels keep their place)
   // cinematic look: muted, cooler background with a darker frame, so characters and cards stand out
+  /* "doc" look: muted flat illustration with a little film grain and a soft vignette (viral reference style). */
+  gradeDoc(c,W,H,lt){ c.save(); c.globalCompositeOperation="saturation"; c.globalAlpha=0.22; c.fillStyle="#808080"; c.fillRect(0,0,W,H); c.globalCompositeOperation="multiply"; c.globalAlpha=0.12; c.fillStyle={warm:"#b89a70",cool:"#7aa0c4",neutral:"#a4a4a4",green:"#8fb08a"}[this.project.tint]||"#b89a70"; c.fillRect(0,H*0,W,H);
+    c.globalCompositeOperation="source-over"; c.globalAlpha=1; const v=c.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.35,W/2,H*0.45,Math.hypot(W,H)*0.62); v.addColorStop(0,"rgba(20,16,12,0)"); v.addColorStop(1,"rgba(20,16,12,.38)"); c.fillStyle=v; c.fillRect(0,0,W,H);
+    if(!Renderer._grain){ const g=document.createElement("canvas"); g.width=g.height=128; const x=g.getContext("2d"), d=x.createImageData(128,128); for(let i=0;i<d.data.length;i+=4){ const n=Math.random()*255; d.data[i]=d.data[i+1]=d.data[i+2]=n; d.data[i+3]=22; } x.putImageData(d,0,0); Renderer._grain=g; }
+    const pat=c.createPattern(Renderer._grain,"repeat"); c.translate(((lt*37)|0)%128,((lt*53)|0)%128); c.fillStyle=pat; c.globalCompositeOperation="overlay"; c.fillRect(-128,-128,W+256,H+256); c.restore(); }
   grade(c,W,H){ c.save(); c.globalCompositeOperation="saturation"; c.globalAlpha=0.5; c.fillStyle="#808080"; c.fillRect(0,0,W,H);
     c.globalCompositeOperation="multiply"; c.globalAlpha=0.5; c.fillStyle="#46597a"; c.fillRect(0,0,W,H); c.globalCompositeOperation="source-over"; c.globalAlpha=1;
     const v=c.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.3,W/2,H*0.45,Math.hypot(W,H)*0.6); v.addColorStop(0,"rgba(8,10,18,0)"); v.addColorStop(1,"rgba(8,10,18,.55)"); c.fillStyle=v; c.fillRect(0,0,W,H); c.restore(); }
@@ -2111,7 +2437,12 @@ class Renderer{
     c.translate(W/2,y0); c.scale(s,s); c.rotate(-0.03);
     lines.forEach((ln,i)=>{ const y=i*fs*1.15; c.lineWidth=fs*0.22; c.strokeStyle=OL; c.lineJoin="round"; c.strokeText(ln,0,y); c.fillStyle=i%2?"#ffd23f":"#ffffff"; c.fillText(ln,0,y); });
     c.restore(); }
-  drawSubs(c,i,lt){ const S=this.subs[i]; if(!S||!S.words.length) return; const st=this.project.subStyle;
+  /* Documentary chips: place/time tag top-left, live clock chip top-right (as in the viral reference clips). */
+  drawChips(c,s,lt){ if(!s||(!s.tag&&!s.clock)) return; const W=this.W,H=this.H,m=Math.min(W,H), fs=m*0.03, y=H*(W>H?0.07:0.075), a=reduceMotion||this._still?1:clamp(lt/0.3,0,1); c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.font=`600 ${fs}px ${this.fam}`;
+    if(s.tag){ const tw=c.measureText(s.tag).width+fs*1.4, x=W*0.06; c.fillStyle="rgba(245,240,230,.94)"; c.beginPath(); c.roundRect(x,y-fs*0.85,tw,fs*1.7,fs*0.85); c.fill(); c.strokeStyle="#1f1c18"; c.lineWidth=Math.max(1,fs*0.08); c.stroke(); c.fillStyle="#1f1c18"; c.textAlign="left"; c.fillText(s.tag,x+fs*0.7,y+fs*0.05); }
+    if(s.clock){ const tw=c.measureText(s.clock).width+fs*2.4, x=W*0.94-tw; c.fillStyle="rgba(20,18,16,.78)"; c.beginPath(); c.roundRect(x,y-fs*0.85,tw,fs*1.7,fs*0.85); c.fill(); c.fillStyle="#e2483d"; c.globalAlpha=a*(0.55+0.45*Math.abs(Math.sin(lt*3))); c.beginPath(); c.arc(x+fs*0.85,y,fs*0.28,0,7); c.fill(); c.globalAlpha=a; c.fillStyle="#fff"; c.textAlign="left"; c.fillText(s.clock,x+fs*1.45,y+fs*0.05); }
+    c.restore(); }
+  drawSubs(c,i,lt){ const S=this.subs[i]; if(S?.scene) this.drawChips(c,S.scene,lt); if(!S||!S.words.length) return; const st=this.project.subStyle;
     if(st==="doc") this.subDoc(c,S,lt); else if(st==="classic") this.subClassic(c,S,lt); else if(st==="karaoke") this.subKaraoke(c,S,lt); else if(st==="bounce") this.subBounce(c,S,lt); else this.subPop(c,S,lt,i); }
   outlined(c,text,x,y,f,fill,shadow=true){ c.lineJoin="round"; if(shadow){ c.fillStyle="rgba(10,6,20,.45)"; c.fillText(text,x+f*0.05,y+f*0.09); } c.lineWidth=f*0.2; c.strokeStyle="#1b1230"; c.strokeText(text,x,y); c.fillStyle=fill; c.fillText(text,x,y); }
   subPop(c,S,lt,i){
@@ -2146,10 +2477,16 @@ class Renderer{
       this.outlined(c,w2.text,cx,y+dy,f,w2.emph?"#ff5d8f":(lt>=w2.from&&lt<w2.to?"#ffd23f":"#ffffff")); x+=it.width; }); });
     c.restore(); }
   subDoc(c,S,lt){
-    const W=this.W,m=Math.min(W,this.H), cfg=this.pageCfg("doc"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, en=S.scene?.subEn?this.enLines(S.scene.subEn):[];
+    const W=this.W,m=Math.min(W,this.H), cfg=this.pageCfg("doc"), fs=cfg.fs, {p}=this.curPage(this.pages(c,S,fs,W*cfg.maxW,cfg.weight),lt), lh=fs*cfg.lh, en=S.scene?.subEn&&this.project.enSub!==false?this.enLines(S.scene.subEn):[];
     const th=p.lines.length*lh, eh=en.length?en.length*fs*0.62+fs*0.9:0, a=reduceMotion||this._still?1:clamp((lt-p.from)/0.18,0,1), y0=this.bandY(S)-(th+eh)/2+(1-easeOut(a))*fs*0.3;
-    c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.textAlign="left";
-    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+li*lh+lh/2; ln.items.forEach(it=>{ const f=it.w.emph?fs*1.08:fs; c.font=`700 ${f}px ${this.fam}`; c.fillStyle="rgba(0,0,0,.55)"; c.fillText(it.w.text,x+fs*0.04,y+fs*0.07); c.fillStyle=it.w.emph?"#f5c542":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
+    c.save(); c.globalAlpha=a; c.textBaseline="middle"; c.textAlign="left"; const punch=!!S.scene?.punch, anyEmph=p.lines.some(l=>l.items.some(it=>it.w.emph)), wholeBox=punch&&!anyEmph;
+    // promptkub: white text with a soft dark glow; on a punch line the key phrase sits in a red box (whole line only when no key phrase)
+    if(wholeBox){ const bw=Math.max(...p.lines.map(l=>l.w))+fs*0.9; c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(W/2-bw/2,y0-fs*0.12,bw,th+fs*0.24,fs*0.16); c.fill(); }
+    p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+li*lh+lh/2;
+      if(punch&&!wholeBox){ let x2=x; ln.items.forEach((it,k)=>{ if(it.w.emph&&!ln.items[k-1]?.w.emph){ let ww=0; for(let j=k;j<ln.items.length&&ln.items[j].w.emph;j++) ww+=ln.items[j].width; c.fillStyle="#c8352b"; c.beginPath(); c.roundRect(x2-fs*0.2,y-lh*0.5,ww+fs*0.3,lh,fs*0.14); c.fill(); } x2+=it.width; }); }
+      ln.items.forEach(it=>{ const f=fs; c.font=`700 ${f}px ${this.fam}`; const boxed=wholeBox||(punch&&it.w.emph);
+        if(!boxed){ c.save(); c.shadowColor="rgba(10,8,6,.6)"; c.shadowBlur=fs*0.35; c.shadowOffsetY=fs*0.04; c.fillStyle="rgba(0,0,0,.25)"; c.fillText(it.w.text,x,y); c.restore(); }
+        c.fillStyle=boxed?"#ffffff":it.w.emph?"#f5c542":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
     if(en.length){ const efs=fs*0.46; c.font=`600 ${efs}px ${this.fam}`; const ew=Math.max(...en.map(l=>c.measureText(l).width))+efs*2, ey=y0+th+fs*0.3; c.fillStyle="rgba(18,20,26,.62)"; c.beginPath(); c.roundRect(W/2-ew/2,ey,ew,en.length*fs*0.62+efs*1.2,efs*0.5); c.fill();
       c.fillStyle="#f2f2f2"; c.textAlign="center"; en.forEach((l,k)=>c.fillText(l,W/2,ey+efs*0.95+k*fs*0.62)); }
     c.restore(); }
@@ -2159,8 +2496,21 @@ class Renderer{
     c.save(); c.globalAlpha=a; c.fillStyle="rgba(20,14,28,.72)"; c.beginPath(); c.roundRect(W/2-w/2,y0,w,h,fs*0.4); c.fill(); c.textBaseline="middle"; c.textAlign="left";
     p.lines.forEach((ln,li)=>{ let x=W/2-ln.w/2; const y=y0+fs*0.45+li*lh+lh/2; ln.items.forEach(it=>{ c.font=`600 ${it.w.emph?fs*1.15:fs}px ${this.fam}`; c.fillStyle=it.w.emph?"#ffd23f":"#ffffff"; c.fillText(it.w.text,x,y); x+=it.width; }); });
     c.restore(); }
-  drawProgress(c,t){ c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(0,0,this.W,6); c.fillStyle="#ff5d8f"; c.fillRect(0,0,this.W*clamp(t/this.total,0,1),6); }
-  drawEnd(c,lt){ const W=this.W,H=this.H,u=Math.min(W,H)/720; BG.abstract(c,W,H,lt); const P=this.project; const p=easeBack(clamp(lt/0.5,0,1));
+  drawProgress(c,t){ if(this.project.look==="doc") return; c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(0,0,this.W,6); c.fillStyle="#ff5d8f"; c.fillRect(0,0,this.W*clamp(t/this.total,0,1),6); }
+  drawEnd(c,lt){ const W=this.W,H=this.H,u=Math.min(W,H)/720;
+    if(this.project.look==="doc"&&this.project.endStyle!=="chip"){ const m=Math.min(W,H), a=easeOut(clamp(lt/0.5,0,1)), P=this.project, black=P.endStyle==="black";
+      c.fillStyle=black?"#07080b":P.skin==="flat"?"#e9b93d":P.skin==="outline"?"#13261e":P.skin==="dark"?"#0d1017":"#141821"; c.fillRect(0,0,W,H);
+      c.save(); c.globalAlpha=a; c.textAlign="center"; c.textBaseline="middle"; c.fillStyle=black?"#8f96a3":P.skin==="flat"?"#15130f":"#f2efe6"; c.font=`${black?600:800} ${m*(black?0.04:0.075)}px ${this.fam}`;
+      const ls=wrap(c,P.endCard.text,W*0.82).slice(0,3); ls.forEach((l,i)=>c.fillText(l,W/2,H*0.44+i*m*(black?0.055:0.095)-(ls.length-1)*m*(black?0.027:0.047)));
+      if(P.endCard.sub&&!black){ c.font=`500 ${m*0.032}px ${this.fam}`; c.globalAlpha=a*0.75; c.fillText(P.endCard.sub,W/2,H*0.44+ls.length*m*0.06+m*0.05,W*0.8); } c.restore(); return; }
+    if(this.project.look==="doc"){ // promptkub-style ending: flat dark navy, small "next" chip, the question in white, one red line
+      const m=Math.min(W,H), a=easeOut(clamp(lt/0.5,0,1)), P=this.project; c.fillStyle="#141821"; c.fillRect(0,0,W,H); c.save(); c.globalAlpha=a; c.textAlign="center"; c.textBaseline="middle";
+      const y=H*0.42-(1-a)*m*0.03; c.font=`600 ${m*0.028}px ${this.fam}`; const chip="• ตอนต่อไป", cw=c.measureText(chip).width+m*0.05; c.fillStyle="#f5f0e6"; c.beginPath(); c.roundRect(W/2-cw/2,y-m*0.13,cw,m*0.05,m*0.025); c.fill(); c.fillStyle="#141821"; c.fillText(chip,W/2,y-m*0.105);
+      c.fillStyle="#ffffff"; c.font=`700 ${m*0.07}px ${this.fam}`; const ls=wrap(c,P.endCard.text,W*0.8).slice(0,2); ls.forEach((l,i)=>c.fillText(l,W/2,y+i*m*0.085)); const yb=y+(ls.length-1)*m*0.085;
+      c.fillStyle="#c8352b"; c.fillRect(W/2-m*0.12,yb+m*0.065,m*0.24,m*0.006);
+      if(P.endCard.sub){ c.fillStyle="#9aa3b2"; c.font=`500 ${m*0.032}px ${this.fam}`; c.fillText(P.endCard.sub,W/2,yb+m*0.12,W*0.8); }
+      c.restore(); return; }
+    BG.abstract(c,W,H,lt); const P=this.project; const p=easeBack(clamp(lt/0.5,0,1));
     c.save(); c.translate(W/2,H*0.42); c.scale(p,p); c.font=`800 ${Math.round(Math.min(W,H)*0.09)}px ${this.fam}`; c.textAlign="center"; c.textBaseline="middle"; c.lineJoin="round";
     wrap(c,P.endCard.text,W*0.85).slice(0,2).forEach((l,i)=>{ const y=i*Math.min(W,H)*0.11; c.lineWidth=18*u; c.strokeStyle=OL; c.strokeText(l,0,y); c.fillStyle="#fff"; c.fillText(l,0,y); });
     if(P.endCard.sub){ c.font=`600 ${Math.round(Math.min(W,H)*0.045)}px ${this.fam}`; c.fillStyle="#2b2140"; c.fillText(P.endCard.sub,0,Math.min(W,H)*0.25,W*0.85); } c.restore();
@@ -2248,19 +2598,24 @@ class AudioEngine{
    Studio (player, editing, export)
    ========================================================= */
 const videoCv=$("video"), R=new Renderer(videoCv), AU=new AudioEngine();
-const DEMO={ example:true, title:"What if โลกหยุดหมุน 1 วินาที", aspect:"9:16", music:"tense", subStyle:"pop",
-  endCard:{text:"อยากรู้ What if เรื่องไหนต่อ?", sub:"คอมเมนต์ไว้เลย!"},
+/* Example clip in the owner's chosen house style (promptkub look, guide format). Facts: Thai EMS 1669; CPR 100-120/min,
+   5-6 cm deep (AHA 2020 guidelines). */
+const DEMO={ example:true, title:"ถ้ามีคนหมดสติตรงหน้าคุณ", aspect:"9:16", music:"tense", subStyle:"doc", look:"doc", charStyle:"pk", endCard:{text:"ถ้าเขาสำลักอาหารล่ะ ต้องทำยังไง?",sub:"คอมเมนต์ไว้ ตอนหน้ามาเฉลย"},
   scenes:[
-    {bg:"space",time:"night",camera:"zoom-in",effect:"sparkles",transition:"cut",sfx:"whoosh",caption:"ถ้าโลกหยุดหมุน 1 วิ?!",narration:"ถ้าวันหนึ่งโลก *หยุดหมุน* แค่ *หนึ่งวินาที* จะเกิดอะไรขึ้น?",duration:3.8,subPos:"bottom",
-     elements:[{type:"prop",name:"earth",x:0.5,y:0.45,scale:2.2,enter:"pop",motion:"float"},{type:"prop",name:"question",x:0.8,y:0.3,scale:0.9,enter:"pop",at:0.6,motion:"pulse"},{type:"emoji",char:"😱",x:0.2,y:0.32,scale:0.9,enter:"pop",at:1.2,motion:"pulse"}]},
-    {bg:"city",time:"day",camera:"shake",effect:"speedlines",transition:"slide",sfx:"boom",caption:"1,670 กม./ชม.",narration:"ทุกอย่างบนพื้นโลกยังพุ่งไปข้างหน้า ด้วยความเร็ว *1,670 กิโลเมตรต่อชั่วโมง*",duration:4.6,subPos:"top",
-     elements:[{type:"character",look:"boy",emotion:"shocked",x:0.3,y:0.78,scale:1.1,enter:"left",motion:"move",toX:1.2,toY:0.7},{type:"prop",name:"car",x:0.7,y:0.82,scale:1.1,enter:"right",motion:"move",toX:1.3,toY:0.75},{type:"prop",name:"building",x:0.15,y:0.62,scale:1.2,enter:"none",motion:"shake"}]},
-    {bg:"ocean",time:"sunset",camera:"orbit",effect:"bubbles",transition:"whip",sfx:"rumble",caption:"สึนามิทั่วโลก",narration:"น้ำทะเลก็ไม่หยุดตาม กลายเป็น *คลื่นยักษ์* ถล่มทุกชายฝั่ง",duration:4,
-     elements:[{type:"prop",name:"wave",x:0.55,y:0.6,scale:3,enter:"right",motion:"move",toX:0.35,toY:0.6},{type:"character",look:"cat",emotion:"scared",x:0.2,y:0.8,scale:0.9,enter:"pop",motion:"jump",say:"เมี้ยววว!"}]},
-    {bg:"lab",time:"day",camera:"zoom-in",effect:"none",transition:"glitch",sfx:"ding",caption:"แต่ข่าวดีคือ...",narration:"แต่ข่าวดีคือ นักวิทยาศาสตร์บอกว่ามัน *แทบเป็นไปไม่ได้* เลย",duration:3.8,
-     elements:[{type:"character",look:"scientist",emotion:"thinking",x:0.5,y:0.8,scale:1.3,enter:"pop",motion:"talk"},{type:"prop",name:"lightbulb",x:0.78,y:0.35,scale:1,enter:"pop",at:1.2,motion:"float",glow:true}]},
-    {bg:"sky",time:"day",camera:"drone",effect:"confetti",transition:"zoom",sfx:"magic",caption:"โลกยังหมุนปกติ!",narration:"เพราะโลก *หนักมาก* ไม่มีแรงไหนหยุดมันได้ในพริบตา *สบายใจได้!*",duration:3.8,
-     elements:[{type:"character",look:"girl",emotion:"excited",x:0.35,y:0.8,scale:1.1,enter:"bottom",motion:"jump"},{type:"character",look:"robot",emotion:"happy",x:0.68,y:0.8,scale:1.1,enter:"bottom",at:0.3,motion:"wave",flip:true},{type:"prop",name:"sun",x:0.8,y:0.22,scale:1,enter:"fade",motion:"none"}]},
+    {bg:"street",time:"day",camera:"zoom-in",transition:"cut",sfx:"whoosh",narration:"ถ้ามีคนล้มหมดสติตรงหน้าคุณ",subEn:"If someone collapses in front of you",emph:["หมดสติ"],punch:true,tag:"ป้ายรถเมล์ · กรุงเทพฯ",clock:"12:05",
+      elements:[{type:"character",look:"girl",pin:"คุณ",emotion:"shocked",x:0.3,y:0.84,scale:0.75,enter:"left"},{type:"character",look:"scientist",emotion:"scared",x:0.68,y:0.84,scale:0.75,enter:"pop",motion:"shake"}]},
+    {bg:"street",time:"day",camera:"pan-right",transition:"slide",narration:"ตบไหล่แรงๆ แล้วเรียกเสียงดัง",subEn:"Tap the shoulders hard and shout",emph:["เรียกเสียงดัง"],
+      elements:[{type:"character",look:"girl",emotion:"scared",x:0.5,y:1.06,scale:1.6,enter:"bottom"}]},
+    {bg:"street",time:"day",camera:"zoom-in",transition:"whip",sfx:"ding",narration:"ไม่ตอบ ไม่หายใจปกติ โทร 1669 ทันที",subEn:"No response, not breathing normally: call 1669 now",emph:["1669"],
+      elements:[{type:"card",kind:"phone",value:"1669",label:"การแพทย์ฉุกเฉิน",x:0.5,y:0.42,enter:"bottom"}]},
+    {bg:"street",time:"day",camera:"static",transition:"fade",narration:"บอกจุดที่อยู่ อาการ และเบอร์ติดต่อกลับ",subEn:"Say where you are, what happened, and your number",emph:["จุดที่อยู่"],
+      elements:[{type:"card",kind:"note",tag:"บอกเจ้าหน้าที่ · TELL",label:"จุดที่อยู่",labelEn:"WHERE YOU ARE",x:0.5,y:0.16,enter:"left"},{type:"card",kind:"note",tag:"บอกเจ้าหน้าที่ · TELL",label:"อาการ",labelEn:"WHAT HAPPENED",x:0.5,y:0.29,enter:"left",at:0.4},{type:"card",kind:"note",tag:"บอกเจ้าหน้าที่ · TELL",label:"เบอร์ติดต่อกลับ",labelEn:"CALLBACK NUMBER",x:0.5,y:0.42,enter:"left",at:0.8}]},
+    {bg:"studio",time:"day",camera:"zoom-in",transition:"slide",sfx:"pop",narration:"กดกลางหน้าอก 100 ถึง 120 ครั้งต่อนาที",subEn:"Push on the centre of the chest, 100 to 120 times a minute",emph:["100 ถึง 120"],
+      elements:[{type:"card",kind:"stat",label:"กดหน้าอก",labelEn:"CHEST COMPRESSIONS",value:"100-120",unit:"ครั้ง/นาที",src:"ที่มา: AHA Guidelines 2020",x:0.5,y:0.28,enter:"top"}]},
+    {bg:"studio",time:"day",camera:"orbit",transition:"zoom",narration:"ลึกราว 5 ถึง 6 เซนติเมตร อย่ากลัวกดแรง",subEn:"About 5 to 6 cm deep. Don't be afraid to push hard",emph:["5 ถึง 6 เซนติเมตร"],punch:true,
+      elements:[{type:"card",kind:"bars",label:"ความลึกที่กด",rows:[{label:"เบาไป",value:"2 ซม.",pct:35,good:false},{label:"ที่ถูก",value:"5-6 ซม.",pct:95,good:true}],src:"ที่มา: AHA Guidelines 2020",x:0.5,y:0.26,enter:"top"}]},
+    {bg:"street",time:"day",camera:"zoom-out",transition:"fade",sfx:"magic",narration:"กดต่อไป จนทีมแพทย์มาถึง",subEn:"Keep pushing until the medical team arrives",emph:["จนทีมแพทย์มาถึง"],
+      elements:[{type:"card",kind:"lesson",strike:"รอหมอมาก่อน",label:"กดหน้าอกทันที จนหมอมาถึง",labelEn:"Start compressions now, keep going until help arrives.",x:0.5,y:0.3,enter:"pop"}]}
   ]};
 let openRecId=store.get("openRec",null);
 let project=null, playing=false, playT=0, rafId=0, voiceBuf=null, lastSpokenScene=-1, exported=null;
@@ -2321,7 +2676,7 @@ function speakText(text,{rate=1,pitch=1,onEnd=null}={}){
 function speakScene(i){
   if($("ttsToggle").value!=="on"||voiceBuf||!TTS.ok) return;
   const s=project.scenes[i]; if(!s?.narration) return;
-  speakText(s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1});
+  speakText(s.speak||s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1});
 }
 /* Preview playback. With the synthetic voice on, the picture waits at the end of each scene until the
    sentence has been fully spoken (like the screen-recording mode), so phrases are never cut off. */
@@ -2329,7 +2684,7 @@ const PV={held:0,done:true,doneAt:0,scene:-1,t0:0};
 function previewVoiceOn(){ return $("ttsToggle").value==="on"&&!voiceBuf&&TTS.ok; }
 function beginPreviewScene(i){ const s=project.scenes[i]; PV.scene=i; PV.done=false; PV.t0=performance.now();
   const ac=AU.ac; if(ac&&AU.master){ if(s.sfx!=="none") AU.sfx(s.sfx,ac.currentTime+0.02); if(project.emphOn!==false) (R.subs[i]?.emphStarts||[]).forEach(f=>AU.osc("sine",900,ac.currentTime+f,0.09,0.12,AU.master,{glideTo:1500})); }
-  const ok=s.narration&&speakText(s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1,onEnd:()=>{ if(PV.scene===i) PV.done=true; }}); if(!ok) PV.done=true; }
+  const ok=s.narration&&speakText(s.speak||s.narration,{rate:s.voice?.rate||1,pitch:s.voice?.pitch||1,onEnd:()=>{ if(PV.scene===i) PV.done=true; }}); if(!ok) PV.done=true; }
 function play(){
   if(!project) return; if(playT>=R.total-0.05) playT=0; playing=true; $("playBtn").textContent="⏸ หยุด";
   const paced=previewVoiceOn();
@@ -2378,8 +2733,8 @@ function b64buf(b64){ const bin=atob(b64), u=new Uint8Array(bin.length); for(let
 async function genVoice({fetchOk=true,quiet=false}={}){ if(!project) return false; const voice=store.get("el_voice","TX3LPaxmHKxFdv7VOQHJ"), ac=AU.ensure(), btn=$("elGen"); const lines=[]; let chars=0, fetched=0;
   btn.disabled=true; const old=btn.textContent;
   try{ for(let i=0;i<project.scenes.length;i++){ const s=project.scenes[i]; if(!s.narration){ lines.push(null); continue; } btn.textContent=`กำลังสร้างเสียง ${i+1}/${project.scenes.length}...`;
-      const had=await elCache(voice+"|"+EL.model+"|"+s.narration); const v=await elLine(s.narration,voice,{fetchOk}); if(!v) return false; if(!had){ fetched++; chars+=s.narration.length; }
-      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+(VOICE_LEAD+Math.max(...v.e)+0.35).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
+      const say=s.speak||s.narration; const had=await elCache(voice+"|"+EL.model+"|"+say); const v=await elLine(say,voice,{fetchOk}); if(!v) return false; if(!had){ fetched++; chars+=say.length; }
+      const buf=await ac.decodeAudioData(b64buf(v.b64)); if(!s.speak&&v.chars===s.narration&&v.s.length===s.narration.length){ s.align={s:v.s,e:v.e}; s.duration=+Math.max(VOICE_LEAD+Math.max(...v.e)+(s.pad??0.35),s.hold||0).toFixed(3); } else { delete s.align; s.duration=Math.max(s.duration,VOICE_LEAD+buf.duration+0.35); }
       lines.push(buf); }
     relayout(); const sr=ac.sampleRate, out=ac.createBuffer(2,Math.ceil((R.total+0.5)*sr),sr);
     lines.forEach((b,i)=>{ if(!b) return; const off=Math.round((R.starts[i]+VOICE_LEAD)*sr); for(let ch=0;ch<2;ch++){ const src=b.getChannelData(Math.min(ch,b.numberOfChannels-1)), dst=out.getChannelData(ch); dst.set(src.subarray(0,Math.max(0,Math.min(src.length,dst.length-off))),off); } });
@@ -2584,15 +2939,25 @@ const SCHEMA=`{
     "subEn": "คำแปลภาษาอังกฤษสั้นๆ ของบทพูดฉากนี้ (ใช้กับ subStyle doc)",
     "emph": ["คำสำคัญ 1-2 คำที่ปรากฏในบทพูดตรงตัว เช่น 1,670 กม./ชม."],
     "subPos": "${CAT.subPos.join("|")}  (ตำแหน่งซับ auto = หลบตัวละครให้อัตโนมัติ)",
+    "punch": false,
+    "tag": "ป้ายสถานที่/เวลามุมซ้ายบน เช่น หาดบางแสน · ชลบุรี (ใส่เฉพาะฉากเปิดเรื่องหรือเปลี่ยนสถานที่)",
+    "clock": "นาฬิกามุมขวาบน เช่น 10:39 หรือ 00:10 (ใส่เมื่อเวลากดดัน นับถอยหลัง)",
     "duration": 3.5,
     "elements": [
-      {"type":"character","look":"${CAT.characters.join("|")}","emotion":"${CAT.emotions.join("|")}","say":"คำพูดในบอลลูนสั้นๆ (ไม่ใส่ก็ได้)","x":0.5,"y":0.8,"scale":1,"enter":"${CAT.enters.join("|")}","at":0,"motion":"${CAT.motions.join("|")}","toX":0.8,"toY":0.8,"flip":false},
+      {"type":"character","look":"${CAT.characters.join("|")}","pin":"ชื่อบนหมุดเหนือหัว (ไม่ใส่ก็ได้)","emotion":"${CAT.emotions.join("|")}","say":"คำพูดในบอลลูนสั้นๆ (ไม่ใส่ก็ได้)","x":0.5,"y":0.8,"scale":1,"enter":"${CAT.enters.join("|")}","at":0,"motion":"${CAT.motions.join("|")}","toX":0.8,"toY":0.8,"flip":false},
       {"type":"prop","name":"${CAT.props.join("|")}","x":0.5,"y":0.4,"scale":1,"enter":"pop","at":0.5,"motion":"float","glow":false},
       {"type":"text","text":"ตัวเลข/คำเด่น เช่น 1,670 กม./ชม.","color":"#ffd23f","x":0.5,"y":0.35,"scale":1,"enter":"pop","at":1},
       {"type":"emoji","char":"😱","x":0.8,"y":0.3,"scale":1,"enter":"pop","at":0.8,"motion":"pulse"},
       {"type":"card","kind":"stat","label":"ค่าซ่อมที่ได้","labelEn":"WHAT YOU GET PAID","value":"฿15,000","unit":"","pct":70,"note":"","good":null,"x":0.5,"y":0.3,"scale":1,"enter":"bottom","at":0.6},
       {"type":"card","kind":"timer","label":"ใช้เวลา","labelEn":"TIME TAKEN","value":"02:00","x":0.5,"y":0.18,"enter":"pop"},
-      {"type":"card","kind":"compare","x":0.5,"y":0.2,"enter":"top","left":{"label":"ช่าง 3 คน","value":"5","unit":"ชั่วโมง","note":"ยังไม่ติด","good":false},"right":{"label":"คุณ","value":"2","unit":"นาที","note":"ซ่อมได้","good":true}}
+      {"type":"card","kind":"compare","x":0.5,"y":0.2,"enter":"top","left":{"label":"ช่าง 3 คน","value":"5","unit":"ชั่วโมง","note":"ยังไม่ติด","good":false},"right":{"label":"คุณ","value":"2","unit":"นาที","note":"ซ่อมได้","good":true}},
+      {"type":"card","kind":"icons","label":"สึนามิ 2547 · บ้านไม้","icon":"house|person|car|building|tree","value":"8","total":10,"unit":"เสียหาย","good":false,"src":"ที่มา: Suppasri et al. 2011","x":0.5,"y":0.25,"enter":"pop"},
+      {"type":"card","kind":"bars","label":"ความเร็ว","rows":[{"label":"คุณวิ่ง","value":"~4 ม./วิ","pct":45,"good":null},{"label":"น้ำสึนามิ","value":"8 ม./วิ","pct":95,"good":false}],"src":"วัดจากสึนามิญี่ปุ่น 2554","x":0.5,"y":0.16,"enter":"top"},
+      {"type":"card","kind":"note","tag":"สายด่วน · EMERGENCY","value":"1669","label":"การแพทย์ฉุกเฉิน","labelEn":"EMERGENCY MEDICAL SERVICES","good":false,"x":0.5,"y":0.2,"enter":"left"},
+      {"type":"card","kind":"phone","value":"1669","label":"การแพทย์ฉุกเฉิน","x":0.5,"y":0.42,"enter":"bottom"},
+      {"type":"card","kind":"phone","tag":"ประกาศพื้นที่","label":"รอประกาศปลอดภัย","note":"ติดตามข่าวทางการ","x":0.5,"y":0.42,"enter":"bottom"},
+      {"type":"card","kind":"plan","label":"ห้องเล็กด้านใน ชั้นล่าง","x":0.5,"y":0.45,"enter":"pop"},
+      {"type":"card","kind":"lesson","strike":"อย่าดูแค่ว่า ท่วมไหม","label":"ดูว่าน้ำจะไปไหน","labelEn":"Don't just ask if it floods. Ask where the water goes.","x":0.5,"y":0.42,"enter":"pop"}
     ]
   }]
 }`;
@@ -2610,6 +2975,7 @@ const LAYOUT_RULES=`กฎการจัดภาพ:
 - การ์ดข้อมูล (type card) คือจุดเด่นของคลิปที่ไวรัล: ตัวเลขสำคัญทุกตัวให้ขึ้นเป็นการ์ด (stat = ตัวเลข+แถบ % , timer = เวลา, compare = เทียบ A vs B พร้อม good true/false) ตัวเลขจะวิ่งนับขึ้นเอง วางไว้ y 0.15-0.45 การ์ดละ 1-2 ใบต่อฉาก
 - เผยข้อมูลทีละชิ้นตามจังหวะบทพูดด้วย "at" (เช่น การ์ดใบแรก at 0.3 ใบที่สอง at 1.5) อย่าให้ทุกอย่างโผล่พร้อมกัน
 - สลับระยะภาพ: ภาพกว้าง (ตัวละครเต็มตัว scale 0.8-1) กับภาพใกล้ (ตัวละคร scale 2.2-2.6, y 1.2-1.3 ให้เห็นครึ่งตัวบน) อย่างน้อย 1-2 ช็อตใกล้ต่อคลิป
+- ฉากวาด 2 มิติตามสถานการณ์ (แบบคลิปไวรัล): beach ชายหาด, estate หมู่บ้านบ้านเดี่ยว+ถนน, school ทางเดิน/ห้องเรียน, nightroom ห้องกลางคืนมีหน้าต่างเมือง, aerial ภาพมุมสูงแบบแผนที่ (ไม่ใส่ตัวละคร ใช้การ์ด/ลูกศร), street ถนนตึกแถวเสาไฟ; ภาพกว้างให้ตัวละคร scale 0.5-0.7 ให้เห็นฉาก ภาพใกล้ scale 1.2-1.6
 - ฉากหลัง studio (ห้องมืดมีสปอตไลต์) เหมาะกับฉากการ์ดข้อมูลและข้อคิด, warehouse (โกดัง) เหมาะกับเรื่องงาน/ร้าน/โรงงาน; พร็อพสมจริง: machine boxes truck door gauge balance
 - ให้ตัวละครแสดงจริง ไม่ยืนนิ่ง: "point" ชี้ไปที่ของหรือตัวเลขสำคัญ (หันหน้าไปทางนั้นด้วย flip), "celebrate" ตอนดีใจหรือเฉลย, "shrug" ตอนสงสัย, "nod" ตอนยืนยัน, "run" ตอนหนีหรือรีบ (ใช้ toX), บทพากย์เป็นเสียงผู้บรรยายบุคคลที่สาม ตัวละครไม่ได้พูดบทนั้น จึงไม่ต้องใช้ "talk" ถ้าอยากให้ตัวละครพูดเอง ให้ใส่คำสั้นๆ ใน "say" (ปากจะขยับเฉพาะตอนบับเบิลขึ้น)
 - ฉากหลัง (bg) เป็นฉาก 3 มิติที่มีของประกอบครบแล้ว เช่น city มีตึกและรถวิ่ง forest มีต้นไม้ ocean มีคลื่นและชายหาด room มีโซฟาและหน้าต่าง จึงไม่ต้องใส่ prop ซ้ำกับฉาก ให้ใช้ prop เฉพาะสิ่งที่เล่าเรื่อง
@@ -2645,7 +3011,7 @@ ${STYLE}` },
 เข้มงวดแต่ยุติธรรม แก้ข้อความเล็กๆ ได้เอง ส่วนปัญหาที่ต้องแก้ภาพ จังหวะ หรือโครงเรื่อง ให้ส่งกลับให้ทีมแก้
 ${STYLE}` },
   { id:"creative", name:"น้องครีม", role:"นักเขียนบท / ครีเอทีฟ", px:{hair:"#ff5d8f",shirt:"#ffd34d",skin:"#ffd7b5"}, bubble:"💡",
-    quick:["คิดหัวข้อคลิป What if 5 หัวข้อ","เขียนบทคลิป 45 วินาที เรื่อง...","เขียนแคปชัน TikTok + แฮชแท็ก"],
+    quick:["คิดหัวข้อคลิป ถ้าเจอ...ต้องทำยังไง 5 หัวข้อ","เขียนบทคลิป 45 วินาที เรื่อง...","เขียนแคปชัน TikTok + แฮชแท็ก"],
     system:`คุณคือ "น้องครีม" นักเขียนบทและครีเอทีฟของออฟฟิศ AI ส่วนตัว เชี่ยวชาญคลิปสั้นแนว What if/ความรู้สนุกๆ สำหรับ TikTok/Reels
 หลักการเขียนบทที่ดี:
 - 3 วินาทีแรกต้องเป็น hook ที่ทำให้หยุดเลื่อน (คำถามช็อก ตัวเลขเกินคาด หรือภาพแปลก)
@@ -2709,7 +3075,7 @@ const STAFF=[
     quick:["เขียนแคปชันโพสต์ให้คลิปล่าสุด","แฮชแท็กไหนกำลังมาแรง","โพสต์เวลาไหนคนดูเยอะ"],
     system:`คุณคือ "น้องโพสต์" แอดมินโซเชียลในฝ่ายบริหาร (หัวหน้าแผนก: พี่มาย) ร่างแคปชัน TikTok/Reels ที่ชวนดูจนจบและชวนคอมเมนต์ พร้อมแฮชแท็ก 3-6 อันที่เกี่ยวข้องจริง ส่งให้พี่มายอนุมัติ\n${STAFF_STYLE}` },
   { id:"trend", dept:"coord", name:"น้องเทรนด์", role:"นักวิจัยเทรนด์", task:"หาเทรนด์และเสนอหัวข้อ", px:{hair:"#e0a030",shirt:"#3fc1a5",skin:"#f2c9a0",headset:true}, bubble:"📈",
-    quick:["หัวข้อแนว What if ที่กำลังมาแรง","คนไทยชอบดูคลิปความรู้แบบไหน","เสนอหัวข้อ 5 หัวข้อ"],
+    quick:["เหตุการณ์ฉุกเฉินที่คนไทยเจอบ่อยช่วงนี้","คนไทยชอบดูคลิปความรู้แบบไหน","เสนอหัวข้อ 5 หัวข้อ"],
     system:`คุณคือ "น้องเทรนด์" นักวิจัยเทรนด์ในฝ่ายประสานงาน (หัวหน้าแผนก: น้องโฟลว์) เสนอหัวข้อคลิปสั้นที่คนไทยน่าจะหยุดดู มี hook แรง ไม่ซ้ำของเดิม และมีข้อเท็จจริงจริงรองรับ\n${STAFF_STYLE}` },
   { id:"fact", dept:"coord", name:"น้องข้อมูล", role:"นักค้นข้อมูล", task:"รวบรวมข้อเท็จจริงและตัวเลข", px:{hair:"#5a4636",shirt:"#a7e8d6",skin:"#e0ac80",glasses:true}, bubble:"📚",
     quick:["ข้อเท็จจริงน่าทึ่งเกี่ยวกับอวกาศ","ตรวจตัวเลขนี้ให้หน่อย","สรุปข้อมูลเรื่องนี้แบบเข้าใจง่าย"],
@@ -3132,7 +3498,11 @@ clearBtn.onclick=()=>{ if(status[current]==="working") return; if(clearBtn.datas
   clearBtn.dataset.armed=""; clearBtn.textContent="ล้างแชต"; chats[current]=[]; saveChats(current); setStatus(current,"idle"); renderChat(); };
 
 function setNarration(x,raw,extraEmph=[]){ const old=x.emph||[]; const r=parseEmph(raw,[...(Array.isArray(extraEmph)?extraEmph:[]),...old]); x.narration=r.text; x.emph=r.emph; x.duration=clamp(Math.max(x.duration,speakSeconds(x.narration)+0.6),1.5,15); }
-function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return; if(typeof l.text==="string"&&cleanStar(l.text)) setNarration(s,l.text,l.emph);
+/* The voice team may rewrite a line for speaking (digits or letters read out: "หนึ่ง หก หก เก้า", "บี"). The subtitle must keep
+   the written form, so such a rewrite goes to s.speak (what the voice reads) and the narration stays as written. */
+function lostTokens(a,b){ const tok=t=>String(t||"").match(/[0-9][0-9,.:/-]*|[A-Za-z]+/g)||[]; const nb=tok(b); return tok(a).some(x=>!nb.includes(x)); }
+function applyVoiceTo(p,j){ (j?.lines||[]).forEach(l=>{ const s=p.scenes[(Number(l.scene)||0)-1]; if(!s) return;
+  if(typeof l.text==="string"&&cleanStar(l.text)){ if(lostTokens(s.narration,cleanStar(l.text))) s.speak=str(cleanStar(l.text),220); else { setNarration(s,l.text,l.emph); delete s.speak; } }
   s.voice={emotion:str(l.emotion,20),rate:num(l.rate,0.6,1.6,1),pitch:num(l.pitch,0.5,1.8,1)}; }); return p; }
 function applyVoice(j){ if(!project) return; applyVoiceTo(project,j); relayout(); renderSceneList(); notice("ใส่บทพากย์ใหม่ลงคลิปแล้ว",3000); }
 
@@ -3236,13 +3606,17 @@ function applyTextEdits(p,j){ let applied=0; if(!j) return 0;
     if(typeof e.caption==="string"&&e.caption.trim()&&e.caption.trim()!==x.caption){ x.caption=str(e.caption,40); applied++; }
     if(typeof e.narration==="string"&&cleanStar(e.narration)&&cleanStar(e.narration)!==x.narration){ setNarration(x,e.narration,e.emph); applied++; } });
   return applied; }
+/* Numbers on a scene's cards must be the numbers the narrator says (clip #4 showed 42 min while the voice said 38). */
+function numsIn(t){ return (String(t||"").match(/\d[\d,]*(\.\d+)?/g)||[]).map(x=>x.replace(/,/g,"")); }
+function cardNums(x){ const out=[]; x.elements.filter(e=>e.type==="card").forEach(e=>{ const vals=e.kind==="compare"?[e.left?.value,e.right?.value]:e.kind==="bars"?(e.rows||[]).map(r=>r.value):e.kind==="timer"?[]:[e.value]; vals.forEach(v=>numsIn(v).forEach(n=>out.push(n))); }); return out; }
 function qaAuto(p){ const out=[], total=p.scenes.reduce((a,x)=>a+x.duration,0);
   if(total<20) out.push(`คลิปสั้นไป (${total.toFixed(0)} วินาที)`); if(total>65) out.push(`คลิปยาวไป (${total.toFixed(0)} วินาที)`);
   if(p.scenes.length<3) out.push("มีน้อยกว่า 3 ฉาก");
   if((p.scenes[0]?.duration||0)>4.2) out.push(`ฉากแรก (hook) ยาว ${p.scenes[0].duration.toFixed(1)} วินาที ควรไม่เกิน 3.5`);
-  p.scenes.forEach((x,i)=>{ if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(p.emphOn!==false&&!(x.emph||[]).length) out.push(`ฉาก ${i+1} ไม่มีคำเน้น (emph)`);
+  p.scenes.forEach((x,i)=>{ if(x.beat) return; if(!x.narration.trim()) out.push(`ฉาก ${i+1} ไม่มีบทพูด`); else if(p.emphOn!==false&&!(x.emph||[]).length) out.push(`ฉาก ${i+1} ไม่มีคำเน้น (emph)`);
     if(x.caption.length>18) out.push(`ฉาก ${i+1} ข้อความบนจอยาว ${x.caption.length} ตัวอักษร (ควรไม่เกิน 18)`);
     if(x.elements.length<2) out.push(`ฉาก ${i+1} มีองค์ประกอบภาพน้อย (${x.elements.length})`);
+    { const said=numsIn(x.narration), cn=cardNums(x); if(said.length&&cn.length&&!cn.some(n=>said.includes(n))) out.push(`ฉาก ${i+1} ตัวเลขบนการ์ด (${cn.join(", ")}) ไม่ตรงกับบทพูด (${said.join(", ")}) ต้องใช้ตัวเลขเดียวกัน`); }
     const nt=x.elements.filter(e=>e.type==="text").length; if(nt>2) out.push(`ฉาก ${i+1} มีข้อความในภาพ ${nt} อัน รกเกินไป (ควรไม่เกิน 2 รวมกับซับ)`);
     if(x.elements.length>6) out.push(`ฉาก ${i+1} มีของในภาพ ${x.elements.length} ชิ้น แน่นเกินไป (ควรไม่เกิน 5)`);
     if(x.elements.some(e=>e.enter==="none"&&e.motion!=="move"&&e.motion!=="walk"&&(e.x<0.04||e.x>0.96))) out.push(`ฉาก ${i+1} มีของหลุดขอบจอ`); });
@@ -3274,22 +3648,147 @@ const EDIT_FORMAT=`ส่งเฉพาะสิ่งที่เปลี่�
 function mergeEdits(base,j,aspect){ const p=clone(base); if(!j||typeof j!=="object") throw new Error("no edits");
   ["title","music","subStyle","look","endCard","emphOn"].forEach(k=>{ if(j[k]!=null&&j[k]!=="") p[k]=j[k]; });
   const list=Array.isArray(j.scenes)?j.scenes:[], full=list.length===p.scenes.length&&list.every(x=>x&&Array.isArray(x.elements)&&x.bg);
-  list.forEach((e,i)=>{ const k=full?i:(Number(e?.scene)||0)-1, x=p.scenes[k]; if(!x||!e) return; const {scene,...rest}=e; Object.assign(x,rest); });
+  list.forEach((e,i)=>{ const k=full?i:(Number(e?.scene)||0)-1, x=p.scenes[k]; if(!x||!e) return; const {scene,...rest}=e;
+    // a fix that rewrites a scene's elements must not silently drop its info cards (clip #4 lost all 8 cards this way)
+    if(Array.isArray(rest.elements)&&!rest.removeCards){ const old=(x.elements||[]).filter(o=>o.type==="card"); if(old.length&&!rest.elements.some(o=>o?.type==="card")) rest.elements=[...rest.elements,...old]; }
+    delete rest.removeCards; Object.assign(x,rest); });
   return normalizeProject({...p,aspect}); }
-const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล`;
-const WHATIF_FORMAT=`แนว "What if / ความรู้สนุก": hook คำถามช็อก เล่าเหตุและผลทีละขั้น มีตัวเลขน่าทึ่งที่ถูกต้อง จบด้วยคำถามชวนคอมเมนต์`;
-const fmtGuide=r=>r.out?.plan?.format==="whatif"?WHATIF_FORMAT:STORY_FORMAT;
+/* Lessons from the owner's viral reference clips (promptkub.ai style, studied Nov 2026). Applied to every format. */
+const VIRAL_RULES=`เทคนิคที่เรียนจากคลิปไวรัลที่เจ้าของส่งมา (เจ้าของสั่งชัดว่าให้เรียนเทคนิค ห้ามลอกโครงหรือหน้าตา ต้องตัดไม่ตายตัว เลือกใช้ตามแบบการตัดของคลิปนี้ ไม่ต้องใช้ครบทุกข้อ):
+- เปิดด้วย "ถ้า..." พูดกับคนดูเป็น "คุณ" วางคนดูไว้ในสถานการณ์จริง มีสถานที่จริงและเวลาจริง (ใส่ tag เช่น "หาดบางแสน · ชลบุรี" และ clock เมื่อเวลากดดัน)
+- ทุกตัวเลขต้องมีการ์ด และใส่ src ที่มาของข้อมูลจริงทุกครั้งที่อ้างงานวิจัยหรือสถิติ ห้ามแต่งตัวเลข
+- เลือกการ์ดให้ตรงข้อมูล: สัดส่วน "X ใน 10" ใช้ kind icons, เทียบความเร็ว/ขนาด 2-3 อย่างใช้ kind bars, A ปะทะ B ใช้ compare, เวลาใช้ timer
+- ประโยคหักมุม/คำเตือนสำคัญ 2-4 ครั้งต่อคลิป ให้ตั้ง punch: true (ซับขึ้นในกล่องแดง) ประโยคอื่นใช้ emph เน้นคำสีเหลือง
+- ซับไทยสั้น 1 บรรทัดต่อช็อต (ไม่เกินราว 18 ตัวอักษร) ตัดภาพทุกประโยค
+- ฉากเดียวกันใช้ซ้ำได้แต่เปลี่ยนมุม: มุมกว้างตั้งเรื่อง แล้วตัดเข้าใกล้ของสำคัญ (ถังแก๊ส ป้าย ตัวเลข) หนึ่งจุดเด่นต่อช็อต
+- ปมคือ "สิ่งที่คนทั่วไปเชื่อ" แล้วหักด้วยข้อเท็จจริง เช่น วิ่งหนีน้ำ ผิด วิ่งหาบันได ถูก
+- ฉากสุดท้าย: การ์ด kind lesson (strike = ความเชื่อเดิมที่ขีดฆ่า, label = หลักคิดใหม่, labelEn = คำแปล) ใช้ได้ แต่ไม่ต้องทุกคลิป ดูกฎความหลากหลายด้านล่าง
+- เรื่องที่ต้องทำอะไรกับมือถือ (โทรสายด่วน อ่านประกาศ) ใช้การ์ด kind phone เป็นมือถือมุมมองคนดู ไม่ต้องมีตัวละคร
+- ต้องบอกตำแหน่งในบ้าน/อาคาร ใช้ bg "blueprint" กับการ์ด kind plan (บ้านผ่าครึ่ง ไฮไลต์ห้องที่ปลอดภัย)
+- ข้อมูลสั้นที่ต้องจำ (เบอร์โทร ข้อห้าม) ใช้การ์ด kind note มี tag; ฉากสรุปท้ายเรียงการ์ด note 2-3 ใบ
+- เรื่องภัยพิบัติ/กลางคืน: เวลา night + effect rain หรือ darken ให้บรรยากาศ ภาพใกล้ตัวละครครึ่งตัวสื่ออารมณ์
+- ภาพแบบ promptkub (เจ้าของสั่งให้ลอกการทำอนิเมชันและตัดต่อของ promptkub ทั้งหมด): ตัวละครคนตัวสูงหัวเล็กสีแบน (ระบบวาดให้เอง) ภาพกว้างให้ตัวละคร scale 0.6-0.8 ยืน y 0.8-0.85 ยืนเรียงในฉากจริง; ภาพใกล้ scale 1.4-1.8 วาง y 1.0-1.1 ให้ล้นขอบล่าง ฉากหลังจะเบลอเอง
+- ตั้งชื่อคนในเรื่องด้วย "pin" บนตัวละคร เช่น "คุณ", "ต้น", "ฟ้า · หัวหน้าห้อง" (ป้ายหมุดเหนือหัว) ใช้ตอนแนะนำตัวละครครั้งแรก
+- ประโยค punch ให้ใส่ emph เป็นคำสำคัญ 1 วลี (จะขึ้นกล่องแดงเฉพาะวลีนั้น) ห้ามใช้อีโมจิ ห้ามใช้ caption
+- ทุกฉากต้องอยู่ในสถานที่จริงตามบท (กินข้าวที่บ้าน = home, โรงพยาบาล = hospital, ถนน = street, โรงเรียน = school ...) ใช้ studio (ห้องมืด) ได้ไม่เกิน 2 ฉาก เฉพาะฉากการ์ดล้วน
+- ภาพแทรกใกล้ (insert) แบบ promptkub อย่างน้อย 3 ช็อตต่อคลิป: พร็อพเดี่ยว scale 2.2-2.8 กลางจอ ไม่มีตัวละคร เช่น needle (มือถือเข็มจ่อนิ้ว), spoon, brain, medicine, ambulance, ct หรือภาพใกล้หน้าตัวละคร scale 3.5-4 วาง y 1.7-1.85
+- ท่าใหม่: motion sit (นั่งเก้าอี้ที่โต๊ะ), lie (นอนตะแคง); emotion droop (ปากเบี้ยว ตาตก) ใช้เมื่อบทพูดถึง
+- คลิปหนึ่งมีได้ถึง 20 ช็อต ช็อตละ 2.5-3.5 วินาที สลับ กว้าง → ใกล้ → แทรกของ → การ์ด ห้ามมีตัวละครยืนเฉยติดกันเกิน 2 ช็อต
+- ห้ามใช้ของไม่ตรงเรื่อง (เช่น คลื่นสึนามิแทนน้ำคลอง ประตูบ้านแทนประตูรถ) ถ้าคลังไม่มีภาพที่ตรง ให้ใช้การ์ดเล่าแทน เรื่องรถ/น้ำ: ฉาก canal (คลองข้างถนน), carin (ในรถกำลังจม), พร็อพ sinkcar cardoor seatbelt winswitch hammer
+- ท่าทางตัวละครต้องตรงบท (ตกใจ = เอามือแตะหน้า, กังวล = กอดอก, คุย = talk, ชี้ = point) ไม่ยกแขนซ้ำทุกฉาก
+- ทุกฉากใช้ฉากวาด 2 มิติ ห้ามฉาก 3 มิติ (sky city ocean forest desert snow space room classroom lab) ยกเว้นไม่มีฉากวาดที่ตรง
+- ใน 5 วินาทีแรกต้องบอกให้ชัดว่า ใคร ที่ไหน กำลังเกิดอะไร (ห้ามเปิดด้วยตัวเลขหรือภาพลอยๆ ที่ยังไม่มีความหมาย) ชื่อตัวเอก/หัวข้อต้องถูกพูดในบทจริง ตัวละครทุกตัวต้องถูกแนะนำก่อนใช้ ภาพเปรียบเทียบหรือย้อนเหตุการณ์ต้องบอกกรอบด้วยคำพูด (เช่น "ย้อนดูอีกรอบ", "สมมติว่า...") และทุกช็อตต้องต่อจากช็อตก่อนด้วยเวลาหรือเหตุผล (ใช้คำเชื่อม เช่น เพราะ, แล้ว, พอ) ตอนจบต้องโยงกลับไปที่ตอนเปิด
+- บทต้องเล่าเป็นเหตุการณ์ตามลำดับเวลา ภาษาพูดสั้นๆ ไม่ใช่รายการข้อเท็จจริง ห้ามเฉลยก่อนเกิดเรื่อง (ห้ามพูดว่า "ผิด!" ก่อนที่ตัวละครจะทำผิดให้เห็น) ห้ามสั่งสิ่งที่ทำไม่ได้ในสถานการณ์นั้น (นั่งอยู่บนเครื่องบินจะ "ถอยห่าง" ไม่ได้)
+- ทุกช็อตต้องมีสิ่งที่ขยับจริงอย่างน้อย 1 อย่าง: ตัวละครทำท่า (motion handup/reach/hold/duck/walk/move, ใส่ sit นำหน้าได้ เช่น sithandup) หรือของเคลื่อนที่ (motion move + toX,toY) หรือควัน/ฟองในพร็อพ หรือการ์ดที่ทยอยเข้าตามจังหวะพูด (ใส่ at) ห้ามมีแต่ตัวละครยืนนิ่งกับการ์ดผุดขึ้นเฉยๆ
+- ของที่ถูกกระทำต้องเห็นเหตุและผล เช่น แบตถูกยัดลงกระเป๋า (ใส่พร็อพ bag ทับด้านหน้า) ลูกเรือเดินเข้ามา (ตัวละคร move จากนอกจอ) ถังดับเพลิงฉีดใส่แบตที่มีควัน (พร็อพ smokebank + extinguisher)
+- ห้ามตัดตามสูตรเดิมทุกคลิป (เจ้าของบอกว่า "ดูออกว่าคัดลอกมา") โครงสร้างต้องต่างกันตามเรื่อง:
+  เปิดคลิปสลับกัน: ภาพแทรกใกล้ก่อนแล้วถอยออก / ฉากกว้างพร้อมป้ายสถานที่ / การ์ดตัวเลขตัวเดียว / หน้าตัวละครพูดคำถาม ห้ามเปิดแบบเดียวกับคลิปก่อน
+  ความยาวช็อตไม่เท่ากัน: ช็อตเร่ง 1.2-2 วินาทีตอนลน ช็อตหนัก 4-5 วินาทีตอนอธิบายตัวเลข (ระบบกำหนด pad ต่อฉากให้)
+  ช็อตเงียบ 0.8-1.2 วินาที ไม่มีบทพูด (narration ว่าง, beat true) คั่นหลังช็อตหนัก เช่น หน้าตกใจ มือสั่น (ถ้าไม่ใส่ ระบบเติมให้)
+  วางการ์ดไม่ซ้ำตำแหน่ง ห้ามกลางบนทุกใบ ป้ายสถานที่ใส่เฉพาะตอนเปลี่ยนที่ นาฬิกาเฉพาะช็อตที่เวลาสำคัญ
+  ตอนจบสลับกัน: หน้าใกล้พูดประโยคสุดท้าย / ภาพนิ่งเงียบ / ย้อนฉากแรก / การ์ดข้อคิด ห้ามใช้อย่างเดียวกันทุกคลิป
+- ปิดด้วยคำถามชวนคอมเมนต์ หรือทิ้งปมตอนต่อไป`;
+const STORY_FORMAT=`แนว "เล่าเรื่อง + ข้อคิด" (แบบคลิปที่ไวรัล): 1) hook เปรียบเทียบตัวเลขที่ขัดกันแล้วถาม เช่น "ช่าง 3 คน 5 ชั่วโมง vs คุณ 2 นาที ใครควรได้มากกว่า?" 2) เล่าเรื่องที่มีเวลา สถานที่ ตัวเลขชัด เช่น "สามทุ่ม ล้งทุเรียนจันทบุรี" 3) วิกฤตและความกดดัน 4) ตัวเอกแก้ได้ด้วยความรู้ 5) จุดหักมุม 6) หลักคิดเบื้องหลัง ยกตัวอย่างที่สองให้เห็นภาพ 7) สรุปเป็นประโยคเดียวจำง่าย 8) คำถามชวนคอมเมนต์ ประโยคสั้น จังหวะเร็ว ช็อตละ 2-4 วินาที ตัวเลขทุกตัวขึ้นเป็นการ์ดข้อมูล
+${VIRAL_RULES}`;
+const WHATIF_FORMAT=`แนว "What if / ความรู้สนุก": hook คำถามช็อก เล่าเหตุและผลทีละขั้น มีตัวเลขน่าทึ่งที่ถูกต้อง จบด้วยคำถามชวนคอมเมนต์
+${VIRAL_RULES}`;
+/* The owner's main format from Nov 2026 (after the Sigma Lens storm-safety reference): a practical "what to do when..." guide. */
+const GUIDE_FORMAT=`แนว "ถ้าเจอ...ต้องทำยังไง" (แบบคลิป Sigma Lens ที่เจ้าของช่องเลือก): 1) hook วางคนดูกลางเหตุการณ์ทันที พูดกับ "คุณ" เช่น "แผ่นหลังคาปลิวต่อหน้าคุณ" ฉากแรกต้องเห็นอันตรายชัด 2) บอกความเสี่ยงต่อไปสั้นๆ 1 ประโยค 3) ขั้นตอนทำทีละอย่าง ประโยคละขั้น เป็นคำสั่งสั้น (พาคนในบ้าน... / ไปชั้นล่าง / หมอบให้ต่ำ ใช้แขนป้องศีรษะ) ภาพแต่ละช็อตแสดงท่าทางนั้นตรงๆ 4) จุดที่คนมักพลาด เช่น "ลมเงียบแล้วก็ยังต้องรอ" 5) หลังเหตุการณ์: อันตรายที่ซ่อนอยู่ (สายไฟตก น้ำขัง) 6) เบอร์ฉุกเฉินไทยที่ถูกต้อง (1669 การแพทย์ฉุกเฉิน, 1784 สาธารณภัย, 191 ตำรวจ, 199 ดับเพลิง, 1129 การไฟฟ้า เฉพาะที่เกี่ยวข้อง) แสดงเป็นการ์ด phone ตอนโทร และบอกว่าต้องพูดอะไร 7) ฉากจบสรุปด้วยการ์ด note 2-3 ใบ (สิ่งที่ต้องจำ) ไม่ต้องมีการ์ด lesson
+ยาว 45-60 วินาที ช็อตละ 2-4 วินาที ทุกขั้นต้องถูกต้องตามคำแนะนำของหน่วยงานจริง (ปภ., สพฉ., กรมอุตุฯ, การไฟฟ้า) ห้ามแต่งขั้นตอนเอง
+ภาพ: ตัวละครครึ่งตัวสื่ออารมณ์ (กังวล ตกใจ) ฉากตามสถานการณ์จริง เวลาและเอฟเฟกต์ตามบรรยากาศ (พายุ = night + rain)
+${VIRAL_RULES}`;
+/* The owner's second main format: promptkub.ai style (tsunami at Bang Saen, school dog, flood estate references). */
+const SCENARIO_FORMAT=`แนว "ถ้า... สถานการณ์จริง + ความเชื่อผิด vs ข้อเท็จจริง" (แบบคลิป promptkub.ai ที่เจ้าของช่องเลือก): 1) hook "ถ้า..." วางคนดูในสถานที่จริงของไทย มีเวลาจริง (tag + clock) เช่น "ตอนคุณอยู่บางแสน" 2) สิ่งที่คนส่วนใหญ่จะทำโดยสัญชาตญาณ แล้วหักด้วยตัวเลขจริง (การ์ด bars/icons/compare พร้อม src) เช่น คุณวิ่ง 4 ม./วิ น้ำ 8 ม./วิ 3) สิ่งที่ควรทำแทน และเหตุผล 4) รายละเอียดที่คนไม่รู้ ทำให้ร้ายแรงขึ้น (ถังแก๊สลอยมา ไฟไหม้ซ้ำ) 5) ตัวอย่างจริงจากเหตุการณ์ในอดีต พร้อมปีและตัวเลข 6) ฉากจบการ์ด lesson: ความเชื่อเดิมขีดฆ่า + หลักคิดใหม่ 1 ประโยค + คำแปลอังกฤษ
+ยาว 60-90 วินาที ช็อตละ 3-4 วินาที ฉากวาด 2 มิติตามสถานที่จริง (beach, school, estate, street, aerial, nightroom) look doc ตัวเลขทุกตัวต้องมีที่มาจริง
+${VIRAL_RULES}`;
+const fmtGuide=r=>({whatif:WHATIF_FORMAT,story:STORY_FORMAT,scenario:SCENARIO_FORMAT}[r.out?.plan?.format]||GUIDE_FORMAT);
 const SCRIPT_RUBRIC=`1) 3 วินาทีแรกทำให้หยุดเลื่อนจริง 2) มีข้อเท็จจริงหรือตัวเลขน่าทึ่งที่ถูกต้องอย่างน้อย 1 จุด 3) เรื่องไหลเป็นเหตุและผล มีจุดหักมุม 4) ประโยคสั้น พูดง่าย ไม่ซ้ำคำ 5) ทุกฉากมีภาพที่ชัดและทำเป็นอนิเมชันได้ 6) ตอนจบชวนคอมเมนต์ 7) ยาวรวม 35-50 วินาที 6-8 ฉาก บทพูดฉากแรกไม่เกิน 30 ตัวอักษร (ความยาวฉากคำนวณจากบทพูด)`;
 /* Director's pass: rule-based polish after editing, so every clip meets the house style even when a model slips. */
 const OUTDOOR=["sky","city","ocean","forest","desert","snow","space"];
 function directorPass(p){ const fixes=[], S=p.scenes, rot=["pan-right","orbit","zoom-in","pan-left","drone","zoom-out"];
+  // house style chosen by the owner from the viral references: documentary subtitles and the muted "doc" look, always
+  if(!p.grammar){ p.grammar=pickGrammarFor(p.title); fixes.push("เลือกแบบการตัด: "+GRAMMAR[p.grammar].label); } const G=GRAMMAR[p.grammar];
+  if(p.subStyle!==G.sub){ p.subStyle=G.sub; fixes.push("ซับแบบ "+G.sub); } p.skin=G.skin; p.enSub=G.en; p.endStyle=G.end; p.tint=G.tint;
+  if(p.look!=="doc"){ p.look="doc"; fixes.push("ใช้โทนภาพ doc สีหม่นมีเกรน"); } if(p.charStyle!=="pk"){ p.charStyle="pk"; fixes.push("ใช้ตัวละครแบบเดียวกันทั้งช่อง"); }
+  { let st=0, lastReal=null; S.forEach((x,i)=>{ if(x.bg==="studio"){ if(++st>2&&lastReal){ x.bg=lastReal.bg; x.time=lastReal.time; fixes.push(`ฉาก ${i+1} ใช้สถานที่จริงของเรื่องแทนห้องมืด`); } } else lastReal=x; }); }
+  S.forEach((x,i)=>{ if(i<S.length-1) x.elements.forEach(e=>{ if(e.type==="card"&&e.kind==="lesson"){ e.kind="note"; e.value=""; e.tag=e.tag||""; fixes.push(`ฉาก ${i+1} การ์ดข้อคิดเก็บไว้ฉากจบ`); } }); });
+  const MAP2D={classroom:"school",city:"street",ocean:"beach",room:"nightroom",abstract:"studio"}; S.forEach((x,i)=>{ if(MAP2D[x.bg]){ x.bg=MAP2D[x.bg]; fixes.push(`ฉาก ${i+1} ใช้ฉากวาด 2 มิติแทนฉาก 3 มิติ`); } });
+  // viral layout: one focal point. No big captions, no emoji; a scene with a card shows only that card (the best match to the narration) and no extra text.
+  S.forEach((x,i)=>{ if(x.caption){ x.caption=""; fixes.push("เอาหัวข้อใหญ่ออก ให้ซับกับการ์ดเล่าเรื่อง"); }
+    const n0=x.elements.length; x.elements=x.elements.filter(e=>e.type!=="emoji"); const cards=x.elements.filter(e=>e.type==="card");
+    if(cards.length){ const said=numsIn(x.narration), score=e=>cardNums({elements:[e]}).filter(n=>said.includes(n)).length; const main=cards.filter(e=>e.kind!=="note"), keep=(main.length?main:cards).slice().sort((a,b)=>score(b)-score(a))[0]; let nn=0;
+      // one main card; small note labels may sit beside it (up to 3, as in the reference recap)
+      x.elements=x.elements.filter(e=>e.type!=="text"&&(e.type!=="card"||e===keep||(e.kind==="note"&&++nn<=3))); }
+    else { let t=0; x.elements=x.elements.filter(e=>e.type!=="text"||++t<=1); }
+    // a prop hidden behind a card only adds noise
+    const ar=p.aspect==="16:9"?16/9:9/16; x.elements.filter(e=>e.type==="card").forEach(cd=>{ const z=cardSize(cd,1), hw=z.w/2*(ar<1?1:1/ar), hh=z.h/2*(ar<1?ar:1); x.elements=x.elements.filter(e=>{ if(e.type!=="prop") return true; const r=0.07*e.scale; return Math.abs(e.x-cd.x)>hw+r||Math.abs(e.y-cd.y)>hh+r*(ar<1?ar:1); }); });
+    if(x.elements.length<n0) fixes.push(`ฉาก ${i+1} ลดของรก ให้เหลือจุดเด่นเดียว`);
+    if(x.subPos!=="auto"){ x.subPos="auto"; fixes.push(`ฉาก ${i+1} ให้ซับหาที่ว่างเอง ไม่ทับหน้าและการ์ด`); }
+    // no floating words: numbers live on cards, everything else in the subtitle
+    if(x.elements.some(e=>e.type==="text")){ x.elements=x.elements.filter(e=>e.type!=="text"); fixes.push(`ฉาก ${i+1} เอาตัวหนังสือลอยออก`); }
+    // a close-up shows one person; small figures behind a giant one look broken
+    const ch=x.elements.filter(e=>e.type==="character"); if(ch.length>1&&ch.some(e=>e.scale>=1.15)){ const big=ch.slice().sort((a,b)=>b.scale-a.scale)[0]; x.elements=x.elements.filter(e=>e.type!=="character"||e===big); fixes.push(`ฉาก ${i+1} ภาพใกล้เหลือตัวละครเดียว`); }
+    else if(ch.length>1){ const sc=ch.reduce((a,e)=>a+e.scale,0)/ch.length; ch.forEach(e=>{ e.scale=+sc.toFixed(2); }); }
+    x.elements.forEach(e=>{ if(e.type!=="card") return;
+      // keep cards clear of the place/clock chips at the top
+      if((x.tag||x.clock)&&e.kind!=="phone"){ const z=cardSize(e,1), hh=z.h/2*(p.aspect==="16:9"?1:9/16); if(e.y-hh<0.15) e.y=+(0.15+hh).toFixed(3); }
+      // phone fills the frame: keep it to the upper part so the subtitle fits below
+      if(e.kind==="phone"){ e.scale=Math.min(e.scale,0.75); e.y=0.36; x.elements=x.elements.filter(o=>o===e||o.type!=="character"||o.scale<0.9); }
+      // a progress bar only means something for a percentage
+      if(e.pct!=null&&e.unit!=="%"&&!/%/.test(e.value)) e.pct=null;
+      // a single-number stat card must show the number the narrator says
+      const said=numsIn(x.narration); if(e.kind==="stat"&&said.length===1){ const cn=numsIn(e.value); if(cn.length===1&&cn[0]!==said[0]&&!String(e.value).includes("-")){ e.value=String(e.value).replace(/\d[\d,]*(\.\d+)?/,said[0]); fixes.push(`ฉาก ${i+1} ตัวเลขบนการ์ดให้ตรงกับเสียง (${said[0]})`); } } }); });
+  { let k=0; S.forEach((x,i)=>{ if(x.punch&&++k>3){ x.punch=false; } }); }
   if(S[0]&&S[0].camera==="static"){ S[0].camera="zoom-in"; fixes.push("ฉากแรกใช้กล้องซูมเข้าให้ hook มีพลัง"); }
   for(let i=1;i<S.length;i++){ if(S[i].camera===S[i-1].camera&&S[i].camera!=="shake"){ const nx=S[i+1]?.camera; const c=rot.find(x=>x!==S[i-1].camera&&x!==nx&&(x!=="drone"||OUTDOOR.includes(S[i].bg))); if(c){ S[i].camera=c; fixes.push(`ฉาก ${i+1} เปลี่ยนมุมกล้องไม่ให้ซ้ำฉากก่อน`); } } }
   if(S.length>=4&&!S.some(x=>x.camera==="drone"||x.camera==="orbit")){ const k=S.findIndex((x,i)=>i>0&&i<S.length-1&&OUTDOOR.includes(x.bg)); const i=k>0?k:1; S[i].camera=OUTDOOR.includes(S[i].bg)?"drone":"orbit"; fixes.push(`ฉาก ${i+1} ใช้มุมกว้าง${S[i].camera==="drone"?"แบบโดรน":"แบบโคจร"}ให้ฉากมีมิติ`); }
   if(S.length>3&&new Set(S.slice(1).map(x=>x.transition)).size<2){ const tr=["whip","slide","zoom","fade","cut"]; S.slice(1).forEach((x,i)=>{ x.transition=tr[i%tr.length]; }); fixes.push("สลับทรานซิชันให้มีจังหวะ"); }
   S.forEach((x,i)=>{ const ch=x.elements.filter(e=>e.type==="character"&&!["move","walk"].includes(e.motion)); for(let a=0;a<ch.length;a++) for(let b=a+1;b<ch.length;b++){ if(Math.abs(ch[a].x-ch[b].x)<0.2&&Math.abs(ch[a].y-ch[b].y)<0.12){
       const n=ch.length; ch.sort((u,v)=>u.x-v.x).forEach((e,k)=>{ e.x=+(n===1?0.5:0.22+k*(0.56/(n-1))).toFixed(3); }); fixes.push(`ฉาก ${i+1} จัดตัวละครไม่ให้ซ้อนกัน`); return; } } });
+  /* Variation: no two clips (and no two stretches of one clip) should be cut by the same template. Everything here is a pure function
+     of (title, scene index, scene text), so running the director again after a QA fix gives the same result. */
+  { const rngOf=(k)=>mkRng(p.title+"|"+k), changed=new Set();
+    // 1. transitions follow the story (new place = fade/slide/zoom, emphasis = whip, otherwise mostly a plain cut), never the same fancy one twice in a row
+    for(let i=1;i<S.length;i++){ const x=S[i], pv=S[i-1], R=rngOf("t"+i+x.narration); let tr;
+      const TP=G.tr; if(x.beat) tr="cut"; else if(x.bg!==pv.bg) tr=TP[Math.floor(R()*TP.length)]; else if(x.punch&&TP.includes("whip")) tr="whip"; else tr=R()<G.cut?"cut":TP[Math.floor(R()*TP.length)];
+      if(tr!=="cut"&&tr===pv.transition) tr="cut"; if(x.transition!==tr){ x.transition=tr; changed.add("ทรานซิชันตามเรื่อง ไม่วนเป็นรอบ"); } }
+    // 2. breath after each line: urgent lines are clipped short, the last line and a change of place breathe
+    S.forEach((x,i)=>{ if(x.beat||!x.narration.trim()) return; const R=rngOf("p"+i+x.narration), urgent=x.punch||/[!?]/.test(x.narration), nx=S[i+1];
+      const [lo,hi]=G.pad, pad=i===S.length-1?hi:urgent?lo:(nx&&nx.bg!==x.bg)?+(lo+(hi-lo)*0.8).toFixed(2):+(lo+R()*(hi-lo)).toFixed(2); if(x.pad!==pad){ x.pad=pad; changed.add("ความยาวช็อตไม่เท่ากัน"); } });
+    // 3. chips: place only when the place changes, clock only on some shots
+    const firstTag=S.findIndex(x=>x.tag), firstClock=S.findIndex(x=>x.clock);
+    S.forEach((x,i)=>{ const R=rngOf("c"+i+x.narration);
+      if(G.chips==="none"){ if(x.tag||x.clock){ x.tag=""; x.clock=""; changed.add("ไม่ใช้ป้ายและนาฬิกา"); } return; }
+      if(i!==firstTag&&x.tag&&(G.chips==="clock"||(i>0&&S[i-1].bg===x.bg))&&R()<0.9){ x.tag=""; changed.add("ป้ายสถานที่เฉพาะตอนเปลี่ยนที่"); }
+      if(G.chips!=="clock"&&i!==firstClock&&x.clock&&R()<0.6){ x.clock=""; changed.add("นาฬิกาเฉพาะบางช็อต"); } });
+    // 4. card layout: position, side and a slight tilt differ shot to shot
+    S.forEach((x,i)=>{ const cards=x.elements.filter(e=>e.type==="card"); if(!cards.length) return; const R=rngOf("l"+i+x.narration), solo=!x.elements.some(e=>e.type==="character"||e.type==="prop");
+      const small=cards.filter(e=>["note","stat","bars","timer","icons"].includes(e.kind)); if(!small.length) return;
+      const wide=small.some(e=>e.kind==="bars"||e.kind==="icons"), xs=wide?[0.5,0.46,0.54]:[0.5,0.38,0.62], bx=xs[Math.floor(R()*3)], low=solo&&R()<0.38, top=Math.min(...small.map(e=>e.y)), shift=low?0.46-top:0;
+      small.forEach((e,k)=>{ e.x=small.length>1?+(0.5+(k%2?0.06:-0.06)).toFixed(2):bx; if(solo&&shift) e.y=+(e.y+shift).toFixed(3); e.tilt=+((R()-0.5)*0.06).toFixed(3); }); changed.add("ตำแหน่งการ์ดสลับ"); });
+    // 5. silent reaction beats (0.9 s, no voice) after heavy shots, at most two, only once
+    if(!S.some(x=>x.beat)&&S.length>=10&&S.length<=18){ let added=0; for(let i=0;i<S.length-2&&added<2;i++){ const x=S[i]; if(x.beat) continue; const R=rngOf("b"+i+x.narration), heavy=x.punch||x.elements.some(e=>e.type==="character"&&["shocked","scared"].includes(e.emotion));
+        if(!heavy||R()>G.beat||(S[i+1]&&S[i+1].beat)) continue; const ch=x.elements.find(e=>e.type==="character"), pr=x.elements.find(e=>e.type==="prop"); let el;
+        if(ch) el={...ch,x:0.5,y:1.78,scale:3.6,motion:"none",say:"",pin:"",enter:"none",flip:false}; else if(pr) el={...pr,x:0.5,y:0.55,scale:Math.min(2.8,pr.scale*1.15),motion:"shake",enter:"none"}; else continue;
+        S.splice(i+1,0,{...x,narration:"",subEn:"",emph:[],punch:false,tag:"",clock:"",caption:"",speak:undefined,align:undefined,sfx:"none",effect:"none",transition:"cut",camera:"zoom-in",pad:0.35,beat:true,duration:0.9,elements:[el]}); added++; i++; changed.add("เพิ่มช็อตเงียบ 0.9 วินาที"); } }
+    changed.forEach(m=>fixes.push(m)); }
   return [...new Set(fixes)]; }
+/* Editing "grammars": four genuinely different ways to cut a clip. The team gets a different one each time (nextGrammar), and the
+   director applies its look and rhythm. The viral references taught technique; none of them is a template. */
+const GRAMMAR={
+  explainer:{label:"อธิบายเป็นขั้น",skin:"paper",sub:"doc",en:true,pad:[0.15,0.45],beat:0.45,cut:0.6,tr:["slide","zoom","fade"],chips:"place",end:"chip",tint:"warm",
+    guide:"14-18 ช็อต ช็อตละ 2.5-4 วินาที ใช้การ์ดข้อมูลประกอบได้ มีป้ายสถานที่ตอนเปลี่ยนที่ จังหวะสม่ำเสมอ ชัดเจน"},
+  slowburn:{label:"เนิบตึง",skin:"dark",sub:"doc",en:false,pad:[0.3,0.9],beat:0.7,cut:0.8,tr:["fade"],chips:"none",end:"black",tint:"cool",
+    guide:"7-10 ช็อต ช็อตยาว 4-8 วินาที เล่าด้วยภาพการกระทำและกล้องที่ค่อยๆ เคลื่อน การ์ดไม่เกิน 2 ใบทั้งคลิป ไม่มีป้ายสถานที่หรือนาฬิกา ซับสั้น เว้นความเงียบให้คนดูอึ้ง ไม่ต้องมีคำแปลอังกฤษ"},
+  rapid:{label:"กระชาก",skin:"flat",sub:"pop",en:false,pad:[0.02,0.12],beat:0.1,cut:0.45,tr:["whip","zoom","slide"],chips:"clock",end:"plain",tint:"neutral",
+    guide:"18-20 ช็อต ช็อตละ 1.2-2.2 วินาที ประโยคสั้นมาก 3-7 คำ ใช้ภาพแทรกและการเคลื่อนไหวเร็ว การ์ดเฉพาะตัวเลขสำคัญ นาฬิกานับถอยหลังได้ ไม่ต้องมีคำแปลอังกฤษ"},
+  story:{label:"เล่าเรื่อง",skin:"outline",sub:"classic",en:true,pad:[0.2,0.6],beat:0.5,cut:0.7,tr:["fade","slide"],chips:"place",end:"plain",tint:"green",
+    guide:"10-14 ช็อต เน้นตัวละครกับบทพูดในบอลลูน (say) ฉากเปลี่ยนด้วยเฟด การ์ดไม่เกิน 3 ใบ จบด้วยภาพตัวละคร ไม่ต้องมีการ์ดข้อคิด"}};
+function pickGrammarFor(title){ const k=Object.keys(GRAMMAR); return k[Math.floor(mkRng("g|"+title)()*k.length)]; }
+/* the least recently used grammar goes next, so two clips in a row never share a way of cutting */
+function nextGrammar(r){ const keys=Object.keys(GRAMMAR), recent=Object.values(recs).filter(x=>x.id!==r.id&&x.out?.plan?.grammar).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,4).map(x=>x.out.plan.grammar);
+  const score=k=>recent.reduce((a,g,i)=>a+(g===k?4-i:0),0), R=mkRng("n|"+(r.topic||"")); return keys.map(k=>[k,score(k)+R()*0.5]).sort((a,b)=>a[1]-b[1])[0][0]; }
+function mkRng(str){ let h=1779033703^String(str).length; for(const ch of String(str)){ h=Math.imul(h^ch.charCodeAt(0),3432918353); h=h<<13|h>>>19; } let a=h>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 /* Apply the subtitle/pacing staff's structured plans wherever the head's cut breaks a rule. */
 function staffFallbacks(p,r){ let n=0; const sj=subJSON(r,"editor","subs"), pj=subJSON(r,"editor","pace");
   p.scenes.forEach((x,i)=>{ const a=(Array.isArray(sj?.scenes)?sj.scenes:[]).find(z=>Number(z?.scene)===i+1);
@@ -3299,18 +3798,20 @@ function staffFallbacks(p,r){ let n=0; const sj=subJSON(r,"editor","subs"), pj=s
       if(a.subPos&&x.subPos==="auto"&&CAT.subPos.includes(a.subPos)&&a.subPos!=="auto"){ x.subPos=a.subPos; } } });
   if(p.scenes.length>3&&new Set(p.scenes.slice(1).map(x=>x.transition)).size<2&&Array.isArray(pj?.scenes)){ pj.scenes.forEach(z=>{ const x=p.scenes[(Number(z?.scene)||0)-1]; if(x&&CAT.transitions.includes(z.transition)){ x.transition=z.transition; n++; } }); }
   return n; }
-const scriptOf=p=>p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}/${x.time}, กล้อง ${x.camera}, ${x.transition}, sfx ${x.sfx}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}(${e.emotion},${e.motion})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:`"${e.text}"`).join(", ")}`).join("\n");
+const scriptOf=p=>p.scenes.map((x,i)=>`ฉาก ${i+1} (${x.duration.toFixed(1)} วิ, ${x.bg}/${x.time}, กล้อง ${x.camera}, ${x.transition}, sfx ${x.sfx}) | ข้อความบนจอ: ${x.caption||"-"} | บทพูด: ${x.narration} | คำเน้น: ${(x.emph||[]).join(", ")||"-"} | ภาพ: ${x.elements.map(e=>e.type==="character"?`${e.look}${e.pin?"["+e.pin+"]":""}(${e.emotion},${e.motion},scale ${e.scale})`:e.type==="prop"?e.name:e.type==="emoji"?e.char:e.type==="card"?`การ์ด ${e.kind}: ${[e.tag,e.strike&&("ขีดฆ่า "+e.strike),e.label,e.value,e.unit,e.kind==="compare"?`${e.left?.label} ${e.left?.value} vs ${e.right?.label} ${e.right?.value}`:"",(e.rows||[]).map(r=>r.label+" "+r.value).join(" / ")].filter(Boolean).join(" ")}`:`"${e.text}"`).join(", ")}${x.tag?` | ป้ายสถานที่: ${x.tag}`:""}${x.punch?" | ซับกล่องแดง":""}`).join("\n")+"\n(สไตล์ช่อง: ไม่ใช้ข้อความบนจอ caption ข้อความทั้งหมดอยู่ในซับและการ์ด)";
 const STEP_FN={
   async plan(r){
     const past=Object.values(recs).filter(x=>x.id!==r.id&&(x.title||x.topic)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20).map(x=>"- "+(x.title||x.topic)).join("\n")||"- (ยังไม่มี)";
+    // alternate the owner's two main formats: whichever was used less recently goes next
+    const lastFmt=Object.values(recs).filter(x=>x.id!==r.id&&x.out?.plan?.format).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0]?.out.plan.format, nextFmt=lastFmt==="scenario"?"guide":"scenario";
     const todo=plan.filter(it=>!it.recId||!recs[it.recId]).slice(0,6).map(it=>`- ${it.topic}${it.hook?` (hook: ${it.hook})`:""}`).join("\n");
-    const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว What if / ความรู้สนุกๆ ที่คนไทยอยากดู";
+    const src=r.topic?`หัวข้อถูกกำหนดมาแล้ว: "${r.topic}" ให้ใช้หัวข้อนี้`:todo?`แผนคอนเทนต์ที่ยังไม่ได้ทำ (เลือกจากนี้ก่อน):\n${todo}`:"ยังไม่มีแผน ให้คิดหัวข้อใหม่เอง แนว guide: สถานการณ์จริงที่คนไทยเจอได้ (ภัยธรรมชาติ อุบัติเหตุ สุขภาพฉุกเฉิน มิจฉาชีพ ในบ้าน บนถนน) แล้วสอนว่าต้องทำอะไรทีละขั้น";
     const trendTxt=await staffWork(r,"plan",[{id:"trend",prompt:`${r.topic?`หัวข้อที่กำหนดมา: "${r.topic}" เสนอมุมเล่า 3 แบบที่น่าดูที่สุด`:`${src}\n\nเสนอหัวข้อคลิปสั้น 3 หัวข้อที่น่าจะคนดูเยอะ`} แต่ละข้อมี hook 1 บรรทัดและเหตุผลสั้นๆ\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}`}]);
-    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}${trendTxt?`\n\nข้อเสนอจากทีมประสานงาน:\n${trendTxt}`:""}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกแนวคลิป (story = เล่าเรื่อง+ข้อคิด แบบคลิปที่ไวรัล เหมาะกับเรื่องงาน เงิน ชีวิต ธุรกิจ จิตวิทยา / whatif = คำถามสมมติ ความรู้วิทยาศาสตร์) เลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","format":"story|whatif","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
+    const j=extractJSON(await ask("coord",`เริ่มงานคลิปใหม่ (วิดีโอ ${r.aspect})\n${src}${trendTxt?`\n\nข้อเสนอจากทีมประสานงาน:\n${trendTxt}`:""}\n\nคลิปที่ช่องเคยทำแล้ว (ห้ามซ้ำ):\n${past}\n\nเลือกแนวคลิป (เจ้าของช่องต้องการ 2 แนวหลักสลับกัน: guide = "ถ้าเจอเหตุการณ์นี้ ต้องทำยังไง" สอนเอาตัวรอด/รับมือทีละขั้น แบบ Sigma Lens / scenario = "ถ้าคุณอยู่ที่... ตอน..." สถานการณ์จริง ความเชื่อผิดหักด้วยตัวเลขจริง จบด้วยหลักคิด แบบ promptkub; ครั้งนี้ให้ใช้ ${nextFmt} ยกเว้นหัวข้อไม่เหมาะ / story = เล่าเรื่อง+ข้อคิด เรื่องงาน เงิน ชีวิต / whatif = คำถามสมมติ ความรู้วิทยาศาสตร์) เลือกหัวข้อ เขียนบรีฟ และแจกงานให้ทีม ตอบสั้นๆ 1-2 บรรทัด แล้วตามด้วย\n\`\`\`json\n{"topic":"หัวข้อคลิป","why":"เหตุผลสั้นๆ","format":"guide|scenario|story|whatif","brief":"บรีฟ 3-4 บรรทัด: กลุ่มคนดู โทน มุมเล่า ความยาว","music":"${CAT.music.join("|")}","notes":{"creative":"...","animator":"...","editor":"...","voice":"..."}}\n\`\`\``));
     const topic=r.topic||str(j?.topic,140); if(!topic) throw new Error("น้องโฟลว์ยังเลือกหัวข้อไม่ได้ ลองกดทำต่ออีกครั้ง");
     r.topic=topic; if(!r.title) r.title=topic;
     const notes={}; ["creative","animator","editor","voice"].forEach(k=>{ const v=str(j?.notes?.[k],300); if(v) notes[k]=v; });
-    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["story","whatif"],"story"),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes};
+    r.out.plan={topic,why:str(j?.why,200),format:pick(j?.format,["guide","scenario","story","whatif"],nextFmt),brief:str(j?.brief,900)||`หัวข้อ: ${topic}`,music:pick(j?.music,CAT.music,""),notes,grammar:nextGrammar(r)};
     r.out.brief={text:r.out.plan.brief,music:r.out.plan.music};
     try{ const f=await staffWork(r,"facts",[{id:"fact",prompt:`หัวข้อคลิป: "${topic}"\nบรีฟ: ${r.out.plan.brief}\n\nรวบรวมข้อเท็จจริงและตัวเลขที่ถูกต้อง 5-8 ข้อสำหรับใช้ในคลิปนี้ บอกด้วยว่าข้อไหนเป็นการประมาณหรือสมมติ และเรื่องที่คนมักเข้าใจผิด`}]); if(f) r.out.plan.facts=f.replace(/^\[งานจาก[^\]]*\]\n/,""); }catch{ logAct(r,"coord","ค้นข้อมูลไม่สำเร็จ ให้ทีมเขียนบทตามบรีฟไปก่อน"); }
     const it=plan.find(x=>!x.recId&&x.topic===topic); if(it){ it.recId=r.id; savePlan(); }
@@ -3389,13 +3890,13 @@ const STEP_FN={
     return "ส่งบทให้น้องพิกเซลแล้ว"; },
   async animator(r){ const scr=String(r.out.creative).split(/```json/i)[0].slice(0,6000);
     const team=await staffWork(r,"animator",[{id:"shot",prompt:`บทคลิป (สัดส่วน ${r.aspect}):\n${scr}\n\nทำ shot list ทีละฉาก: ฉากหลัง เวลา กล้อง เอฟเฟกต์ และเหตุผลสั้นๆ`},{id:"acting",prompt:`บทคลิป:\n${scr}\n\nกำหนดทีละฉาก: ตัวละคร อารมณ์ ท่าทาง พร็อพ และคำพูดในบับเบิล (ถ้ามี)`}]);
-    const house=r.out.plan?.format==="whatif"?`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): subStyle "doc" พร้อม subEn ทุกฉาก (ซับเต็มประโยค ไม่ตัดเป็นเศษคำ), look "bright" หรือ "cinematic" ตามอารมณ์เรื่อง, ตัวเลขสำคัญทุกตัวเป็นการ์ดข้อมูล, ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้, ใช้พร็อพเฉพาะที่สื่อความหมายตรงบท (ถ้าไม่แน่ใจ ใช้การ์ดตัวเลขแทน)`:`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): look "cinematic", subStyle "doc" พร้อม subEn ทุกฉาก, ฉากหลังโทนมืด (studio, warehouse, city night, room night) ตัวเลขทุกตัวเป็นการ์ดข้อมูล ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้`;
-    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${house}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}\n\nเกณฑ์คุณภาพ: ภาพทุกฉากต้องเล่าเรื่องได้แม้ปิดเสียง ตัวละครแสดงอารมณ์ตรงกับบท มีพร็อพหรือข้อความที่สื่อตัวเลข/ข้อเท็จจริงสำคัญ ฉากหลังและมุมกล้องไม่ซ้ำติดกัน มีอย่างน้อย 1 ฉากมุมกว้าง (drone หรือ orbit):\n\n${r.out.creative}`);
+    const house=r.out.plan?.format==="whatif"?`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): subStyle "doc" พร้อม subEn ทุกฉาก (ซับเต็มประโยค ไม่ตัดเป็นเศษคำ), look "doc" (ภาพ 2 มิติแบนสีหม่น มีเกรน แบบคลิปไวรัล) ใช้ฉากวาดตามสถานการณ์ (beach, estate, school, nightroom, aerial, street) ก่อนฉาก 3 มิติ, ตัวเลขสำคัญทุกตัวเป็นการ์ดข้อมูล, ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้, ใช้พร็อพเฉพาะที่สื่อความหมายตรงบท (ถ้าไม่แน่ใจ ใช้การ์ดตัวเลขแทน)`:`\n\nสไตล์ช่อง (แบบคลิปที่ไวรัล): look "doc", subStyle "doc" พร้อม subEn ทุกฉาก, ฉากวาดตามสถานการณ์จริงของเรื่อง (beach, estate, school, nightroom, aerial, street, studio, warehouse) เลือกเวลา day/sunset/night ตามเรื่อง ตัวเลขทุกตัวเป็นการ์ดข้อมูล ช็อตละ 2-4 วินาที สลับภาพกว้างกับภาพใกล้`;
+    let ans=await ask("animator",`นี่คือบทจากน้องครีม แปลงเป็นสตอรี่บอร์ด JSON สำหรับวิดีโอสัดส่วน ${r.aspect} ให้ครบทุกฉาก${note(r,"animator")}${house}${GRAMMAR[r.out.plan?.grammar]?`\n\nแบบการตัดของคลิปนี้ (${GRAMMAR[r.out.plan.grammar].label}) ต้องทำตามนี้ เพราะเจ้าของต้องการให้ทุกคลิปตัดไม่เหมือนกัน: ${GRAMMAR[r.out.plan.grammar].guide}`:""}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง (ปรับได้ถ้ามีเหตุผล):\n${team}`:""}\n\nเกณฑ์คุณภาพ: ภาพทุกฉากต้องเล่าเรื่องได้แม้ปิดเสียง ตัวละครแสดงอารมณ์ตรงกับบท มีพร็อพหรือข้อความที่สื่อตัวเลข/ข้อเท็จจริงสำคัญ ฉากหลังและมุมกล้องไม่ซ้ำติดกัน มีอย่างน้อย 1 ฉากมุมกว้าง (drone หรือ orbit):\n\n${r.out.creative}`);
     let b=extractJSON(ans); if(!b?.scenes){ ans=await ask("animator","JSON เมื่อกี้อ่านไม่ได้ ขอ JSON ใหม่ทั้งก้อนในบล็อก ```json อย่างเดียว ตามโครงเดิม"); b=extractJSON(ans); }
-    r.out.animator=normalizeProject({...b,aspect:r.aspect}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
+    r.out.animator=normalizeProject({...b,aspect:r.aspect,grammar:r.out.plan?.grammar}); r.title=r.out.animator.title; return `วางสตอรี่บอร์ด ${r.out.animator.scenes.length} ฉากแล้ว`; },
   async editor(r){ const sum=scriptOf(r.out.animator);
     const team=await staffWork(r,"editor",[{id:"pace",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nวางจังหวะทีละฉาก: duration ที่เหมาะ transition และ sfx เฉพาะจังหวะสำคัญ อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"scenes":[{"scene":1,"duration":3.2,"transition":"${CAT.transitions.join("|")}","sfx":"${CAT.sfx.join("|")}"}]}\n\x60\x60\x60`},{id:"subs",prompt:`สตอรี่บอร์ด (สัดส่วน ${r.aspect}):\n${sum}\n\nเลือก subStyle ของคลิป และทีละฉาก: คำเน้น 1-2 คำ (ต้องอยู่ในบทพูดตรงตัว) ข้อความบนจอไม่เกิน 18 ตัวอักษร และ subPos อธิบายสั้นๆ แล้วตามด้วย\n\x60\x60\x60json\n{"subStyle":"${CAT.subStyles.join("|")}","scenes":[{"scene":1,"emph":["คำ"],"caption":"ข้อความสั้น","subPos":"${CAT.subPos.join("|")}"}]}\n\x60\x60\x60`}]);
-    const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปัง${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}\n\nสตอรี่บอร์ดตอนนี้ (title "${r.out.animator.title}", music ${r.out.animator.music}, subStyle ${r.out.animator.subStyle}):\n${sum}\n\nสรุปสิ่งที่ตัดต่อเป็น bullet 3-5 ข้อ แล้ว${EDIT_FORMAT}`));
+    const cut=extractJSON(await ask("editor",`นี่คือสตอรี่บอร์ดจากน้องพิกเซล (สัดส่วน ${r.aspect}) ช่วยตัดต่อให้ปัง${GRAMMAR[r.out.plan?.grammar]?` ด้วยแบบการตัด "${GRAMMAR[r.out.plan.grammar].label}": ${GRAMMAR[r.out.plan.grammar].guide}`:""}${note(r,"editor")}${team?`\n\nทีมของเธอเตรียมงานไว้ให้ ใช้เป็นแนวทาง:\n${team}`:""}${r.out.brief?.music?` (พี่มายแนะนำเพลงแนว ${r.out.brief.music})`:""}\n\nสตอรี่บอร์ดตอนนี้ (title "${r.out.animator.title}", music ${r.out.animator.music}, subStyle ${r.out.animator.subStyle}):\n${sum}\n\nสรุปสิ่งที่ตัดต่อเป็น bullet 3-5 ข้อ แล้ว${EDIT_FORMAT}`));
     let f; try{ f=mergeEdits(r.out.animator,cut,r.aspect); }catch{ f=clone(r.out.animator); notice("JSON จากน้องคัทอ่านไม่ได้ ใช้สตอรี่บอร์ดเดิมแทน"); }
     const nFix=staffFallbacks(f,r), dir=directorPass(f); r.out.polish={staff:nFix,director:dir};
     if(nFix||dir.length) logAct(r,"editor",`เกลางานรอบสุดท้าย: ${[nFix?`ใช้แผนของน้องซับ/น้องจังหวะ ${nFix} จุด`:"",...dir].filter(Boolean).slice(0,4).join(" · ")}`);
@@ -3403,7 +3904,7 @@ const STEP_FN={
   async voice(r){ const lines=r.project.scenes.map((s,i)=>`ฉาก ${i+1}: ${s.narration}`).join("\n");
     const team=await staffWork(r,"voice",[{id:"tone",prompt:`บทพูดคลิป "${r.project.title}":\n${lines}\n\nชี้คำหรือประโยคที่พูดแล้วสะดุดหรือเป็นภาษาเขียน พร้อมคำที่พูดง่ายกว่า`},{id:"music",prompt:`คลิป "${r.project.title}" เพลงตอนนี้: ${r.project.music}\n${scriptOf(r.project)}\n\nเลือกเพลงและปรับเสียงประกอบ ตอบสั้นๆ แล้วตามด้วย\n\`\`\`json\n{"music":"${CAT.music.join("|")}","sfx":[{"scene":1,"sfx":"${CAT.sfx.join("|")}"}]}\n\`\`\``}]);
     const tone=team.split("\n\n[งานจาก").find(x=>x.includes("น้องโทน"))||"";
-    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก${note(r,"voice")}${tone?`\n\nข้อสังเกตจากน้องโทน:\n${tone.replace(/^\[?งานจาก[^\]]*\]\n/,"")}`:""}:\n\n${lines}`));
+    const vj=extractJSON(await ask("voice",`นี่คือบทพูดของคลิป "${r.project.title}" ช่วยปรับให้พากย์ลื่นปากและกำกับอารมณ์ทีละฉาก (ถ้าต้องสะกดตัวเลข/ตัวอักษรเป็นคำอ่าน เช่น 1669 = หนึ่ง หก หก เก้า ให้เขียนใน text ได้ ระบบจะใช้แค่เป็นเสียง ซับยังแสดงตัวเลขเดิม)${note(r,"voice")}${tone?`\n\nข้อสังเกตจากน้องโทน:\n${tone.replace(/^\[?งานจาก[^\]]*\]\n/,"")}`:""}:\n\n${lines}`));
     const mj=subJSON(r,"voice","music"); if(mj){ r.project.music=pick(mj.music,CAT.music,r.project.music); (Array.isArray(mj.sfx)?mj.sfx:[]).forEach(x=>{ const sc=r.project.scenes[(Number(x?.scene)||0)-1]; if(sc) sc.sfx=pick(x.sfx,CAT.sfx,sc.sfx); }); }
     r.out.voice=vj?.lines?{lines:vj.lines}:{lines:[]}; r.project=applyVoiceTo(r.project,r.out.voice); return "ปรับบทพากย์และอารมณ์เสียงแล้ว"; },
 };
@@ -3565,7 +4066,7 @@ function renderPlan(){ const box=$("planBox"); if(!box) return; box.innerHTML=""
     else if(r){ b.textContent=st.k==="ask"?"ตอบคำถาม":"▶ ทำต่อ"; b.onclick=()=>st.k==="ask"?(showAsk(r),$("askBox").scrollIntoView({block:"center"})):runPipeline(r); b.disabled=!!runningRec&&st.k!=="ask"; }
     else { b.textContent="สั่งทำ"; b.disabled=!!runningRec; b.onclick=()=>{ const nr=newRec(it.topic+(it.hook?` (hook: ${it.hook})`:""),$("aspect").value); nr.title=it.topic; it.recId=nr.id; savePlan(); runPipeline(nr); }; }
     tools.appendChild(b); box.appendChild(row); }); }
-$("planAsk").onclick=()=>{ select("manager"); showTab("chat"); input.value="วางแผนคอนเทนต์ 7 วันสำหรับ TikTok ช่องความรู้สนุกๆ แนว What if"; input.focus(); };
+$("planAsk").onclick=()=>{ select("manager"); showTab("chat"); input.value="วางแผนคอนเทนต์ 7 วันสำหรับ TikTok แนว ถ้าเจอเหตุการณ์นี้ต้องทำยังไง (เอาตัวรอด รับมือเหตุฉุกเฉิน)"; input.focus(); };
 const planClear=$("planClear"); planClear.onclick=()=>{ if(planClear.dataset.armed!=="1"){ planClear.dataset.armed="1"; planClear.textContent="กดอีกครั้งเพื่อล้าง"; setTimeout(()=>{ planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; },3000); return; } planClear.dataset.armed=""; planClear.textContent="ล้างแผน"; plan=[]; savePlan(); };
 $("demoBtn").onclick=()=>{ openRecId=null; store.set("openRec",null); loadProject(DEMO,{switchTab:true}); renderLibrary(); renderReview(); };
 

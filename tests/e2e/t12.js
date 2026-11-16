@@ -24,7 +24,7 @@ const MOCK=`(()=>{
 (async()=>{
   const b=await chromium.launch(); const errs=[];
   const p=await b.newPage({viewport:{width:1300,height:1000}});
-  p.on('pageerror',e=>errs.push(e.message)); p.on('console',m=>{ if(m.type()==='error') errs.push('c:'+m.text()); });
+  p.on('pageerror',e=>errs.push(e.message)); p.on('console',m=>{ if(m.type()==='error'&&!/ERR_TUNNEL_CONNECTION_FAILED/.test(m.text())) errs.push('c:'+m.text()); });
   await p.addInitScript(MOCK);
   await p.goto('file://'+SP+'/wrapped.html'); await p.waitForTimeout(800);
   await p.screenshot({path:SP+'/v5-home.png'});

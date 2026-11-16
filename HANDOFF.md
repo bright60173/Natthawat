@@ -1,6 +1,7 @@
 # AI Office — handoff notes
 
 Read CONVERSATION_LOG.md too: it records everything the owner asked, chose and criticised.
+Reference clips the owner sent are saved in references/viral/ (see its README).
 
 Personal AI office web app (Thai) where a team of 20 AI employees plans, writes,
 animates, edits, voices, checks and approves short vertical videos. The owner uses
@@ -91,8 +92,8 @@ the whole team with real Claude through the Claude Code CLI.
 
 1. Run clip #4 end to end with the latest system (house style, new illustrations,
    composition rules, approval loop) and send it with voice.
-2. 3D city/meadow backgrounds still look toy-like next to the new illustrations;
-   consider illustrated 2D sets per situation with the cinematic look.
+2. Done: illustrated 2D sets (beach, estate, school, nightroom, aerial, street) + `doc` look,
+   viral cards (icons, bars, lesson, src), punch subtitles, tag/clock chips (see CONVERSATION_LOG).
 3. The owner has not picked a narrator voice yet (default Liam, `TX3LPaxmHKxFdv7VOQHJ`).
 4. Unverified on a real iPad: in-app ElevenLabs fetch (claude.ai may block it) and
    video export on iPhone Safari.
